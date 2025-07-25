@@ -51,18 +51,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const handleGroupChange = () => {
         groups.clear();
-        nextGroupId = 1;
         const allRows = Array.from(playerRowsContainer.querySelectorAll('.player-row'));
+
+        // Find existing group IDs to determine the next available ID
+        const existingGroupIds = new Set<string>();
+        allRows.forEach(row => {
+            const select = row.querySelector('.group-select') as HTMLSelectElement;
+            if (select.dataset.createdGroupId) {
+                existingGroupIds.add(select.dataset.createdGroupId);
+            } else if (select.value.startsWith('group-')) {
+                existingGroupIds.add(select.value);
+            }
+        });
+
         allRows.forEach(row => {
             const select = row.querySelector('.group-select') as HTMLSelectElement;
             if (select.value === 'new-group') {
-                const newGroupId = `group-${nextGroupId++}`;
+                // Find the next available group ID
+                let newGroupId = '';
+                if (!select.dataset.createdGroupId) {
+                    let groupNum = 1;
+                    while (existingGroupIds.has(`group-${groupNum}`)) {
+                        groupNum++;
+                    }
+                    newGroupId = `group-${groupNum}`;
+                    existingGroupIds.add(newGroupId);
+                    select.dataset.createdGroupId = newGroupId;
+                } else {
+                    newGroupId = select.dataset.createdGroupId;
+                }
+
                 const player = getPlayerFromRow(row as HTMLElement);
                 if (player) {
                     if (!groups.has(newGroupId)) groups.set(newGroupId, []);
                     groups.get(newGroupId)!.push(player);
                 }
-                select.dataset.createdGroupId = newGroupId;
             } else if (select.value.startsWith('group-')) {
                 const player = getPlayerFromRow(row as HTMLElement);
                 if (player) {
@@ -402,8 +425,11 @@ document.addEventListener('DOMContentLoaded', () => {
             'power' in item ? item.power : item.averagePower
         ))].sort((a, b) => b - a);
 
+        console.log('DEBUG: Trying to fill pod of size', targetSize, 'with power levels:', powerLevels);
+
         // Try to form a pod with each possible power level
         for (const targetPower of powerLevels) {
+            console.log('DEBUG: Trying targetPower:', targetPower);
             const validCombinations = findValidCombinations(remainingItems, targetSize, targetPower, allowLeniency);
 
             for (const combination of validCombinations) {
@@ -426,6 +452,13 @@ document.addEventListener('DOMContentLoaded', () => {
         targetPower: number,
         allowLeniency: boolean
     ): (Player | Group)[][] => {
+        console.log('DEBUG: findValidCombinations called with targetSize:', targetSize, 'targetPower:', targetPower, 'allowLeniency:', allowLeniency);
+        console.log('DEBUG: Available items:', items.map(item => ({
+            name: 'name' in item ? item.name : `Group ${item.id.split('-')[1]}`,
+            power: 'power' in item ? item.power : item.averagePower,
+            size: 'size' in item ? item.size : 1
+        })));
+
         // Filter items that match the power criteria
         const candidates = items.filter(item => {
             const itemPower = 'power' in item ? item.power : item.averagePower;
@@ -434,9 +467,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return powerMatch || leniencyMatch;
         });
 
+        console.log('DEBUG: Filtered candidates:', candidates.map(item => ({
+            name: 'name' in item ? item.name : `Group ${item.id.split('-')[1]}`,
+            power: 'power' in item ? item.power : item.averagePower,
+            size: 'size' in item ? item.size : 1
+        })));
+
         const validCombinations: (Player | Group)[][] = [];
         generateCombinations(candidates, targetSize, [], validCombinations, allowLeniency);
 
+        console.log('DEBUG: Generated', validCombinations.length, 'valid combinations');
         return validCombinations;
     };
 
@@ -479,22 +519,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const isPodValid = (podPlayers: (Player | Group)[], allowLeniency: boolean): boolean => {
         if (podPlayers.length <= 1) return true;
 
-        // Get all individual power levels from the pod
-        const powerLevels: number[] = [];
+        // Get representative power levels from the pod (average for groups, actual for individuals)
+        const representativePowers: number[] = [];
         podPlayers.forEach(item => {
             if ('players' in item) {
-                // It's a group, add all player powers
-                item.players.forEach(p => powerLevels.push(p.power));
+                // It's a group, use its average power (already calculated)
+                representativePowers.push(item.averagePower);
             } else {
-                // It's a player
-                powerLevels.push(item.power);
+                // It's a player, use their individual power
+                representativePowers.push(item.power);
             }
         });
 
-        // Check that all power levels are compatible with each other
-        for (let i = 0; i < powerLevels.length; i++) {
-            for (let j = i + 1; j < powerLevels.length; j++) {
-                const diff = Math.abs(powerLevels[i] - powerLevels[j]);
+        // Check that all representative power levels are compatible with each other
+        for (let i = 0; i < representativePowers.length; i++) {
+            for (let j = i + 1; j < representativePowers.length; j++) {
+                const diff = Math.abs(representativePowers[i] - representativePowers[j]);
                 if (diff > 0.01 && (!allowLeniency || diff > 0.5)) {
                     return false;
                 }
@@ -518,21 +558,13 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
-        // For 6+ players, we might have multiple pods, so use backtracking for optimal assignment
+        // For 6+ players, try the greedy algorithm directly for now (skip the complex backtracking)
         if (totalPlayers >= 6) {
-            const optimalPods = findOptimalPodAssignment(items, targetSizes, allowLeniency);
-            if (optimalPods.length > 0) {
-                const assignedItems = new Set<Player | Group>();
-                optimalPods.forEach(pod => {
-                    pod.players.forEach(item => assignedItems.add(item));
-                });
-                const unassigned = items.filter(item => !assignedItems.has(item));
-                return { pods: optimalPods, unassigned };
-            }
+            return generatePodsGreedy(items, targetSizes, allowLeniency);
         }
 
-        // Fallback to greedy for edge cases
-        return generatePodsGreedy(items, targetSizes, allowLeniency);
+        // Fallback 
+        return { pods: [], unassigned: items };
     };
 
     // Greedy algorithm for edge cases and fallback
@@ -540,46 +572,160 @@ document.addEventListener('DOMContentLoaded', () => {
         const pods: Pod[] = [];
         let remainingItems = [...items];
 
+        // Separate groups and individuals for smarter processing
+        const groups = remainingItems.filter(item => 'players' in item) as Group[];
+        const individuals = remainingItems.filter(item => !('players' in item)) as Player[];
+
+        // Process groups first (they have higher priority to stay together)
+        for (const group of groups) {
+            const groupSize = group.size;
+            const groupPower = group.averagePower;
+
+            // Find a target size that can accommodate this group
+            const suitableTargetSize = targetSizes.find(size => size >= groupSize);
+            if (!suitableTargetSize) continue;
+
+            let pod: (Player | Group)[] = [group];
+            let podSize = groupSize;
+            const remainingSpaceInPod = suitableTargetSize - groupSize;
+
+            // Find compatible individual players to fill the pod
+            const compatibleIndividuals = individuals
+                .filter(player => remainingItems.includes(player))
+                .filter(player => {
+                    const powerDiff = Math.abs(player.power - groupPower);
+                    return powerDiff < 0.01 || (allowLeniency && powerDiff <= 0.5);
+                })
+                .sort((a, b) => Math.abs(a.power - groupPower) - Math.abs(b.power - groupPower)); // Closest first
+
+            // Add individuals to fill the pod
+            for (const individual of compatibleIndividuals) {
+                if (podSize < suitableTargetSize) {
+                    pod.push(individual);
+                    podSize++;
+                    remainingItems = remainingItems.filter(item => item !== individual);
+                    individuals.splice(individuals.indexOf(individual), 1);
+                }
+            }
+
+            // Create the pod if it has at least 3 players
+            if (podSize >= 3) {
+                const powers = pod.map(item => 'power' in item ? item.power : item.averagePower);
+                const avgPower = Math.round((powers.reduce((a, b) => a + b, 0) / powers.length) * 2) / 2;
+                pods.push({ players: pod, power: avgPower });
+                remainingItems = remainingItems.filter(item => item !== group);
+            }
+        }
+
+        // Now process remaining individuals using the original algorithm
         for (const targetSize of targetSizes) {
-            if (remainingItems.length === 0) break;
+            if (remainingItems.length === 0 || remainingItems.every(item => 'players' in item)) break;
 
-            // Try to create a pod of the target size
-            let pod: (Player | Group)[] = [];
-            let podSize = 0;
+            // Only work with remaining individual players
+            const remainingIndividuals = remainingItems.filter(item => !('players' in item)) as Player[];
+            if (remainingIndividuals.length === 0) break;
 
-            // Sort remaining items by power level (descending)
-            const sortedItems = [...remainingItems].sort((a, b) => {
-                const powerA = 'power' in a ? a.power : a.averagePower;
-                const powerB = 'power' in b ? b.power : b.averagePower;
-                return powerB - powerA;
+            // Sort by power level
+            const sortedItems = [...remainingIndividuals].sort((a, b) => {
+                return b.power - a.power;
             });
 
-            // Try to fill the pod greedily while respecting power compatibility
-            for (const item of sortedItems) {
-                if (remainingItems.includes(item)) {
-                    const itemSize = 'size' in item ? item.size : 1;
+            let bestPod: (Player | Group)[] = [];
+            let bestPodScore = 0;
 
-                    if (podSize + itemSize <= targetSize) {
-                        // Check if this item can be added to the current pod
-                        const tempPod = [...pod, item];
-                        if (isPodValid(tempPod, allowLeniency)) {
+            // Try starting with each individual player
+            for (let startIdx = 0; startIdx < sortedItems.length; startIdx++) {
+                const startItem = sortedItems[startIdx];
+                if (!remainingItems.includes(startItem)) continue;
+
+                const startPower = startItem.power;
+                let pod: (Player | Group)[] = [startItem];
+                let podSize = 1;
+
+                // Add compatible individuals to this pod
+                for (const item of sortedItems) {
+                    if (item === startItem || !remainingItems.includes(item)) continue;
+
+                    if (podSize < targetSize) {
+                        const powerDiff = Math.abs(item.power - startPower);
+                        const isCompatible = powerDiff < 0.01 || (allowLeniency && powerDiff <= 0.5);
+
+                        if (isCompatible) {
                             pod.push(item);
-                            podSize += itemSize;
-                            remainingItems = remainingItems.filter(r => r !== item);
+                            podSize++;
                         }
+                    }
+                }
+
+                // Score this pod
+                if (podSize >= 3) {
+                    let score = podSize * 10;
+                    if (score > bestPodScore) {
+                        bestPod = pod;
+                        bestPodScore = score;
                     }
                 }
             }
 
-            // If we have a valid pod, add it
-            if (pod.length > 0 && podSize >= 3) { // Minimum pod size is 3
-                // Calculate the pod's representative power level
-                const powers = pod.map(item => 'power' in item ? item.power : item.averagePower);
+            // Add the best pod found
+            if (bestPod.length > 0) {
+                const powers = bestPod.map(item => 'power' in item ? item.power : item.averagePower);
                 const avgPower = Math.round((powers.reduce((a, b) => a + b, 0) / powers.length) * 2) / 2;
-                pods.push({ players: pod, power: avgPower });
-            } else if (pod.length > 0) {
-                // Put items back if pod is too small
-                remainingItems.push(...pod);
+                pods.push({ players: bestPod, power: avgPower });
+                remainingItems = remainingItems.filter(item => !bestPod.includes(item));
+            } else {
+                break;
+            }
+        }
+
+        // Final attempt: place remaining groups with relaxed constraints
+        const remainingGroups = remainingItems.filter(item => 'players' in item) as Group[];
+        for (const group of remainingGroups) {
+            const groupSize = group.size;
+            const groupPower = group.averagePower;
+
+            // Try to add to any existing pod that has space
+            for (const pod of pods) {
+                const currentPodSize = pod.players.reduce((sum, p) => sum + ('size' in p ? p.size : 1), 0);
+
+                if (currentPodSize + groupSize <= 5) {
+                    const powerDiff = Math.abs(pod.power - groupPower);
+
+                    // More relaxed constraints for groups
+                    if (powerDiff <= 1.0 || (allowLeniency && powerDiff <= 2.0)) {
+                        pod.players.push(group);
+                        remainingItems = remainingItems.filter(item => item !== group);
+
+                        // Recalculate pod power
+                        const powers = pod.players.map(item => 'power' in item ? item.power : item.averagePower);
+                        pod.power = Math.round((powers.reduce((a, b) => a + b, 0) / powers.length) * 2) / 2;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Final attempt: place remaining individuals with relaxed constraints
+        const remainingIndividualPlayers = remainingItems.filter(item => !('players' in item)) as Player[];
+        for (const individual of remainingIndividualPlayers) {
+            const itemPower = individual.power;
+
+            for (const pod of pods) {
+                const currentPodSize = pod.players.reduce((sum, p) => sum + ('size' in p ? p.size : 1), 0);
+
+                if (currentPodSize < 5) {
+                    const powerDiff = Math.abs(pod.power - itemPower);
+
+                    if (powerDiff <= 1.5) { // Very relaxed for individuals
+                        pod.players.push(individual);
+                        remainingItems = remainingItems.filter(item => item !== individual);
+
+                        // Recalculate pod power
+                        const powers = pod.players.map(item => 'power' in item ? item.power : item.averagePower);
+                        pod.power = Math.round((powers.reduce((a, b) => a + b, 0) / powers.length) * 2) / 2;
+                        break;
+                    }
+                }
             }
         }
 

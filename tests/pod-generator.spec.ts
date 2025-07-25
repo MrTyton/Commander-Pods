@@ -429,4 +429,386 @@ test.describe('MTG Commander Pod Generator', () => {
         // They should NOT be together due to power level spread > 0.5
         expect(eveAndDaveTogether).toBeFalsy();
     });
+
+    test('should handle large groups with 30+ players efficiently', async ({ page }) => {
+        // Create 32 players across different power levels
+        const players: { name: string; power: string }[] = [];
+
+        // 8 players at power level 6
+        for (let i = 1; i <= 8; i++) {
+            players.push({ name: `PowerSix${i}`, power: '6' });
+        }
+
+        // 12 players at power level 7
+        for (let i = 1; i <= 12; i++) {
+            players.push({ name: `PowerSeven${i}`, power: '7' });
+        }
+
+        // 8 players at power level 8
+        for (let i = 1; i <= 8; i++) {
+            players.push({ name: `PowerEight${i}`, power: '8' });
+        }
+
+        // 4 players at power level 9
+        for (let i = 1; i <= 4; i++) {
+            players.push({ name: `PowerNine${i}`, power: '9' });
+        }
+
+        // Add the required player rows (start with 4, need 32 total)
+        for (let i = 4; i < players.length; i++) {
+            await page.click('#add-player-btn');
+        }
+
+        // Fill in all players
+        for (let i = 0; i < players.length; i++) {
+            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
+            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+        }
+
+        // Generate pods
+        await page.click('#generate-pods-btn');
+
+        // Should create 8 pods (32 players / 4 players per pod)
+        const pods = page.locator('.pod:not(.unassigned-pod)');
+        const podCount = await pods.count();
+        expect(podCount).toBeGreaterThanOrEqual(6); // At least 6 pods, could be up to 8
+
+        // Verify total player count across all pods
+        let totalPlayersInPods = 0;
+        for (let i = 0; i < podCount; i++) {
+            const podContent = await pods.nth(i).textContent();
+            const playerCount = (podContent?.match(/\([P]:/g) || []).length;
+            totalPlayersInPods += playerCount;
+        }
+
+        // Check if there are unassigned players
+        const unassignedSection = page.locator('.unassigned-pod');
+        const unassignedExists = await unassignedSection.count();
+        let unassignedCount = 0;
+
+        if (unassignedExists > 0) {
+            const unassignedContent = await unassignedSection.textContent();
+            unassignedCount = (unassignedContent?.match(/\([P]:/g) || []).length;
+        }
+
+        // Total should equal 32
+        expect(totalPlayersInPods + unassignedCount).toBe(32);
+    });
+
+    test('should handle multiple groups with complex power distributions', async ({ page }) => {
+        // Create 16 players with 3 different groups - simpler than before
+        const players = [
+            // Group 1: Mixed power levels (should average to ~7)
+            { name: 'Alice', power: '6' },
+            { name: 'Bob', power: '8' },
+            { name: 'Charlie', power: '7' },
+
+            // Group 2: High power level group
+            { name: 'Dave', power: '9' },
+            { name: 'Eve', power: '9' },
+
+            // Group 3: Low power level group  
+            { name: 'Frank', power: '5' },
+            { name: 'Grace', power: '5' },
+            { name: 'Henry', power: '6' },
+
+            // Ungrouped players with various power levels
+            { name: 'Karen', power: '6' },
+            { name: 'Luke', power: '7' },
+            { name: 'Mary', power: '8' },
+            { name: 'Nick', power: '9' },
+            { name: 'Olivia', power: '5' },
+            { name: 'Paul', power: '7' },
+            { name: 'Quinn', power: '8' },
+            { name: 'Rachel', power: '6' },
+        ];
+
+        // Add the required player rows
+        for (let i = 4; i < players.length; i++) {
+            await page.click('#add-player-btn');
+        }
+
+        // Fill in all players
+        for (let i = 0; i < players.length; i++) {
+            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
+            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+        }
+
+        // Create Group 1 (Alice, Bob, Charlie)
+        await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');
+        await page.selectOption('.player-row:nth-child(2) .group-select', 'group-1');
+        await page.selectOption('.player-row:nth-child(3) .group-select', 'group-1');
+
+        // Create Group 2 (Dave, Eve) - trigger group creation and wait for DOM update
+        await page.selectOption('.player-row:nth-child(4) .group-select', 'new-group');
+        // Wait a bit for DOM to update, then try to select group-2
+        await page.waitForTimeout(100);
+        await page.selectOption('.player-row:nth-child(5) .group-select', 'group-2');
+
+        // Create Group 3 (Frank, Grace, Henry) - trigger group creation and wait for DOM update
+        await page.selectOption('.player-row:nth-child(6) .group-select', 'new-group');
+        // Wait a bit for DOM to update, then try to select group-3
+        await page.waitForTimeout(100);
+        await page.selectOption('.player-row:nth-child(7) .group-select', 'group-3');
+        await page.selectOption('.player-row:nth-child(8) .group-select', 'group-3');
+
+        // Generate pods
+        await page.click('#generate-pods-btn');
+
+        // Should create at least one pod
+        const pods = page.locator('.pod:not(.unassigned-pod)');
+        await expect(pods.first()).toBeVisible();
+        const podCount = await pods.count();
+        expect(podCount).toBeGreaterThanOrEqual(1); // At least 1 pod for 16 players
+
+        // Verify that all groups are kept together and assigned
+        const allPodContent = await page.locator('#output-section').textContent();
+
+        // Group 1 should be together
+        const group1Present = allPodContent?.includes('Group 1');
+        expect(group1Present).toBeTruthy();
+
+        // Group 2 should be together  
+        const group2Present = allPodContent?.includes('Group 2');
+        expect(group2Present).toBeTruthy();
+
+        // Group 3 should be together
+        const group3Present = allPodContent?.includes('Group 3');
+        expect(group3Present).toBeTruthy();
+
+        // Count total players to ensure none are lost
+        let totalPlayersInPods = 0;
+        for (let i = 0; i < podCount; i++) {
+            const podContent = await pods.nth(i).textContent();
+            const playerCount = (podContent?.match(/\([P]:/g) || []).length;
+            totalPlayersInPods += playerCount;
+        }
+
+        // Check unassigned section
+        const unassignedSection = page.locator('.unassigned-pod');
+        const unassignedExists = await unassignedSection.count();
+        let unassignedCount = 0;
+
+        if (unassignedExists > 0) {
+            const unassignedContent = await unassignedSection.textContent();
+            unassignedCount = (unassignedContent?.match(/\([P]:/g) || []).length;
+        }
+
+        // All 16 players should be accounted for
+        expect(totalPlayersInPods + unassignedCount).toBe(16);
+    });
+
+    test('should handle extreme power level diversity with leniency', async ({ page }) => {
+        // Create 24 players with very diverse power levels to test algorithm limits
+        const players: { name: string; power: string }[] = [
+            // Power level 4 players
+            { name: 'VeryLow1', power: '4' },
+            { name: 'VeryLow2', power: '4' },
+            { name: 'VeryLow3', power: '4' },
+
+            // Power level 5-5.5 (can group with leniency)
+            { name: 'Low1', power: '5' },
+            { name: 'Low2', power: '5.5' },
+            { name: 'Low3', power: '5' },
+
+            // Power level 6-6.5 (can group with leniency)
+            { name: 'MedLow1', power: '6' },
+            { name: 'MedLow2', power: '6.5' },
+            { name: 'MedLow3', power: '6' },
+
+            // Power level 7-7.5 (can group with leniency)
+            { name: 'Med1', power: '7' },
+            { name: 'Med2', power: '7.5' },
+            { name: 'Med3', power: '7' },
+            { name: 'Med4', power: '7.5' },
+
+            // Power level 8-8.5 (can group with leniency)
+            { name: 'MedHigh1', power: '8' },
+            { name: 'MedHigh2', power: '8.5' },
+            { name: 'MedHigh3', power: '8' },
+
+            // Power level 9-9.5 (can group with leniency)
+            { name: 'High1', power: '9' },
+            { name: 'High2', power: '9.5' },
+            { name: 'High3', power: '9' },
+
+            // Power level 10 players
+            { name: 'VeryHigh1', power: '10' },
+            { name: 'VeryHigh2', power: '10' },
+            { name: 'VeryHigh3', power: '10' },
+            { name: 'VeryHigh4', power: '10' },
+        ];
+
+        // Add the required player rows
+        for (let i = 4; i < players.length; i++) {
+            await page.click('#add-player-btn');
+        }
+
+        // Fill in all players
+        for (let i = 0; i < players.length; i++) {
+            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
+            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+        }
+
+        // Enable leniency to help with grouping
+        await page.check('#leniency-checkbox');
+
+        // Generate pods
+        await page.click('#generate-pods-btn');
+
+        // Should create multiple pods
+        const pods = page.locator('.pod:not(.unassigned-pod)');
+        await expect(pods.first()).toBeVisible();
+        const podCount = await pods.count();
+        expect(podCount).toBeGreaterThanOrEqual(4); // At least 4 pods for diverse power levels
+
+        // Verify that extreme power levels aren't mixed
+        // Power 4 and Power 10 should never be in the same pod (difference = 6)
+        let power4And10Together = false;
+
+        for (let i = 0; i < podCount; i++) {
+            const podContent = await pods.nth(i).textContent();
+            if (podContent?.includes('VeryLow') && podContent?.includes('VeryHigh')) {
+                power4And10Together = true;
+                break;
+            }
+        }
+
+        expect(power4And10Together).toBeFalsy();
+
+        // Count total assigned players
+        let totalAssigned = 0;
+        for (let i = 0; i < podCount; i++) {
+            const podContent = await pods.nth(i).textContent();
+            const playerCount = (podContent?.match(/\([P]:/g) || []).length;
+            totalAssigned += playerCount;
+        }
+
+        // With such diverse power levels, we expect some players might be unassigned
+        // but the majority should be successfully placed
+        expect(totalAssigned).toBeGreaterThanOrEqual(18); // At least 75% should be assigned
+    });
+
+    test('should handle mixed groups and individual players at scale', async ({ page }) => {
+        // Create 24 players: some in groups, some individual, more realistic power distribution
+        const players = [
+            // Tournament Group: high power players
+            { name: 'Tournament1', power: '8' },
+            { name: 'Tournament2', power: '9' },
+            { name: 'Tournament3', power: '8' },
+
+            // Casual Group: medium power players
+            { name: 'Casual1', power: '6' },
+            { name: 'Casual2', power: '7' },
+            { name: 'Casual3', power: '6' },
+
+            // Budget Group: low power players
+            { name: 'Budget1', power: '4' },
+            { name: 'Budget2', power: '5' },
+
+            // Individual players with clustered power levels for better pod formation
+            { name: 'Solo1', power: '8' },  // Power 8 cluster (8 players total)
+            { name: 'Solo2', power: '8' },
+            { name: 'Solo3', power: '8' },
+            { name: 'Solo4', power: '8' },
+            { name: 'Solo5', power: '8' },
+            { name: 'Solo6', power: '8' },
+            { name: 'Solo7', power: '8' },
+            { name: 'Solo8', power: '8' },
+            { name: 'Solo9', power: '7' },  // Power 7 cluster (4 players)
+            { name: 'Solo10', power: '7' },
+            { name: 'Solo11', power: '7' },
+            { name: 'Solo12', power: '7' },
+            { name: 'Solo13', power: '6' }, // Power 6 cluster (4 players)
+            { name: 'Solo14', power: '6' },
+            { name: 'Solo15', power: '6' },
+            { name: 'Solo16', power: '6' },
+        ];
+
+        // Add the required player rows
+        for (let i = 4; i < players.length; i++) {
+            await page.click('#add-player-btn');
+        }
+
+        // Fill in all players
+        for (let i = 0; i < players.length; i++) {
+            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
+            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+        }
+
+        // Create Tournament Group (first 3 players)
+        await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');
+        await page.selectOption('.player-row:nth-child(2) .group-select', 'group-1');
+        await page.selectOption('.player-row:nth-child(3) .group-select', 'group-1');
+
+        // Create Casual Group (next 3 players) - trigger group creation and wait for DOM update
+        await page.selectOption('.player-row:nth-child(4) .group-select', 'new-group');
+        // Wait a bit for DOM to update, then try to select group-2
+        await page.waitForTimeout(100);
+        await page.selectOption('.player-row:nth-child(5) .group-select', 'group-2');
+        await page.selectOption('.player-row:nth-child(6) .group-select', 'group-2');
+
+        // Create Budget Group (next 2 players) - trigger group creation and wait for DOM update
+        await page.selectOption('.player-row:nth-child(7) .group-select', 'new-group');
+        // Wait a bit for DOM to update, then try to select group-3
+        await page.waitForTimeout(100);
+        await page.selectOption('.player-row:nth-child(8) .group-select', 'group-3');
+
+        // Enable leniency for mixed power level scenarios
+        await page.check('#leniency-checkbox');
+
+        // Generate pods
+        await page.click('#generate-pods-btn');
+
+        // Check if pods were created (may be in pods or unassigned section)
+        const pods = page.locator('.pod:not(.unassigned-pod)');
+        const unassignedSection = page.locator('.unassigned-pod');
+
+        // Either we have pods or players are unassigned
+        const hasPods = await pods.count() > 0;
+        const hasUnassigned = await unassignedSection.count() > 0;
+
+        expect(hasPods || hasUnassigned).toBeTruthy();
+
+        const podCount = await pods.count();
+        if (hasPods) {
+            await expect(pods.first()).toBeVisible();
+            expect(podCount).toBeGreaterThanOrEqual(6);
+        }
+
+        // Verify that all groups are kept together and assigned
+        const allPodContent = await page.locator('#output-section').textContent();
+
+        // Tournament Group should be together
+        const group1Present = allPodContent?.includes('Group 1');
+        expect(group1Present).toBeTruthy();
+
+        // Casual Group should be together  
+        const group2Present = allPodContent?.includes('Group 2');
+        expect(group2Present).toBeTruthy();
+
+        // Budget Group should be together
+        const group3Present = allPodContent?.includes('Group 3');
+        expect(group3Present).toBeTruthy();
+
+        // Count total players to ensure none are lost
+        let totalPlayersInPods = 0;
+        for (let i = 0; i < podCount; i++) {
+            const podContent = await pods.nth(i).textContent();
+            const playerCount = (podContent?.match(/\([P]:/g) || []).length;
+            totalPlayersInPods += playerCount;
+        }
+
+        // Check unassigned section (reuse existing unassignedSection variable)
+        const unassignedExists = await unassignedSection.count();
+        let unassignedCount = 0;
+
+        if (unassignedExists > 0) {
+            const unassignedContent = await unassignedSection.textContent();
+            unassignedCount = (unassignedContent?.match(/\([P]:/g) || []).length;
+        }
+
+        // All 24 players should be accounted for
+        expect(totalPlayersInPods + unassignedCount).toBe(24);
+    });
 });

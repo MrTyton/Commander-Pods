@@ -27,19 +27,41 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const handleGroupChange = () => {
         groups.clear();
-        nextGroupId = 1;
         const allRows = Array.from(playerRowsContainer.querySelectorAll('.player-row'));
+        // Find existing group IDs to determine the next available ID
+        const existingGroupIds = new Set();
+        allRows.forEach(row => {
+            const select = row.querySelector('.group-select');
+            if (select.dataset.createdGroupId) {
+                existingGroupIds.add(select.dataset.createdGroupId);
+            }
+            else if (select.value.startsWith('group-')) {
+                existingGroupIds.add(select.value);
+            }
+        });
         allRows.forEach(row => {
             const select = row.querySelector('.group-select');
             if (select.value === 'new-group') {
-                const newGroupId = `group-${nextGroupId++}`;
+                // Find the next available group ID
+                let newGroupId = '';
+                if (!select.dataset.createdGroupId) {
+                    let groupNum = 1;
+                    while (existingGroupIds.has(`group-${groupNum}`)) {
+                        groupNum++;
+                    }
+                    newGroupId = `group-${groupNum}`;
+                    existingGroupIds.add(newGroupId);
+                    select.dataset.createdGroupId = newGroupId;
+                }
+                else {
+                    newGroupId = select.dataset.createdGroupId;
+                }
                 const player = getPlayerFromRow(row);
                 if (player) {
                     if (!groups.has(newGroupId))
                         groups.set(newGroupId, []);
                     groups.get(newGroupId).push(player);
                 }
-                select.dataset.createdGroupId = newGroupId;
             }
             else if (select.value.startsWith('group-')) {
                 const player = getPlayerFromRow(row);
@@ -158,11 +180,16 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("You need at least 3 players to form a pod.");
             return;
         }
+        console.log('DEBUG: Starting pod generation with', totalPlayerCount, 'total players');
+        console.log('DEBUG: Items to pod:', itemsToPod);
         const podSizes = calculatePodSizes(totalPlayerCount);
+        console.log('DEBUG: Calculated pod sizes:', podSizes);
         // Use backtracking algorithm for optimal pod assignment
         const result = generatePodsWithBacktracking(itemsToPod, podSizes, leniencyCheckbox.checked);
         const pods = result.pods;
         let unassignedPlayers = result.unassigned;
+        console.log('DEBUG: Generated pods:', pods);
+        console.log('DEBUG: Unassigned players:', unassignedPlayers);
         // Try to squeeze remaining players into existing pods if possible
         const finalUnassigned = [];
         for (const item of unassignedPlayers) {
@@ -392,22 +419,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const isPodValid = (podPlayers, allowLeniency) => {
         if (podPlayers.length <= 1)
             return true;
-        // Get all individual power levels from the pod
-        const powerLevels = [];
+        // Get representative power levels from the pod (average for groups, actual for individuals)
+        const representativePowers = [];
         podPlayers.forEach(item => {
             if ('players' in item) {
-                // It's a group, add all player powers
-                item.players.forEach(p => powerLevels.push(p.power));
+                // It's a group, use its average power (already calculated)
+                representativePowers.push(item.averagePower);
             }
             else {
-                // It's a player
-                powerLevels.push(item.power);
+                // It's a player, use their individual power
+                representativePowers.push(item.power);
             }
         });
-        // Check that all power levels are compatible with each other
-        for (let i = 0; i < powerLevels.length; i++) {
-            for (let j = i + 1; j < powerLevels.length; j++) {
-                const diff = Math.abs(powerLevels[i] - powerLevels[j]);
+        // Check that all representative power levels are compatible with each other
+        for (let i = 0; i < representativePowers.length; i++) {
+            for (let j = i + 1; j < representativePowers.length; j++) {
+                const diff = Math.abs(representativePowers[i] - representativePowers[j]);
                 if (diff > 0.01 && (!allowLeniency || diff > 0.5)) {
                     return false;
                 }
@@ -418,6 +445,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Enhanced pod generation with backtracking
     const generatePodsWithBacktracking = (items, targetSizes, allowLeniency) => {
         const totalPlayers = items.reduce((sum, item) => sum + ('size' in item ? item.size : 1), 0);
+        console.log('DEBUG: generatePodsWithBacktracking called with', items.length, 'items,', totalPlayers, 'total players');
+        console.log('DEBUG: Target sizes:', targetSizes);
+        console.log('DEBUG: Allow leniency:', allowLeniency);
         // For 3-5 players, just put them all in one pod regardless of power levels
         if (totalPlayers >= 3 && totalPlayers <= 5) {
             const powers = items.map(item => 'power' in item ? item.power : item.averagePower);
