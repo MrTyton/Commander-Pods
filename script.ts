@@ -28,14 +28,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const addPlayerBtn = document.getElementById('add-player-btn')!;
     const generatePodsBtn = document.getElementById('generate-pods-btn')!;
     const resetAllBtn = document.getElementById('reset-all-btn')!;
-    const leniencyCheckbox = document.getElementById('leniency-checkbox') as HTMLInputElement;
-    const superLeniencyCheckbox = document.getElementById('super-leniency-checkbox') as HTMLInputElement;
+    const noLeniencyRadio = document.getElementById('no-leniency-radio') as HTMLInputElement;
+    const leniencyRadio = document.getElementById('leniency-radio') as HTMLInputElement;
+    const superLeniencyRadio = document.getElementById('super-leniency-radio') as HTMLInputElement;
     const outputSection = document.getElementById('output-section')!;;
     const playerRowTemplate = document.getElementById('player-row-template') as HTMLTemplateElement;
 
     let nextPlayerId = 0;
     let nextGroupId = 1;
     let groups: Map<string, Player[]> = new Map();
+
+    // Helper function to get current leniency settings
+    const getLeniencySettings = (): LeniencySettings => {
+        if (superLeniencyRadio.checked) {
+            return {
+                allowLeniency: true,
+                allowSuperLeniency: true,
+                maxTolerance: 1.0
+            };
+        } else if (leniencyRadio.checked) {
+            return {
+                allowLeniency: true,
+                allowSuperLeniency: false,
+                maxTolerance: 0.5
+            };
+        } else {
+            return {
+                allowLeniency: false,
+                allowSuperLeniency: false,
+                maxTolerance: 0.01
+            };
+        }
+    };
 
     const addPlayerRow = () => {
         const newRow = playerRowTemplate.content.cloneNode(true) as HTMLElement;
@@ -230,11 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const podSizes = calculatePodSizes(totalPlayerCount);
 
         // Determine leniency settings
-        const leniencySettings = {
-            allowLeniency: leniencyCheckbox.checked,
-            allowSuperLeniency: superLeniencyCheckbox.checked,
-            maxTolerance: superLeniencyCheckbox.checked ? 1.0 : (leniencyCheckbox.checked ? 0.5 : 0.01)
-        };
+        const leniencySettings = getLeniencySettings();
 
         // Use backtracking algorithm for optimal pod assignment
         const result = generatePodsWithBacktracking(itemsToPod, podSizes, leniencySettings);
@@ -380,8 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
         groups.clear();
         nextPlayerId = 0;
         nextGroupId = 1;
-        leniencyCheckbox.checked = false;
-        superLeniencyCheckbox.checked = false;
+        noLeniencyRadio.checked = true; // Reset to no leniency by default
         // Add a few default rows to start
         addPlayerRow();
         addPlayerRow();

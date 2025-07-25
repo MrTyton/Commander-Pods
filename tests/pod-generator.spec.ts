@@ -21,8 +21,10 @@ test.describe('MTG Commander Pod Generator', () => {
         await expect(page.locator('#generate-pods-btn')).toBeVisible();
         await expect(page.locator('#reset-all-btn')).toBeVisible();
 
-        // Check settings section
-        await expect(page.locator('#leniency-checkbox')).toBeVisible();
+        // Check settings section with radio buttons
+        await expect(page.locator('#no-leniency-radio')).toBeVisible();
+        await expect(page.locator('#leniency-radio')).toBeVisible();
+        await expect(page.locator('#super-leniency-radio')).toBeVisible();
     });
 
     test('should add and remove player rows', async ({ page }) => {
@@ -191,7 +193,7 @@ test.describe('MTG Commander Pod Generator', () => {
         }
 
         // Enable leniency
-        await page.check('#leniency-checkbox');
+        await page.check('#leniency-radio');
 
         // Generate pods
         await page.click('#generate-pods-btn');
@@ -205,7 +207,7 @@ test.describe('MTG Commander Pod Generator', () => {
         // Fill in some data
         await page.fill('.player-row:nth-child(1) .player-name', 'TestPlayer');
         await page.fill('.player-row:nth-child(1) .power-level', '5');
-        await page.check('#leniency-checkbox');
+        await page.check('#leniency-radio');
 
         // Generate pods to create output
         await page.click('#generate-pods-btn');
@@ -216,7 +218,7 @@ test.describe('MTG Commander Pod Generator', () => {
         // Check that everything is reset
         await expect(page.locator('.player-name').first()).toHaveValue('');
         await expect(page.locator('.power-level').first()).toHaveValue('');
-        await expect(page.locator('#leniency-checkbox')).not.toBeChecked();
+        await expect(page.locator('#no-leniency-radio')).toBeChecked(); // Should reset to no leniency
         await expect(page.locator('#output-section')).toBeEmpty();        // Should have 4 default rows again
         await expect(page.locator('.player-row')).toHaveCount(4);
     });
@@ -402,7 +404,7 @@ test.describe('MTG Commander Pod Generator', () => {
         }
 
         // Enable leniency
-        await page.check('#leniency-checkbox');
+        await page.check('#leniency-radio');
 
         // Generate pods
         await page.click('#generate-pods-btn');
@@ -651,7 +653,7 @@ test.describe('MTG Commander Pod Generator', () => {
         }
 
         // Enable leniency to help with grouping
-        await page.check('#leniency-checkbox');
+        await page.check('#leniency-radio');
 
         // Generate pods
         await page.click('#generate-pods-btn');
@@ -755,7 +757,7 @@ test.describe('MTG Commander Pod Generator', () => {
         await page.selectOption('.player-row:nth-child(8) .group-select', 'group-3');
 
         // Enable leniency for mixed power level scenarios
-        await page.check('#leniency-checkbox');
+        await page.check('#leniency-radio');
 
         // Generate pods
         await page.click('#generate-pods-btn');
@@ -867,8 +869,7 @@ test.describe('MTG Commander Pod Generator', () => {
         await page.selectOption('.player-row:nth-child(6) .group-select', 'group-2');   // Challenge6
 
         // First try with regular leniency only (should struggle or fail)
-        await page.check('#leniency-checkbox');
-        await page.uncheck('#super-leniency-checkbox');
+        await page.check('#leniency-radio');
 
         await page.click('#generate-pods-btn');
 
@@ -879,7 +880,7 @@ test.describe('MTG Commander Pod Generator', () => {
         const hasUnassignedRegular = await unassignedRegular.count() > 0;
 
         // Now try with super leniency enabled (should perform better)
-        await page.check('#super-leniency-checkbox');
+        await page.check('#super-leniency-radio');
         await page.click('#generate-pods-btn');
 
         // Count pods with super leniency

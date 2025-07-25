@@ -22,14 +22,21 @@
 
         <div class="settings">
             <h2>Settings</h2>
-            <label>
-                <input type="checkbox" id="leniency-checkbox">
-                Enable Power Level Leniency (+/- 0.5)
-            </label>
-            <label>
-                <input type="checkbox" id="super-leniency-checkbox">
-                Enable Super Leniency (+/- 1.0)
-            </label>
+            <fieldset>
+                <legend>Power Level Tolerance</legend>
+                <label>
+                    <input type="radio" name="leniency" value="none" id="no-leniency-radio" checked>
+                    No Leniency (Exact Match)
+                </label>
+                <label>
+                    <input type="radio" name="leniency" value="regular" id="leniency-radio">
+                    Regular Leniency (±0.5)
+                </label>
+                <label>
+                    <input type="radio" name="leniency" value="super" id="super-leniency-radio">
+                    Super Leniency (±1.0)
+                </label>
+            </fieldset>
         </div>
 
         <div class="main-actions">
