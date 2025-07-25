@@ -308,25 +308,20 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     };
     const generatePods = () => {
-        console.log('DEBUG: generatePods called');
         outputSection.innerHTML = '';
         handleGroupChange(); // Recalculate groups based on current selections
         const allPlayers = [];
         const playerRows = Array.from(playerRowsContainer.querySelectorAll('.player-row'));
         let validationFailed = false;
-        console.log('DEBUG: Processing', playerRows.length, 'player rows');
         for (const row of playerRows) {
             const player = getPlayerFromRow(row);
             if (player) {
-                console.log('DEBUG: Added player:', player.name, 'powers:', player.availablePowers);
                 allPlayers.push(player);
             }
             else {
-                console.log('DEBUG: Player validation failed for row');
                 validationFailed = true;
             }
         }
-        console.log('DEBUG: Total valid players:', allPlayers.length, 'validation failed:', validationFailed);
         if (validationFailed) {
             alert('Please fix the errors before generating pods.');
             return;
@@ -336,7 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Calculate the actual average power level for the group
             const totalPower = players.reduce((sum, player) => sum + player.power, 0);
             const averagePower = Math.round((totalPower / players.length) * 2) / 2; // Round to nearest 0.5
-            console.log('DEBUG: Processing group', id, 'with players:', players.map(p => `${p.name}(${p.power})`), 'average power:', averagePower);
             processedGroups.set(id, {
                 id,
                 players,
@@ -348,7 +342,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const ungroupedPlayers = allPlayers.filter(p => !groupedPlayerIds.has(p.id));
         let itemsToPod = [...ungroupedPlayers];
         processedGroups.forEach(group => {
-            console.log('DEBUG: Adding group to itemsToPod:', group.id, 'with', group.players.length, 'players');
             itemsToPod.push({
                 id: group.id,
                 players: group.players,
@@ -356,12 +349,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 size: group.size
             });
         });
-        console.log('DEBUG: Final itemsToPod:', itemsToPod.map(item => ({
-            name: 'name' in item ? item.name : `Group ${item.id.split('-')[1]}`,
-            power: 'power' in item ? item.power : item.averagePower,
-            size: 'size' in item ? item.size : 1,
-            type: 'name' in item ? 'Player' : 'Group'
-        })));
         const totalPlayerCount = allPlayers.length;
         if (totalPlayerCount < 3) {
             alert("You need at least 3 players to form a pod.");
@@ -370,15 +357,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const podSizes = calculatePodSizes(totalPlayerCount);
         // Determine leniency settings
         const leniencySettings = getLeniencySettings();
-        console.log('DEBUG: About to call generatePodsWithBacktracking with', itemsToPod.length, 'items, target sizes:', podSizes);
         // Use backtracking algorithm for optimal pod assignment
         const result = generatePodsWithBacktracking(itemsToPod, podSizes, leniencySettings);
         const pods = result.pods;
         let unassignedPlayers = result.unassigned;
-        console.log('DEBUG: Algorithm returned', pods.length, 'pods and', unassignedPlayers.length, 'unassigned items');
         // Use the results directly from the backtracking algorithm
         // without post-processing that could violate target pod sizes
-        console.log('DEBUG: About to render - pods:', pods.length, 'unassigned:', unassignedPlayers.length);
         renderPods(pods, unassignedPlayers);
     };
     const calculatePodSizes = (n) => {
@@ -801,11 +785,8 @@ document.addEventListener('DOMContentLoaded', () => {
     displayModeBtn.addEventListener('click', enterDisplayMode);
     // Backtracking algorithm for optimal pod assignment with virtual player support
     const findOptimalPodAssignment = (items, targetSizes, leniencySettings) => {
-        console.log('DEBUG: findOptimalPodAssignment called with', items.length, 'items');
         // Treat both groups and individuals as virtual players in the same optimization
-        console.log('DEBUG: Using unified virtual player approach for all items');
         const virtualPlayerPods = optimizeVirtualPlayerAssignmentUnified(items, targetSizes, leniencySettings);
-        console.log('DEBUG: findOptimalPodAssignment returning', virtualPlayerPods.length, 'pods');
         return virtualPlayerPods;
     };
     const backtrack = (remainingItems, currentPods, remainingSizes, allowLeniency, bestSolution) => {
@@ -825,10 +806,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const newRemainingSizes = remainingSizes.slice(1);
         // Get unique power levels from remaining items
         const powerLevels = [...new Set(remainingItems.map(item => 'power' in item ? item.power : item.averagePower))].sort((a, b) => b - a);
-        console.log('DEBUG: Trying to fill pod of size', targetSize, 'with power levels:', powerLevels);
         // Try to form a pod with each possible power level
         for (const targetPower of powerLevels) {
-            console.log('DEBUG: Trying targetPower:', targetPower);
             const validCombinations = findValidCombinations(remainingItems, targetSize, targetPower, allowLeniency);
             for (const combination of validCombinations) {
                 const newRemainingItems = remainingItems.filter(item => !combination.includes(item));
@@ -842,12 +821,6 @@ document.addEventListener('DOMContentLoaded', () => {
         backtrack(remainingItems, currentPods, newRemainingSizes, allowLeniency, bestSolution);
     };
     const findValidCombinations = (items, targetSize, targetPower, allowLeniency) => {
-        console.log('DEBUG: findValidCombinations called with targetSize:', targetSize, 'targetPower:', targetPower, 'allowLeniency:', allowLeniency);
-        console.log('DEBUG: Available items:', items.map(item => ({
-            name: 'name' in item ? item.name : `Group ${item.id.split('-')[1]}`,
-            power: 'power' in item ? item.power : item.averagePower,
-            size: 'size' in item ? item.size : 1
-        })));
         // Filter items that match the power criteria
         const candidates = items.filter(item => {
             const itemPower = 'power' in item ? item.power : item.averagePower;
@@ -855,14 +828,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const leniencyMatch = allowLeniency && Math.abs(itemPower - targetPower) <= 0.5;
             return powerMatch || leniencyMatch;
         });
-        console.log('DEBUG: Filtered candidates:', candidates.map(item => ({
-            name: 'name' in item ? item.name : `Group ${item.id.split('-')[1]}`,
-            power: 'power' in item ? item.power : item.averagePower,
-            size: 'size' in item ? item.size : 1
-        })));
         const validCombinations = [];
         generateCombinations(candidates, targetSize, [], validCombinations, allowLeniency);
-        console.log('DEBUG: Generated', validCombinations.length, 'valid combinations');
         return validCombinations;
     };
     const generateCombinations = (candidates, targetSize, currentCombination, validCombinations, allowLeniency = false) => {
@@ -969,7 +936,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if ('players' in item) {
                 // It's a group - always create virtual players for min, max, and average
                 // Groups prioritize staying together and accept power level imbalance
-                console.log('DEBUG: Processing group', item.id, 'with players:', item.players.map(p => `${p.name}(${p.availablePowers.join(',')})`));
                 // Get all power levels from group members
                 const allGroupPowers = item.players.flatMap(p => p.availablePowers);
                 const minPower = Math.min(...allGroupPowers);
@@ -982,7 +948,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 for (const powerLevel of uniqueGroupPowers) {
                     virtualPlayers.push({ item, powerLevel });
                 }
-                console.log('DEBUG: Group', item.id, 'virtual powers (avg,min,max):', uniqueGroupPowers);
             }
             else {
                 // It's an individual player
@@ -1019,7 +984,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const totalActualPlayers = availableVirtualItems.reduce((sum, vi) => {
                 return sum + ('players' in vi.item ? vi.item.size : 1);
             }, 0);
-            console.log('DEBUG: Power level', powerLevel, 'has', availableVirtualItems.length, 'virtual items representing', totalActualPlayers, 'actual players');
             if (totalActualPlayers >= Math.max(3, targetSize)) {
                 // Use simple selection instead of complex combinations
                 // Try to form pods that match the target size as closely as possible
@@ -1182,7 +1146,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (items.length === 0)
             return [];
         const virtualPlayers = createVirtualPlayersUnified(items);
-        console.log('DEBUG: Created', virtualPlayers.length, 'virtual players from', items.length, 'items');
         // Group virtual players by exact power level first
         const powerGroups = new Map();
         for (const vp of virtualPlayers) {
@@ -1191,7 +1154,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             powerGroups.get(vp.powerLevel).push(vp);
         }
-        console.log('DEBUG: Power groups:', Array.from(powerGroups.entries()).map(([power, vps]) => `${power}: ${vps.length} items (${vps.map(vp => 'name' in vp.item ? vp.item.name : `Group ${vp.item.id.split('-')[1]}`).join(', ')})`).join('; '));
         // Use backtracking with leniency support
         const bestSolution = { pods: [], totalPods: 0 };
         if (leniencySettings.allowLeniency) {
@@ -1202,7 +1164,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Use exact power level matching
             backtrackVirtualPlayersUnified(Array.from(powerGroups.entries()), [], new Set(), targetSizes, bestSolution);
         }
-        console.log('DEBUG: Virtual player backtracking found', bestSolution.totalPods, 'pods');
         return bestSolution.pods;
     };
     // Backtracking function for virtual player optimization
