@@ -159,85 +159,33 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const podSizes = calculatePodSizes(totalPlayerCount);
-        const pods = [];
-        const powerLevels = [...new Set(itemsToPod.map(item => 'power' in item ? item.power : item.averagePower))].sort((a, b) => b - a);
-        // Use the calculated pod sizes instead of arbitrary [4, 5, 3]
-        for (const targetPower of powerLevels) {
-            for (const size of podSizes) {
-                while (true) {
-                    let podItems = [];
-                    let remainingSize = size;
-                    // Priority 1: Perfect matches
-                    let availableItems = itemsToPod.filter(item => ('power' in item ? item.power : item.averagePower) === targetPower && ('size' in item ? item.size : 1) <= remainingSize);
-                    while (availableItems.length > 0 && remainingSize > 0) {
-                        const item = availableItems.shift();
-                        const itemSize = 'size' in item ? item.size : 1;
-                        if (itemSize <= remainingSize) {
-                            podItems.push(item);
-                            remainingSize -= itemSize;
-                            itemsToPod = itemsToPod.filter(i => i !== item);
-                        }
-                    }
-                    // Priority 2: Leniency
-                    if (leniencyCheckbox.checked && remainingSize > 0) {
-                        let lenientItems = itemsToPod.filter(item => {
-                            const power = 'power' in item ? item.power : item.averagePower;
-                            return (Math.abs(power - targetPower) === 0.5) && ('size' in item ? item.size : 1) <= remainingSize;
-                        });
-                        while (lenientItems.length > 0 && remainingSize > 0) {
-                            const item = lenientItems.shift();
-                            const itemSize = 'size' in item ? item.size : 1;
-                            if (itemSize <= remainingSize) {
-                                podItems.push(item);
-                                remainingSize -= itemSize;
-                                itemsToPod = itemsToPod.filter(i => i !== item);
-                            }
-                        }
-                    }
-                    if (podItems.length > 0 && remainingSize === 0) {
-                        pods.push({ players: podItems, power: targetPower });
-                    }
-                    else {
-                        // Return unused items and break from this size loop
-                        itemsToPod.push(...podItems);
-                        break;
-                    }
+        // Use backtracking algorithm for optimal pod assignment
+        const result = generatePodsWithBacktracking(itemsToPod, podSizes, leniencyCheckbox.checked);
+        const pods = result.pods;
+        let unassignedPlayers = result.unassigned;
+        // Try to squeeze remaining players into existing pods if possible
+        const finalUnassigned = [];
+        for (const item of unassignedPlayers) {
+            let placed = false;
+            const itemSize = 'size' in item ? item.size : 1;
+            const itemPower = 'power' in item ? item.power : item.averagePower;
+            // Try to place in existing pods (prefer same power level, then leniency if enabled)
+            for (const pod of pods) {
+                const currentPodSize = pod.players.reduce((sum, p) => sum + ('size' in p ? p.size : 1), 0);
+                const canFit = currentPodSize + itemSize <= 5; // Max pod size is 5
+                const powerMatch = Math.abs(pod.power - itemPower) < 0.01; // Exact match
+                const leniencyMatch = leniencyCheckbox.checked && Math.abs(pod.power - itemPower) <= 0.5;
+                if (canFit && (powerMatch || leniencyMatch)) {
+                    pod.players.push(item);
+                    placed = true;
+                    break;
                 }
             }
-        }
-        // Handle leftovers
-        let unassignedPlayers = [];
-        if (itemsToPod.length > 0) {
-            if (itemsToPod.length >= 3) {
-                // Create a leftover pod if we have at least 3 players
-                const leftoverPower = itemsToPod.reduce((sum, item) => sum + ('power' in item ? item.power : item.averagePower), 0) / itemsToPod.length;
-                pods.push({ players: itemsToPod, power: Math.round(leftoverPower * 2) / 2 });
-            }
-            else {
-                // Try to squeeze remaining players into existing pods if possible
-                for (const item of itemsToPod) {
-                    let placed = false;
-                    const itemSize = 'size' in item ? item.size : 1;
-                    const itemPower = 'power' in item ? item.power : item.averagePower;
-                    // Try to place in existing pods (prefer same power level, then leniency if enabled)
-                    for (const pod of pods) {
-                        const currentPodSize = pod.players.reduce((sum, p) => sum + ('size' in p ? p.size : 1), 0);
-                        const canFit = currentPodSize + itemSize <= 5; // Max pod size is 5
-                        const powerMatch = Math.abs(pod.power - itemPower) < 0.01; // Exact match
-                        const leniencyMatch = leniencyCheckbox.checked && Math.abs(pod.power - itemPower) <= 0.5;
-                        if (canFit && (powerMatch || leniencyMatch)) {
-                            pod.players.push(item);
-                            placed = true;
-                            break;
-                        }
-                    }
-                    if (!placed) {
-                        unassignedPlayers.push(item);
-                    }
-                }
+            if (!placed) {
+                finalUnassigned.push(item);
             }
         }
-        renderPods(pods, unassignedPlayers);
+        renderPods(pods, finalUnassigned);
     };
     const calculatePodSizes = (n) => {
         if (n < 3)
@@ -363,4 +311,146 @@ document.addEventListener('DOMContentLoaded', () => {
     resetAllBtn.addEventListener('click', resetAll);
     // Initial state
     resetAll();
+    // Backtracking algorithm for optimal pod assignment
+    const findOptimalPodAssignment = (items, targetSizes, allowLeniency) => {
+        const bestSolution = { pods: [], unassignedCount: items.length };
+        // Sort items by power level for better pruning
+        const sortedItems = [...items].sort((a, b) => {
+            const powerA = 'power' in a ? a.power : a.averagePower;
+            const powerB = 'power' in b ? b.power : b.averagePower;
+            return powerB - powerA;
+        });
+        backtrack(sortedItems, [], targetSizes, allowLeniency, bestSolution);
+        return bestSolution.pods;
+    };
+    const backtrack = (remainingItems, currentPods, remainingSizes, allowLeniency, bestSolution) => {
+        // Pruning: if current unassigned count already >= best, skip
+        if (remainingItems.length >= bestSolution.unassignedCount) {
+            return;
+        }
+        // Base case: no more pod sizes to try
+        if (remainingSizes.length === 0) {
+            if (remainingItems.length < bestSolution.unassignedCount) {
+                bestSolution.pods = [...currentPods];
+                bestSolution.unassignedCount = remainingItems.length;
+            }
+            return;
+        }
+        const targetSize = remainingSizes[0];
+        const newRemainingSizes = remainingSizes.slice(1);
+        // Get unique power levels from remaining items
+        const powerLevels = [...new Set(remainingItems.map(item => 'power' in item ? item.power : item.averagePower))].sort((a, b) => b - a);
+        // Try to form a pod with each possible power level
+        for (const targetPower of powerLevels) {
+            const validCombinations = findValidCombinations(remainingItems, targetSize, targetPower, allowLeniency);
+            for (const combination of validCombinations) {
+                const newRemainingItems = remainingItems.filter(item => !combination.includes(item));
+                const newPod = { players: combination, power: targetPower };
+                const newCurrentPods = [...currentPods, newPod];
+                // Recursive backtrack
+                backtrack(newRemainingItems, newCurrentPods, newRemainingSizes, allowLeniency, bestSolution);
+            }
+        }
+        // Also try skipping this pod size (in case we can't fill it optimally)
+        backtrack(remainingItems, currentPods, newRemainingSizes, allowLeniency, bestSolution);
+    };
+    const findValidCombinations = (items, targetSize, targetPower, allowLeniency) => {
+        // Filter items that match the power criteria
+        const candidates = items.filter(item => {
+            const itemPower = 'power' in item ? item.power : item.averagePower;
+            const powerMatch = Math.abs(itemPower - targetPower) < 0.01;
+            const leniencyMatch = allowLeniency && Math.abs(itemPower - targetPower) <= 0.5;
+            return powerMatch || leniencyMatch;
+        });
+        const validCombinations = [];
+        generateCombinations(candidates, targetSize, [], validCombinations);
+        return validCombinations;
+    };
+    const generateCombinations = (candidates, targetSize, currentCombination, validCombinations) => {
+        const currentSize = currentCombination.reduce((sum, item) => sum + ('size' in item ? item.size : 1), 0);
+        if (currentSize === targetSize) {
+            validCombinations.push([...currentCombination]);
+            return;
+        }
+        if (currentSize > targetSize) {
+            return;
+        }
+        for (let i = 0; i < candidates.length; i++) {
+            const item = candidates[i];
+            const itemSize = 'size' in item ? item.size : 1;
+            if (currentSize + itemSize <= targetSize) {
+                const newCombination = [...currentCombination, item];
+                const newCandidates = candidates.slice(i + 1); // Avoid duplicates
+                generateCombinations(newCandidates, targetSize, newCombination, validCombinations);
+            }
+        }
+    };
+    // Enhanced pod generation with backtracking
+    const generatePodsWithBacktracking = (items, targetSizes, allowLeniency) => {
+        const totalPlayers = items.reduce((sum, item) => sum + ('size' in item ? item.size : 1), 0);
+        // For 3-5 players, just put them all in one pod regardless of power levels
+        if (totalPlayers >= 3 && totalPlayers <= 5) {
+            const powers = items.map(item => 'power' in item ? item.power : item.averagePower);
+            const avgPower = Math.round((powers.reduce((a, b) => a + b, 0) / powers.length) * 2) / 2;
+            return {
+                pods: [{ players: items, power: avgPower }],
+                unassigned: []
+            };
+        }
+        // For 6+ players, we might have multiple pods, so use backtracking for optimal assignment
+        if (totalPlayers >= 6) {
+            const optimalPods = findOptimalPodAssignment(items, targetSizes, allowLeniency);
+            if (optimalPods.length > 0) {
+                const assignedItems = new Set();
+                optimalPods.forEach(pod => {
+                    pod.players.forEach(item => assignedItems.add(item));
+                });
+                const unassigned = items.filter(item => !assignedItems.has(item));
+                return { pods: optimalPods, unassigned };
+            }
+        }
+        // Fallback to greedy for edge cases
+        return generatePodsGreedy(items, targetSizes, allowLeniency);
+    };
+    // Greedy algorithm for edge cases and fallback
+    const generatePodsGreedy = (items, targetSizes, allowLeniency) => {
+        const pods = [];
+        let remainingItems = [...items];
+        for (const targetSize of targetSizes) {
+            if (remainingItems.length === 0)
+                break;
+            // Try to create a pod of the target size
+            let pod = [];
+            let podSize = 0;
+            // Sort remaining items by power level (descending)
+            const sortedItems = [...remainingItems].sort((a, b) => {
+                const powerA = 'power' in a ? a.power : a.averagePower;
+                const powerB = 'power' in b ? b.power : b.averagePower;
+                return powerB - powerA;
+            });
+            // Try to fill the pod greedily
+            for (const item of sortedItems) {
+                if (remainingItems.includes(item)) {
+                    const itemSize = 'size' in item ? item.size : 1;
+                    if (podSize + itemSize <= targetSize) {
+                        pod.push(item);
+                        podSize += itemSize;
+                        remainingItems = remainingItems.filter(r => r !== item);
+                    }
+                }
+            }
+            // If we have a valid pod, add it
+            if (pod.length > 0 && podSize >= 3) { // Minimum pod size is 3
+                // Calculate the pod's representative power level
+                const powers = pod.map(item => 'power' in item ? item.power : item.averagePower);
+                const avgPower = Math.round((powers.reduce((a, b) => a + b, 0) / powers.length) * 2) / 2;
+                pods.push({ players: pod, power: avgPower });
+            }
+            else if (pod.length > 0) {
+                // Put items back if pod is too small
+                remainingItems.push(...pod);
+            }
+        }
+        return { pods, unassigned: remainingItems };
+    };
 });
