@@ -363,13 +363,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return powerMatch || leniencyMatch;
         });
         const validCombinations = [];
-        generateCombinations(candidates, targetSize, [], validCombinations);
+        generateCombinations(candidates, targetSize, [], validCombinations, allowLeniency);
         return validCombinations;
     };
-    const generateCombinations = (candidates, targetSize, currentCombination, validCombinations) => {
+    const generateCombinations = (candidates, targetSize, currentCombination, validCombinations, allowLeniency = false) => {
         const currentSize = currentCombination.reduce((sum, item) => sum + ('size' in item ? item.size : 1), 0);
         if (currentSize === targetSize) {
-            validCombinations.push([...currentCombination]);
+            // Validate that all players in the combination are compatible with each other
+            if (isPodValid(currentCombination, allowLeniency)) {
+                validCombinations.push([...currentCombination]);
+            }
             return;
         }
         if (currentSize > targetSize) {
@@ -381,9 +384,36 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentSize + itemSize <= targetSize) {
                 const newCombination = [...currentCombination, item];
                 const newCandidates = candidates.slice(i + 1); // Avoid duplicates
-                generateCombinations(newCandidates, targetSize, newCombination, validCombinations);
+                generateCombinations(newCandidates, targetSize, newCombination, validCombinations, allowLeniency);
             }
         }
+    };
+    // Validate that all players in a pod are compatible with each other
+    const isPodValid = (podPlayers, allowLeniency) => {
+        if (podPlayers.length <= 1)
+            return true;
+        // Get all individual power levels from the pod
+        const powerLevels = [];
+        podPlayers.forEach(item => {
+            if ('players' in item) {
+                // It's a group, add all player powers
+                item.players.forEach(p => powerLevels.push(p.power));
+            }
+            else {
+                // It's a player
+                powerLevels.push(item.power);
+            }
+        });
+        // Check that all power levels are compatible with each other
+        for (let i = 0; i < powerLevels.length; i++) {
+            for (let j = i + 1; j < powerLevels.length; j++) {
+                const diff = Math.abs(powerLevels[i] - powerLevels[j]);
+                if (diff > 0.01 && (!allowLeniency || diff > 0.5)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     };
     // Enhanced pod generation with backtracking
     const generatePodsWithBacktracking = (items, targetSizes, allowLeniency) => {
@@ -428,14 +458,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const powerB = 'power' in b ? b.power : b.averagePower;
                 return powerB - powerA;
             });
-            // Try to fill the pod greedily
+            // Try to fill the pod greedily while respecting power compatibility
             for (const item of sortedItems) {
                 if (remainingItems.includes(item)) {
                     const itemSize = 'size' in item ? item.size : 1;
                     if (podSize + itemSize <= targetSize) {
-                        pod.push(item);
-                        podSize += itemSize;
-                        remainingItems = remainingItems.filter(r => r !== item);
+                        // Check if this item can be added to the current pod
+                        const tempPod = [...pod, item];
+                        if (isPodValid(tempPod, allowLeniency)) {
+                            pod.push(item);
+                            podSize += itemSize;
+                            remainingItems = remainingItems.filter(r => r !== item);
+                        }
                     }
                 }
             }

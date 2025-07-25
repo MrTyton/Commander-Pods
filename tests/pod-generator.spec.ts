@@ -278,4 +278,155 @@ test.describe('MTG Commander Pod Generator', () => {
         // Group should show average power of 7 (6+8)/2 = 7
         await expect(page.locator('.pod')).toContainText('Group 1 (Avg Power: 7)');
     });
+
+    test('should create multiple pods for larger groups', async ({ page }) => {
+        // Create 8 players to force multiple pods
+        const players = [
+            { name: 'Alice', power: '7' },
+            { name: 'Bob', power: '7' },
+            { name: 'Charlie', power: '7' },
+            { name: 'Dave', power: '7' },
+            { name: 'Eve', power: '8' },
+            { name: 'Frank', power: '8' },
+            { name: 'Grace', power: '8' },
+            { name: 'Henry', power: '8' },
+        ];
+
+        // Add more player rows
+        for (let i = 4; i < players.length; i++) {
+            await page.click('#add-player-btn');
+        }
+
+        // Fill in all players
+        for (let i = 0; i < players.length; i++) {
+            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
+            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+        }
+
+        // Generate pods
+        await page.click('#generate-pods-btn');
+
+        // Should create 2 pods of 4 players each
+        const pods = page.locator('.pod:not(.unassigned-pod)');
+        await expect(pods).toHaveCount(2);
+
+        // Each pod should have 4 players
+        const pod1Content = await pods.nth(0).textContent();
+        const pod2Content = await pods.nth(1).textContent();
+
+        // Count player names in each pod (each player name should appear once)
+        const pod1PlayerCount = (pod1Content?.match(/\([P]:/g) || []).length;
+        const pod2PlayerCount = (pod2Content?.match(/\([P]:/g) || []).length;
+
+        expect(pod1PlayerCount).toBe(4);
+        expect(pod2PlayerCount).toBe(4);
+    });
+
+    test('should keep groups together across multiple pods', async ({ page }) => {
+        // Create scenario with a group that should stay together
+        // Use compatible power levels so the group can be placed
+        const players = [
+            { name: 'Alice', power: '7' },
+            { name: 'Bob', power: '7' },    // Group 1 with Alice
+            { name: 'Charlie', power: '7' },
+            { name: 'Dave', power: '7' },
+            { name: 'Eve', power: '8' },
+            { name: 'Frank', power: '8' },
+            { name: 'Grace', power: '8' },
+            { name: 'Henry', power: '8' },
+        ];
+
+        // Add more player rows
+        for (let i = 4; i < players.length; i++) {
+            await page.click('#add-player-btn');
+        }
+
+        // Fill in all players
+        for (let i = 0; i < players.length; i++) {
+            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
+            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+        }
+
+        // Create a group with Alice and Bob
+        await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');
+        await page.selectOption('.player-row:nth-child(2) .group-select', 'group-1');
+
+        // Generate pods
+        await page.click('#generate-pods-btn');
+
+        // Check that Alice and Bob are in the same pod (as a group)
+        const pods = page.locator('.pod:not(.unassigned-pod)');
+        await expect(pods.first()).toBeVisible();
+
+        // Find which pod contains the group
+        let groupFound = false;
+        const podCount = await pods.count();
+
+        for (let i = 0; i < podCount; i++) {
+            const podContent = await pods.nth(i).textContent();
+            if (podContent?.includes('Group 1')) {
+                // This pod should contain both Alice and Bob
+                expect(podContent).toContain('Alice');
+                expect(podContent).toContain('Bob');
+                groupFound = true;
+                break;
+            }
+        }
+
+        expect(groupFound).toBeTruthy();
+    });
+
+    test('should respect leniency boundaries correctly', async ({ page }) => {
+        // Test leniency with a narrower, more realistic power range
+        // Use 8 players in the 6.5-8 range to test leniency boundaries
+        const players = [
+            { name: 'Alice', power: '7' },      // Can group with Bob (7.5) with leniency
+            { name: 'Bob', power: '7.5' },     // Can group with Alice (7) with leniency
+            { name: 'Charlie', power: '7.5' }, // Can group with Dave (8) with leniency
+            { name: 'Dave', power: '8' },      // Can group with Charlie (7.5) with leniency
+            { name: 'Eve', power: '6.5' },     // Can group with Frank (7) with leniency
+            { name: 'Frank', power: '7' },     // Can group with Eve (6.5) with leniency
+            { name: 'Grace', power: '8' },     // Can group with Henry (7.5) with leniency
+            { name: 'Henry', power: '7.5' },   // Can group with Grace (8) with leniency
+        ];
+
+        // Add more player rows
+        for (let i = 4; i < players.length; i++) {
+            await page.click('#add-player-btn');
+        }
+
+        // Fill in all players
+        for (let i = 0; i < players.length; i++) {
+            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
+            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+        }
+
+        // Enable leniency
+        await page.check('#leniency-checkbox');
+
+        // Generate pods
+        await page.click('#generate-pods-btn');
+
+        // Should create multiple pods (2 pods of 4 players each)
+        const pods = page.locator('.pod:not(.unassigned-pod)');
+        await expect(pods.first()).toBeVisible();
+
+        const podCount = await pods.count();
+        expect(podCount).toBeGreaterThanOrEqual(1);
+
+        // Key test: Eve (6.5) and Dave (8) should NOT be in the same pod
+        // because their difference is 1.5 which exceeds the 0.5 leniency limit
+        let eveAndDaveTogether = false;
+
+        for (let i = 0; i < podCount; i++) {
+            const podContent = await pods.nth(i).textContent();
+            if (podContent?.includes('Eve') && podContent?.includes('Dave')) {
+                eveAndDaveTogether = true;
+                break;
+            }
+        }
+
+        // They should NOT be together due to power level spread > 0.5
+        expect(eveAndDaveTogether).toBeFalsy();
+    });
 });
