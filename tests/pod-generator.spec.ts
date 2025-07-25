@@ -811,4 +811,116 @@ test.describe('MTG Commander Pod Generator', () => {
         // All 24 players should be accounted for
         expect(totalPlayersInPods + unassignedCount).toBe(24);
     });
+
+    test('should handle super leniency mode for challenging power distributions', async ({ page }) => {
+        // Create a scenario that requires super leniency (±1.0) but won't work with regular leniency (±0.5)
+        // Use power gaps of 0.6-1.0 between players that need to be grouped together
+        const players = [
+            // Group 1: Power levels with 0.6 gap (6.0 and 6.6) - needs super leniency
+            { name: 'Challenge1', power: '6' },
+            { name: 'Challenge2', power: '6.6' },  // 0.6 gap - exceeds regular leniency but OK for super
+            { name: 'Challenge3', power: '6.3' },
+
+            // Group 2: Power levels with 0.8 gap (7.0 and 7.8) - needs super leniency  
+            { name: 'Challenge4', power: '7' },
+            { name: 'Challenge5', power: '7.8' },  // 0.8 gap - exceeds regular leniency but OK for super
+            { name: 'Challenge6', power: '7.4' },
+
+            // Individual players with similar challenging gaps
+            { name: 'Solo1', power: '5' },
+            { name: 'Solo2', power: '5.9' },  // 0.9 gap - needs super leniency
+            { name: 'Solo3', power: '5.4' },
+            { name: 'Solo4', power: '6.4' },  // 1.0 gap from Solo1 - maximum super leniency
+
+            { name: 'Solo5', power: '8' },
+            { name: 'Solo6', power: '8.7' },  // 0.7 gap - needs super leniency  
+            { name: 'Solo7', power: '8.3' },
+            { name: 'Solo8', power: '9' },    // 1.0 gap from Solo5 - maximum super leniency
+
+            // Some easier players to fill pods
+            { name: 'Easy1', power: '4' },
+            { name: 'Easy2', power: '4.5' },  // 0.5 gap - OK with regular leniency
+            { name: 'Easy3', power: '4.2' },
+            { name: 'Easy4', power: '4.3' },
+        ];
+
+        // Add the required player rows
+        for (let i = 4; i < players.length; i++) {
+            await page.click('#add-player-btn');
+        }
+
+        // Fill in all players
+        for (let i = 0; i < players.length; i++) {
+            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
+            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+        }
+
+        // Create challenging groups that need super leniency
+        await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group'); // Challenge1
+        await page.selectOption('.player-row:nth-child(2) .group-select', 'group-1');   // Challenge2 (0.6 gap)
+        await page.selectOption('.player-row:nth-child(3) .group-select', 'group-1');   // Challenge3
+
+        // Wait for DOM update
+        await page.waitForTimeout(100);
+        await page.selectOption('.player-row:nth-child(4) .group-select', 'new-group'); // Challenge4
+        await page.selectOption('.player-row:nth-child(5) .group-select', 'group-2');   // Challenge5 (0.8 gap)
+        await page.selectOption('.player-row:nth-child(6) .group-select', 'group-2');   // Challenge6
+
+        // First try with regular leniency only (should struggle or fail)
+        await page.check('#leniency-checkbox');
+        await page.uncheck('#super-leniency-checkbox');
+
+        await page.click('#generate-pods-btn');
+
+        // Count pods with regular leniency
+        const podsRegular = page.locator('.pod:not(.unassigned-pod)');
+        const regularPodCount = await podsRegular.count();
+        const unassignedRegular = page.locator('.unassigned-pod');
+        const hasUnassignedRegular = await unassignedRegular.count() > 0;
+
+        // Now try with super leniency enabled (should perform better)
+        await page.check('#super-leniency-checkbox');
+        await page.click('#generate-pods-btn');
+
+        // Count pods with super leniency
+        const podsSuperLeniency = page.locator('.pod:not(.unassigned-pod)');
+        const superLeniencyPodCount = await podsSuperLeniency.count();
+        const unassignedSuper = page.locator('.unassigned-pod');
+        const hasUnassignedSuper = await unassignedSuper.count() > 0;
+
+        // Super leniency should perform at least as well as regular leniency
+        expect(superLeniencyPodCount).toBeGreaterThanOrEqual(regularPodCount);
+
+        // Verify that challenging groups are kept together with super leniency
+        const allPodContent = await page.locator('#output-section').textContent();
+
+        // Group 1 (with 0.6 power gap) should be together
+        const group1Present = allPodContent?.includes('Group 1');
+        expect(group1Present).toBeTruthy();
+
+        // Group 2 (with 0.8 power gap) should be together  
+        const group2Present = allPodContent?.includes('Group 2');
+        expect(group2Present).toBeTruthy();
+
+        // Verify total player count
+        let totalAssigned = 0;
+        for (let i = 0; i < superLeniencyPodCount; i++) {
+            const podContent = await podsSuperLeniency.nth(i).textContent();
+            const playerCount = (podContent?.match(/\([P]:/g) || []).length;
+            totalAssigned += playerCount;
+        }
+
+        let unassignedCount = 0;
+        if (hasUnassignedSuper) {
+            const unassignedContent = await unassignedSuper.textContent();
+            unassignedCount = (unassignedContent?.match(/\([P]:/g) || []).length;
+        }
+
+        // All 18 players should be accounted for
+        expect(totalAssigned + unassignedCount).toBe(18);
+
+        // Super leniency should successfully handle the challenging power gaps
+        // At minimum, it should create some pods and keep the challenging groups together
+        expect(superLeniencyPodCount).toBeGreaterThanOrEqual(2);
+    });
 });

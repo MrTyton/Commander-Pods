@@ -17,13 +17,20 @@ interface Pod {
     power: number;
 }
 
+interface LeniencySettings {
+    allowLeniency: boolean;
+    allowSuperLeniency: boolean;
+    maxTolerance: number;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const playerRowsContainer = document.getElementById('player-rows')!;
     const addPlayerBtn = document.getElementById('add-player-btn')!;
     const generatePodsBtn = document.getElementById('generate-pods-btn')!;
     const resetAllBtn = document.getElementById('reset-all-btn')!;
     const leniencyCheckbox = document.getElementById('leniency-checkbox') as HTMLInputElement;
-    const outputSection = document.getElementById('output-section')!;
+    const superLeniencyCheckbox = document.getElementById('super-leniency-checkbox') as HTMLInputElement;
+    const outputSection = document.getElementById('output-section')!;;
     const playerRowTemplate = document.getElementById('player-row-template') as HTMLTemplateElement;
 
     let nextPlayerId = 0;
@@ -222,8 +229,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const podSizes = calculatePodSizes(totalPlayerCount);
 
+        // Determine leniency settings
+        const leniencySettings = {
+            allowLeniency: leniencyCheckbox.checked,
+            allowSuperLeniency: superLeniencyCheckbox.checked,
+            maxTolerance: superLeniencyCheckbox.checked ? 1.0 : (leniencyCheckbox.checked ? 0.5 : 0.01)
+        };
+
         // Use backtracking algorithm for optimal pod assignment
-        const result = generatePodsWithBacktracking(itemsToPod, podSizes, leniencyCheckbox.checked);
+        const result = generatePodsWithBacktracking(itemsToPod, podSizes, leniencySettings);
         const pods = result.pods;
         let unassignedPlayers = result.unassigned;
 
@@ -240,7 +254,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const canFit = currentPodSize + itemSize <= 5; // Max pod size is 5
 
                 const powerMatch = Math.abs(pod.power - itemPower) < 0.01; // Exact match
-                const leniencyMatch = leniencyCheckbox.checked && Math.abs(pod.power - itemPower) <= 0.5;
+                const powerDiff = Math.abs(pod.power - itemPower);
+                const leniencyMatch = powerDiff <= leniencySettings.maxTolerance;
 
                 if (canFit && (powerMatch || leniencyMatch)) {
                     pod.players.push(item);
@@ -366,6 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
         nextPlayerId = 0;
         nextGroupId = 1;
         leniencyCheckbox.checked = false;
+        superLeniencyCheckbox.checked = false;
         // Add a few default rows to start
         addPlayerRow();
         addPlayerRow();
@@ -545,7 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Enhanced pod generation with backtracking
-    const generatePodsWithBacktracking = (items: (Player | Group)[], targetSizes: number[], allowLeniency: boolean): { pods: Pod[], unassigned: (Player | Group)[] } => {
+    const generatePodsWithBacktracking = (items: (Player | Group)[], targetSizes: number[], leniencySettings: LeniencySettings): { pods: Pod[], unassigned: (Player | Group)[] } => {
         const totalPlayers = items.reduce((sum, item) => sum + ('size' in item ? item.size : 1), 0);
 
         // For 3-5 players, just put them all in one pod regardless of power levels
@@ -560,7 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // For 6+ players, try the greedy algorithm directly for now (skip the complex backtracking)
         if (totalPlayers >= 6) {
-            return generatePodsGreedy(items, targetSizes, allowLeniency);
+            return generatePodsGreedy(items, targetSizes, leniencySettings);
         }
 
         // Fallback 
@@ -568,7 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Greedy algorithm for edge cases and fallback
-    const generatePodsGreedy = (items: (Player | Group)[], targetSizes: number[], allowLeniency: boolean): { pods: Pod[], unassigned: (Player | Group)[] } => {
+    const generatePodsGreedy = (items: (Player | Group)[], targetSizes: number[], leniencySettings: LeniencySettings): { pods: Pod[], unassigned: (Player | Group)[] } => {
         const pods: Pod[] = [];
         let remainingItems = [...items];
 
@@ -594,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .filter(player => remainingItems.includes(player))
                 .filter(player => {
                     const powerDiff = Math.abs(player.power - groupPower);
-                    return powerDiff < 0.01 || (allowLeniency && powerDiff <= 0.5);
+                    return powerDiff < 0.01 || powerDiff <= leniencySettings.maxTolerance;
                 })
                 .sort((a, b) => Math.abs(a.power - groupPower) - Math.abs(b.power - groupPower)); // Closest first
 
@@ -648,7 +664,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (podSize < targetSize) {
                         const powerDiff = Math.abs(item.power - startPower);
-                        const isCompatible = powerDiff < 0.01 || (allowLeniency && powerDiff <= 0.5);
+                        const isCompatible = powerDiff < 0.01 || powerDiff <= leniencySettings.maxTolerance;
 
                         if (isCompatible) {
                             pod.push(item);
@@ -692,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const powerDiff = Math.abs(pod.power - groupPower);
 
                     // More relaxed constraints for groups
-                    if (powerDiff <= 1.0 || (allowLeniency && powerDiff <= 2.0)) {
+                    if (powerDiff <= 1.0 || powerDiff <= leniencySettings.maxTolerance * 2.0) {
                         pod.players.push(group);
                         remainingItems = remainingItems.filter(item => item !== group);
 
