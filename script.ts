@@ -202,8 +202,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const powerLevels = [...new Set(itemsToPod.map(item => 'power' in item ? item.power : item.averagePower))].sort((a, b) => b - a);
 
+        // Use the calculated pod sizes instead of arbitrary [4, 5, 3]
         for (const targetPower of powerLevels) {
-            for (const size of [4, 5, 3]) {
+            for (const size of podSizes) {
                 while (true) {
                     let podItems: (Player | Group)[] = [];
                     let remainingSize = size;
@@ -263,22 +264,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     let placed = false;
                     const itemSize = 'size' in item ? item.size : 1;
                     const itemPower = 'power' in item ? item.power : item.averagePower;
-                    
+
                     // Try to place in existing pods (prefer same power level, then leniency if enabled)
                     for (const pod of pods) {
                         const currentPodSize = pod.players.reduce((sum, p) => sum + ('size' in p ? p.size : 1), 0);
                         const canFit = currentPodSize + itemSize <= 5; // Max pod size is 5
-                        
+
                         const powerMatch = Math.abs(pod.power - itemPower) < 0.01; // Exact match
                         const leniencyMatch = leniencyCheckbox.checked && Math.abs(pod.power - itemPower) <= 0.5;
-                        
+
                         if (canFit && (powerMatch || leniencyMatch)) {
                             pod.players.push(item);
                             placed = true;
                             break;
                         }
                     }
-                    
+
                     if (!placed) {
                         unassignedPlayers.push(item);
                     }

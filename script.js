@@ -161,8 +161,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const podSizes = calculatePodSizes(totalPlayerCount);
         const pods = [];
         const powerLevels = [...new Set(itemsToPod.map(item => 'power' in item ? item.power : item.averagePower))].sort((a, b) => b - a);
+        // Use the calculated pod sizes instead of arbitrary [4, 5, 3]
         for (const targetPower of powerLevels) {
-            for (const size of [4, 5, 3]) {
+            for (const size of podSizes) {
                 while (true) {
                     let podItems = [];
                     let remainingSize = size;
