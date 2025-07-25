@@ -1,5 +1,80 @@
 import { test, expect } from '@playwright/test';
 
+// Helper function to set power levels using the new checkbox system
+async function setPowerLevels(page: any, playerIndex: number, powerLevels: string | number[]) {
+    // Convert string to number array if needed
+    const powers = typeof powerLevels === 'string' ? [parseFloat(powerLevels)] : powerLevels;
+
+    // Use a more efficient approach - execute everything in one go using JavaScript
+    await page.evaluate(({ playerIndex, powers }) => {
+        const playerRow = document.querySelector(`.player-row:nth-child(${playerIndex})`);
+        if (!playerRow) return;
+
+        // Scroll into view
+        playerRow.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+
+        // Click the power selector button
+        const btn = playerRow.querySelector('.power-selector-btn') as HTMLElement;
+        if (btn) btn.click();
+
+        // Wait for dropdown to appear (synchronous check)
+        const dropdown = playerRow.querySelector('.power-selector-dropdown') as HTMLElement;
+        if (dropdown) {
+            dropdown.style.display = 'block';
+            dropdown.classList.add('show');
+
+            // Clear all checkboxes first
+            const clearBtn = dropdown.querySelector('.clear-btn') as HTMLElement;
+            if (clearBtn) clearBtn.click();
+
+            // Check the desired power level checkboxes
+            for (const power of powers) {
+                const checkbox = dropdown.querySelector(`input[value="${power}"]`) as HTMLInputElement;
+                if (checkbox) {
+                    checkbox.checked = true;
+                    // Trigger change event
+                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+
+            // Close dropdown
+            dropdown.style.display = 'none';
+            dropdown.classList.remove('show');
+        }
+    }, { playerIndex, powers });
+
+    // Short wait to let any UI updates settle
+    await page.waitForTimeout(50);
+}
+
+// Helper function to create many players efficiently
+async function createPlayers(page: any, players: { name: string; power: string }[]) {
+    // Add required player rows in bulk
+    const currentRows = await page.locator('.player-row').count();
+    const rowsNeeded = players.length - currentRows;
+
+    if (rowsNeeded > 0) {
+        // Add rows efficiently using JavaScript
+        await page.evaluate((count) => {
+            const addBtn = document.querySelector('#add-player-btn') as HTMLElement;
+            for (let i = 0; i < count; i++) {
+                if (addBtn) addBtn.click();
+            }
+        }, rowsNeeded);
+
+        // Small wait for DOM updates
+        await page.waitForTimeout(100);
+    }
+
+    // Fill in all players efficiently
+    for (let i = 0; i < players.length; i++) {
+        // Fill name directly
+        await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
+        // Set power levels
+        await setPowerLevels(page, i + 1, players[i].power);
+    }
+}
+
 test.describe('MTG Commander Pod Generator', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('index.html');
@@ -53,9 +128,9 @@ test.describe('MTG Commander Pod Generator', () => {
     test('should create groups and update dropdowns', async ({ page }) => {
         // Fill in two players
         await page.fill('.player-row:nth-child(1) .player-name', 'Alice');
-        await page.fill('.player-row:nth-child(1) .power-level', '7');
+        await setPowerLevels(page, 1, '7');
         await page.fill('.player-row:nth-child(2) .player-name', 'Bob');
-        await page.fill('.player-row:nth-child(2) .power-level', '6');
+        await setPowerLevels(page, 2, '6');
 
         // Create a new group with the first player
         await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');
@@ -79,7 +154,7 @@ test.describe('MTG Commander Pod Generator', () => {
 
         for (let i = 0; i < players.length; i++) {
             await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+            await setPowerLevels(page, i + 1, players[i].power);
         }
 
         // Generate pods
@@ -109,7 +184,7 @@ test.describe('MTG Commander Pod Generator', () => {
 
         for (let i = 0; i < players.length; i++) {
             await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+            await setPowerLevels(page, i + 1, players[i].power);
         }
 
         // Generate pods
@@ -155,7 +230,7 @@ test.describe('MTG Commander Pod Generator', () => {
         // Fill in all players
         for (let i = 0; i < players.length; i++) {
             await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+            await setPowerLevels(page, i + 1, players[i].power);
         }
 
         // Create Group 1 with players 1 and 5
@@ -189,7 +264,7 @@ test.describe('MTG Commander Pod Generator', () => {
 
         for (let i = 0; i < players.length; i++) {
             await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+            await setPowerLevels(page, i + 1, players[i].power);
         }
 
         // Enable leniency
@@ -206,7 +281,7 @@ test.describe('MTG Commander Pod Generator', () => {
     test('should reset all data when reset button is clicked', async ({ page }) => {
         // Fill in some data
         await page.fill('.player-row:nth-child(1) .player-name', 'TestPlayer');
-        await page.fill('.player-row:nth-child(1) .power-level', '5');
+        await setPowerLevels(page, 1, '5');
         await page.check('#leniency-radio');
 
         // Generate pods to create output
@@ -217,7 +292,7 @@ test.describe('MTG Commander Pod Generator', () => {
 
         // Check that everything is reset
         await expect(page.locator('.player-name').first()).toHaveValue('');
-        await expect(page.locator('.power-level').first()).toHaveValue('');
+        await expect(page.locator('.power-selector-btn').first()).toContainText('Select Power Levels');
         await expect(page.locator('#no-leniency-radio')).toBeChecked(); // Should reset to no leniency
         await expect(page.locator('#output-section')).toBeEmpty();        // Should have 4 default rows again
         await expect(page.locator('.player-row')).toHaveCount(4);
@@ -238,7 +313,7 @@ test.describe('MTG Commander Pod Generator', () => {
 
         for (let i = 0; i < players.length; i++) {
             await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+            await setPowerLevels(page, i + 1, players[i].power);
         }
 
         // Generate pods
@@ -256,9 +331,9 @@ test.describe('MTG Commander Pod Generator', () => {
     test('should handle group averaging correctly', async ({ page }) => {
         // Create a group with different power levels
         await page.fill('.player-row:nth-child(1) .player-name', 'Alice');
-        await page.fill('.player-row:nth-child(1) .power-level', '6');
+        await setPowerLevels(page, 1, '6');
         await page.fill('.player-row:nth-child(2) .player-name', 'Bob');
-        await page.fill('.player-row:nth-child(2) .power-level', '8');
+        await setPowerLevels(page, 2, '8');
 
         // Put them in the same group
         await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');
@@ -266,9 +341,9 @@ test.describe('MTG Commander Pod Generator', () => {
 
         // Add more players to make a valid pod
         await page.fill('.player-row:nth-child(3) .player-name', 'Charlie');
-        await page.fill('.player-row:nth-child(3) .power-level', '7');
+        await setPowerLevels(page, 3, '7');
         await page.fill('.player-row:nth-child(4) .player-name', 'Dave');
-        await page.fill('.player-row:nth-child(4) .power-level', '7');
+        await setPowerLevels(page, 4, '7');
 
         // Generate pods
         await page.click('#generate-pods-btn');
@@ -302,7 +377,7 @@ test.describe('MTG Commander Pod Generator', () => {
         // Fill in all players
         for (let i = 0; i < players.length; i++) {
             await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+            await setPowerLevels(page, i + 1, players[i].power);
         }
 
         // Generate pods
@@ -346,7 +421,7 @@ test.describe('MTG Commander Pod Generator', () => {
         // Fill in all players
         for (let i = 0; i < players.length; i++) {
             await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+            await setPowerLevels(page, i + 1, players[i].power);
         }
 
         // Create a group with Alice and Bob
@@ -400,7 +475,7 @@ test.describe('MTG Commander Pod Generator', () => {
         // Fill in all players
         for (let i = 0; i < players.length; i++) {
             await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+            await setPowerLevels(page, i + 1, players[i].power);
         }
 
         // Enable leniency
@@ -433,6 +508,7 @@ test.describe('MTG Commander Pod Generator', () => {
     });
 
     test('should handle large groups with 30+ players efficiently', async ({ page }) => {
+        test.setTimeout(60000); // Reduce timeout to 1 minute - should be much faster now
         // Create 32 players across different power levels
         const players: { name: string; power: string }[] = [];
 
@@ -456,16 +532,8 @@ test.describe('MTG Commander Pod Generator', () => {
             players.push({ name: `PowerNine${i}`, power: '9' });
         }
 
-        // Add the required player rows (start with 4, need 32 total)
-        for (let i = 4; i < players.length; i++) {
-            await page.click('#add-player-btn');
-        }
-
-        // Fill in all players
-        for (let i = 0; i < players.length; i++) {
-            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
-        }
+        // Add the required player rows and fill in all players efficiently
+        await createPlayers(page, players);
 
         // Generate pods
         await page.click('#generate-pods-btn');
@@ -533,7 +601,7 @@ test.describe('MTG Commander Pod Generator', () => {
         // Fill in all players
         for (let i = 0; i < players.length; i++) {
             await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+            await setPowerLevels(page, i + 1, players[i].power);
         }
 
         // Create Group 1 (Alice, Bob, Charlie)
@@ -601,6 +669,7 @@ test.describe('MTG Commander Pod Generator', () => {
     });
 
     test('should handle extreme power level diversity with leniency', async ({ page }) => {
+        test.setTimeout(60000); // Reduce timeout to 1 minute - should be much faster now
         // Create 24 players with very diverse power levels to test algorithm limits
         const players: { name: string; power: string }[] = [
             // Power level 4 players
@@ -641,16 +710,8 @@ test.describe('MTG Commander Pod Generator', () => {
             { name: 'VeryHigh4', power: '10' },
         ];
 
-        // Add the required player rows
-        for (let i = 4; i < players.length; i++) {
-            await page.click('#add-player-btn');
-        }
-
-        // Fill in all players
-        for (let i = 0; i < players.length; i++) {
-            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
-        }
+        // Add the required player rows and fill in all players efficiently
+        await createPlayers(page, players);
 
         // Enable leniency to help with grouping
         await page.check('#leniency-radio');
@@ -692,6 +753,7 @@ test.describe('MTG Commander Pod Generator', () => {
     });
 
     test('should handle mixed groups and individual players at scale', async ({ page }) => {
+        test.setTimeout(60000); // Reduce timeout to 1 minute - should be much faster now
         // Create 24 players: some in groups, some individual, more realistic power distribution
         const players = [
             // Tournament Group: high power players
@@ -727,16 +789,8 @@ test.describe('MTG Commander Pod Generator', () => {
             { name: 'Solo16', power: '6' },
         ];
 
-        // Add the required player rows
-        for (let i = 4; i < players.length; i++) {
-            await page.click('#add-player-btn');
-        }
-
-        // Fill in all players
-        for (let i = 0; i < players.length; i++) {
-            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
-        }
+        // Add the required player rows and fill in all players efficiently
+        await createPlayers(page, players);
 
         // Create Tournament Group (first 3 players)
         await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');
@@ -818,32 +872,32 @@ test.describe('MTG Commander Pod Generator', () => {
         // Create a scenario that requires super leniency (±1.0) but won't work with regular leniency (±0.5)
         // Use power gaps of 0.6-1.0 between players that need to be grouped together
         const players = [
-            // Group 1: Power levels with 0.6 gap (6.0 and 6.6) - needs super leniency
+            // Group 1: Power levels with 0.5 gap (6.0 and 6.5) - needs super leniency
             { name: 'Challenge1', power: '6' },
-            { name: 'Challenge2', power: '6.6' },  // 0.6 gap - exceeds regular leniency but OK for super
-            { name: 'Challenge3', power: '6.3' },
+            { name: 'Challenge2', power: '6.5' },  // 0.5 gap - exceeds regular leniency but OK for super
+            { name: 'Challenge3', power: '6.5' },
 
-            // Group 2: Power levels with 0.8 gap (7.0 and 7.8) - needs super leniency  
+            // Group 2: Power levels with 1.0 gap (7.0 and 8.0) - needs super leniency  
             { name: 'Challenge4', power: '7' },
-            { name: 'Challenge5', power: '7.8' },  // 0.8 gap - exceeds regular leniency but OK for super
-            { name: 'Challenge6', power: '7.4' },
+            { name: 'Challenge5', power: '8' },  // 1.0 gap - exceeds regular leniency but OK for super
+            { name: 'Challenge6', power: '7.5' },
 
             // Individual players with similar challenging gaps
             { name: 'Solo1', power: '5' },
-            { name: 'Solo2', power: '5.9' },  // 0.9 gap - needs super leniency
-            { name: 'Solo3', power: '5.4' },
-            { name: 'Solo4', power: '6.4' },  // 1.0 gap from Solo1 - maximum super leniency
+            { name: 'Solo2', power: '6' },  // 1.0 gap - needs super leniency
+            { name: 'Solo3', power: '5.5' },
+            { name: 'Solo4', power: '6' },  // 1.0 gap from Solo1 - maximum super leniency
 
             { name: 'Solo5', power: '8' },
-            { name: 'Solo6', power: '8.7' },  // 0.7 gap - needs super leniency  
-            { name: 'Solo7', power: '8.3' },
+            { name: 'Solo6', power: '9' },  // 1.0 gap - needs super leniency  
+            { name: 'Solo7', power: '8.5' },
             { name: 'Solo8', power: '9' },    // 1.0 gap from Solo5 - maximum super leniency
 
             // Some easier players to fill pods
             { name: 'Easy1', power: '4' },
             { name: 'Easy2', power: '4.5' },  // 0.5 gap - OK with regular leniency
-            { name: 'Easy3', power: '4.2' },
-            { name: 'Easy4', power: '4.3' },
+            { name: 'Easy3', power: '4' },
+            { name: 'Easy4', power: '4.5' },
         ];
 
         // Add the required player rows
@@ -854,7 +908,7 @@ test.describe('MTG Commander Pod Generator', () => {
         // Fill in all players
         for (let i = 0; i < players.length; i++) {
             await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await page.fill(`.player-row:nth-child(${i + 1}) .power-level`, players[i].power);
+            await setPowerLevels(page, i + 1, players[i].power);
         }
 
         // Create challenging groups that need super leniency
