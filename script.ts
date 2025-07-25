@@ -1,7 +1,9 @@
 interface Player {
     id: number;
     name: string;
-    power: number;
+    power: number; // Primary/average power for display
+    availablePowers: number[]; // All power levels this player can play
+    powerRange: string; // Original input string for display
     rowElement: HTMLElement;
 }
 
@@ -74,6 +76,120 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const groupSelect = newRow.querySelector('.group-select')!;
         groupSelect.addEventListener('change', handleGroupChange);
+
+        // Add event listeners for power selector button and dropdown
+        const powerSelectorBtn = newRow.querySelector('.power-selector-btn') as HTMLButtonElement;
+        const powerDropdown = newRow.querySelector('.power-selector-dropdown') as HTMLElement;
+        const checkboxes = newRow.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+
+        // Function to update button text based on selections
+        const updateButtonText = () => {
+            const selectedPowers: number[] = [];
+            checkboxes.forEach(cb => {
+                if (cb.checked) selectedPowers.push(parseFloat(cb.value));
+            });
+
+            if (selectedPowers.length === 0) {
+                powerSelectorBtn.textContent = 'Select Power Levels';
+                powerSelectorBtn.classList.remove('has-selection');
+            } else {
+                selectedPowers.sort((a, b) => a - b);
+                let displayText: string;
+
+                if (selectedPowers.length === 1) {
+                    displayText = `Power: ${selectedPowers[0]}`;
+                } else {
+                    const min = selectedPowers[0];
+                    const max = selectedPowers[selectedPowers.length - 1];
+                    const isContiguous = selectedPowers.every((power, index) =>
+                        index === 0 || power === selectedPowers[index - 1] + 0.5
+                    );
+
+                    if (isContiguous && selectedPowers.length > 2) {
+                        displayText = `Power: ${min}-${max}`;
+                    } else if (selectedPowers.length <= 4) {
+                        displayText = `Power: ${selectedPowers.join(', ')}`;
+                    } else {
+                        displayText = `Power: ${min}-${max} (${selectedPowers.length} levels)`;
+                    }
+                }
+
+                powerSelectorBtn.textContent = displayText;
+                powerSelectorBtn.classList.add('has-selection');
+            }
+        };
+
+        // Toggle dropdown visibility
+        powerSelectorBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const isOpen = powerDropdown.style.display !== 'none';
+
+            // Close all other dropdowns first
+            document.querySelectorAll('.power-selector-dropdown').forEach(dropdown => {
+                (dropdown as HTMLElement).style.display = 'none';
+                dropdown.classList.remove('show');
+            });
+            document.querySelectorAll('.power-selector-btn').forEach(btn => {
+                btn.classList.remove('open');
+            });
+
+            if (!isOpen) {
+                powerDropdown.style.display = 'block';
+                powerSelectorBtn.classList.add('open');
+                // Trigger animation
+                setTimeout(() => powerDropdown.classList.add('show'), 10);
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!powerSelectorBtn.contains(e.target as Node) && !powerDropdown.contains(e.target as Node)) {
+                powerDropdown.classList.remove('show');
+                powerSelectorBtn.classList.remove('open');
+                setTimeout(() => {
+                    if (!powerDropdown.classList.contains('show')) {
+                        powerDropdown.style.display = 'none';
+                    }
+                }, 200);
+            }
+        });
+
+        // Update button text when checkboxes change
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateButtonText);
+        });
+
+        // Add event listeners for power range buttons
+        const rangeButtons = newRow.querySelectorAll('.range-btn');
+        rangeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const range = (button as HTMLElement).dataset.range!;
+
+                // Clear all first
+                checkboxes.forEach(cb => cb.checked = false);
+
+                // Select the range
+                const [start, end] = range.split('-').map(Number);
+                checkboxes.forEach(cb => {
+                    const value = parseFloat(cb.value);
+                    if (value >= start && value <= end) {
+                        cb.checked = true;
+                    }
+                });
+
+                updateButtonText();
+            });
+        });
+
+        // Add event listener for clear button
+        const clearButton = newRow.querySelector('.clear-btn')!;
+        clearButton.addEventListener('click', () => {
+            checkboxes.forEach(cb => cb.checked = false);
+            updateButtonText();
+        });
+
+        // Initialize button text
+        updateButtonText();
 
         playerRowsContainer.appendChild(newRow);
         nextPlayerId++;
@@ -172,28 +288,78 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // Helper function to parse power level selections from checkboxes
+    const parsePowerLevels = (powerCheckboxes: NodeListOf<HTMLInputElement>): { availablePowers: number[], powerRange: string, averagePower: number } => {
+        const selectedPowers: number[] = [];
+
+        powerCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                selectedPowers.push(parseFloat(checkbox.value));
+            }
+        });
+
+        if (selectedPowers.length === 0) {
+            return { availablePowers: [], powerRange: '', averagePower: 0 };
+        }
+
+        selectedPowers.sort((a, b) => a - b);
+
+        // Create a display string for the power range
+        let powerRange: string;
+        if (selectedPowers.length === 1) {
+            powerRange = selectedPowers[0].toString();
+        } else {
+            const min = selectedPowers[0];
+            const max = selectedPowers[selectedPowers.length - 1];
+            const isContiguous = selectedPowers.every((power, index) =>
+                index === 0 || power === selectedPowers[index - 1] + 0.5
+            );
+
+            if (isContiguous) {
+                powerRange = `${min}-${max}`;
+            } else {
+                powerRange = selectedPowers.join(', ');
+            }
+        }
+
+        const averagePower = selectedPowers.reduce((sum, power) => sum + power, 0) / selectedPowers.length;
+
+        return {
+            availablePowers: selectedPowers,
+            powerRange,
+            averagePower: Math.round(averagePower * 2) / 2
+        };
+    };
+
     const getPlayerFromRow = (row: HTMLElement): Player | null => {
         const nameInput = row.querySelector('.player-name') as HTMLInputElement;
-        const powerInput = row.querySelector('.power-level') as HTMLInputElement;
+        const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
         nameInput.classList.remove('input-error');
-        powerInput.classList.remove('input-error');
 
         const name = nameInput.value.trim();
-        const power = parseFloat(powerInput.value);
+        const powerData = parsePowerLevels(powerCheckboxes);
 
         if (!name) {
             nameInput.classList.add('input-error');
             return null;
         }
-        if (isNaN(power) || power < 1 || power > 10) {
-            powerInput.classList.add('input-error');
+        if (powerData.availablePowers.length === 0) {
+            // Add error styling to power selector button
+            const powerSelectorBtn = row.querySelector('.power-selector-btn') as HTMLButtonElement;
+            powerSelectorBtn.classList.add('error');
             return null;
+        } else {
+            // Remove error styling
+            const powerSelectorBtn = row.querySelector('.power-selector-btn') as HTMLButtonElement;
+            powerSelectorBtn.classList.remove('error');
         }
 
         return {
             id: parseInt(row.dataset.playerId!),
             name,
-            power,
+            power: powerData.averagePower,
+            availablePowers: powerData.availablePowers,
+            powerRange: powerData.powerRange,
             rowElement: row
         };
     };
@@ -343,14 +509,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     const subList = document.createElement('ul');
                     item.players.forEach(p => {
                         const playerItem = document.createElement('li');
-                        playerItem.textContent = `${p.name} (P: ${p.power})`;
+                        playerItem.textContent = `${p.name} (P: ${p.powerRange})`;
                         subList.appendChild(playerItem);
                     });
                     groupItem.appendChild(subList);
                     list.appendChild(groupItem);
                 } else { // It's a Player
                     const playerItem = document.createElement('li');
-                    playerItem.textContent = `${item.name} (P: ${item.power})`;
+                    playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
                     list.appendChild(playerItem);
                 }
             });
@@ -378,14 +544,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     const subList = document.createElement('ul');
                     item.players.forEach(p => {
                         const playerItem = document.createElement('li');
-                        playerItem.textContent = `${p.name} (P: ${p.power})`;
+                        playerItem.textContent = `${p.name} (P: ${p.powerRange})`;
                         subList.appendChild(playerItem);
                     });
                     groupItem.appendChild(subList);
                     list.appendChild(groupItem);
                 } else { // It's a Player
                     const playerItem = document.createElement('li');
-                    playerItem.textContent = `${item.name} (P: ${item.power})`;
+                    playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
                     list.appendChild(playerItem);
                 }
             });
@@ -765,5 +931,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return { pods, unassigned: remainingItems };
+    };
+
+    // Helper function to check if two players have compatible power levels
+    const arePlayersCompatible = (player1: Player, player2: Player, leniencySettings: LeniencySettings): boolean => {
+        // Check for direct overlap in available powers
+        const directOverlap = player1.availablePowers.some(power1 =>
+            player2.availablePowers.some(power2 => Math.abs(power1 - power2) < 0.01)
+        );
+
+        if (directOverlap) return true;
+
+        // Check for overlap within leniency tolerance
+        if (leniencySettings.allowLeniency) {
+            return player1.availablePowers.some(power1 =>
+                player2.availablePowers.some(power2 =>
+                    Math.abs(power1 - power2) <= leniencySettings.maxTolerance
+                )
+            );
+        }
+
+        return false;
+    };
+
+    // Helper function to find the best common power level for a group of players
+    const findBestCommonPowerLevel = (players: Player[]): number => {
+        const allPowers = [...new Set(players.flatMap(p => p.availablePowers))].sort((a, b) => a - b);
+
+        // Find power level that's available to the most players
+        let bestPower = allPowers[0];
+        let maxAvailability = 0;
+
+        for (const power of allPowers) {
+            const availability = players.filter(p =>
+                p.availablePowers.some(availPower => Math.abs(availPower - power) < 0.01)
+            ).length;
+
+            if (availability > maxAvailability) {
+                maxAvailability = availability;
+                bestPower = power;
+            }
+        }
+
+        return bestPower;
     };
 });

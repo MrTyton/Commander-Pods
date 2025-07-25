@@ -188,3 +188,151 @@ button {
 .pod-color-9 {
     border-color: #607d8b;
 }
+
+.power-levels {
+    position: relative;
+    flex-basis: 30%;
+}
+
+.power-selector-btn {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #444;
+    background-color: #333;
+    color: #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.power-selector-btn:hover {
+    background-color: #3a3a3a;
+}
+
+.power-selector-btn.has-selection {
+    background-color: #2a4a2a;
+    border-color: #4a8a4a;
+}
+
+.power-selector-btn.error {
+    border-color: #ff6b6b;
+    background-color: #2a1f1f;
+}
+
+.power-selector-btn::after {
+    content: '▼';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8em;
+    transition: transform 0.2s;
+}
+
+.power-selector-btn.open::after {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.power-selector-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    padding: 12px;
+    margin-top: 2px;
+    opacity: 0;
+    transform: translateY(-5px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.power-selector-dropdown.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.power-levels-label {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.power-checkboxes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding: 8px;
+    background-color: #333;
+    border: 1px solid #444;
+    border-radius: 4px;
+}
+
+.power-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.8em;
+    white-space: nowrap;
+    cursor: pointer;
+    padding: 1px 3px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.power-checkbox:hover {
+    background-color: #3a3a3a;
+}
+
+.power-checkbox input[type="checkbox"] {
+    width: 12px;
+    height: 12px;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.power-checkbox input[type="checkbox"]:checked+span,
+.power-checkbox:has(input[type="checkbox"]:checked) {
+    background-color: #4a90e2;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.power-range-buttons {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.range-btn,
+.clear-btn {
+    padding: 4px 8px;
+    border: 1px solid #444;
+    background-color: #333;
+    color: #e0e0e0;
+    border-radius: 3px;
+    font-size: 0.8em;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.range-btn:hover,
+.clear-btn:hover {
+    background-color: #4a4a4a;
+}
+
+.clear-btn {
+    background-color: #555;
+    color: #ff6b6b;
+}
+
+.clear-btn:hover {
+    background-color: #666;
+}
