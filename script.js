@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const addPlayerBtn = document.getElementById('add-player-btn');
     const generatePodsBtn = document.getElementById('generate-pods-btn');
     const resetAllBtn = document.getElementById('reset-all-btn');
+    const displayModeBtn = document.getElementById('display-mode-btn');
     const noLeniencyRadio = document.getElementById('no-leniency-radio');
     const leniencyRadio = document.getElementById('leniency-radio');
     const superLeniencyRadio = document.getElementById('super-leniency-radio');
@@ -12,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const playerRowTemplate = document.getElementById('player-row-template');
     let nextPlayerId = 0;
     let nextGroupId = 1;
+    let currentPods = [];
+    let isDisplayMode = false;
     let groups = new Map();
     // Helper function to get current leniency settings
     const getLeniencySettings = () => {
@@ -416,21 +419,45 @@ document.addEventListener('DOMContentLoaded', () => {
         return []; // Fallback
     };
     const renderPods = (pods, unassignedPlayers = []) => {
+        currentPods = [...pods]; // Store current pods for drag-and-drop
         outputSection.innerHTML = '';
         if (pods.length === 0) {
             outputSection.textContent = 'Could not form pods with the given players.';
+            displayModeBtn.style.display = 'none';
             return;
         }
+        // Show display mode button when pods are generated
+        displayModeBtn.style.display = 'inline-block';
+        // Calculate grid size using ceil(sqrt(pods))
+        const gridSize = Math.ceil(Math.sqrt(pods.length));
+        const podsContainer = document.createElement('div');
+        podsContainer.classList.add('pods-container');
+        podsContainer.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+        podsContainer.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
         pods.forEach((pod, index) => {
             const podElement = document.createElement('div');
             podElement.classList.add('pod', `pod-color-${index % 10}`);
+            podElement.dataset.podIndex = index.toString();
+            // Make pod a drop target
+            podElement.addEventListener('dragover', handleDragOver);
+            podElement.addEventListener('drop', handleDrop);
+            podElement.addEventListener('dragleave', handleDragLeave);
             const title = document.createElement('h3');
             title.textContent = `Pod ${index + 1} (Power: ${pod.power})`;
             podElement.appendChild(title);
             const list = document.createElement('ul');
-            pod.players.forEach(item => {
+            pod.players.forEach((item, itemIndex) => {
                 if ('players' in item) { // It's a Group
                     const groupItem = document.createElement('li');
+                    groupItem.classList.add('pod-group');
+                    groupItem.draggable = true;
+                    groupItem.dataset.itemType = 'group';
+                    groupItem.dataset.itemId = item.id;
+                    groupItem.dataset.podIndex = index.toString();
+                    groupItem.dataset.itemIndex = itemIndex.toString();
+                    // Add drag event listeners
+                    groupItem.addEventListener('dragstart', handleDragStart);
+                    groupItem.addEventListener('dragend', handleDragEnd);
                     groupItem.innerHTML = `<strong>Group ${item.id.split('-')[1]} (Avg Power: ${item.averagePower}):</strong>`;
                     const subList = document.createElement('ul');
                     item.players.forEach(p => {
@@ -443,12 +470,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 else { // It's a Player
                     const playerItem = document.createElement('li');
+                    playerItem.classList.add('pod-player');
+                    playerItem.draggable = true;
+                    playerItem.dataset.itemType = 'player';
+                    playerItem.dataset.itemId = item.id.toString();
+                    playerItem.dataset.podIndex = index.toString();
+                    playerItem.dataset.itemIndex = itemIndex.toString();
+                    // Add drag event listeners
+                    playerItem.addEventListener('dragstart', handleDragStart);
+                    playerItem.addEventListener('dragend', handleDragEnd);
                     playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
                     list.appendChild(playerItem);
                 }
             });
             podElement.appendChild(list);
-            outputSection.appendChild(podElement);
+            podsContainer.appendChild(podElement);
         });
         // Display unassigned players if any
         if (unassignedPlayers.length > 0) {
@@ -456,14 +492,28 @@ document.addEventListener('DOMContentLoaded', () => {
             unassignedElement.classList.add('pod', 'unassigned-pod');
             unassignedElement.style.borderColor = '#ff6b6b';
             unassignedElement.style.backgroundColor = '#2a1f1f';
+            unassignedElement.dataset.podIndex = 'unassigned';
+            // Make unassigned area a drop target
+            unassignedElement.addEventListener('dragover', handleDragOver);
+            unassignedElement.addEventListener('drop', handleDrop);
+            unassignedElement.addEventListener('dragleave', handleDragLeave);
             const title = document.createElement('h3');
             title.textContent = 'Unassigned Players';
             title.style.color = '#ff6b6b';
             unassignedElement.appendChild(title);
             const list = document.createElement('ul');
-            unassignedPlayers.forEach(item => {
+            unassignedPlayers.forEach((item, itemIndex) => {
                 if ('players' in item) { // It's a Group
                     const groupItem = document.createElement('li');
+                    groupItem.classList.add('pod-group');
+                    groupItem.draggable = true;
+                    groupItem.dataset.itemType = 'group';
+                    groupItem.dataset.itemId = item.id;
+                    groupItem.dataset.podIndex = 'unassigned';
+                    groupItem.dataset.itemIndex = itemIndex.toString();
+                    // Add drag event listeners
+                    groupItem.addEventListener('dragstart', handleDragStart);
+                    groupItem.addEventListener('dragend', handleDragEnd);
                     groupItem.innerHTML = `<strong>Group ${item.id.split('-')[1]} (Avg Power: ${item.averagePower}):</strong>`;
                     const subList = document.createElement('ul');
                     item.players.forEach(p => {
@@ -476,13 +526,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 else { // It's a Player
                     const playerItem = document.createElement('li');
+                    playerItem.classList.add('pod-player');
+                    playerItem.draggable = true;
+                    playerItem.dataset.itemType = 'player';
+                    playerItem.dataset.itemId = item.id.toString();
+                    playerItem.dataset.podIndex = 'unassigned';
+                    playerItem.dataset.itemIndex = itemIndex.toString();
+                    // Add drag event listeners
+                    playerItem.addEventListener('dragstart', handleDragStart);
+                    playerItem.addEventListener('dragend', handleDragEnd);
                     playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
                     list.appendChild(playerItem);
                 }
             });
             unassignedElement.appendChild(list);
-            outputSection.appendChild(unassignedElement);
+            podsContainer.appendChild(unassignedElement);
         }
+        outputSection.appendChild(podsContainer);
     };
     const resetAll = () => {
         playerRowsContainer.innerHTML = '';
@@ -502,6 +562,243 @@ document.addEventListener('DOMContentLoaded', () => {
     resetAllBtn.addEventListener('click', resetAll);
     // Initial state
     resetAll();
+    // Drag and Drop functionality
+    let draggedElement = null;
+    let draggedItemData = null;
+    const handleDragStart = (e) => {
+        const target = e.target;
+        draggedElement = target;
+        target.classList.add('dragging');
+        draggedItemData = {
+            type: target.dataset.itemType,
+            id: target.dataset.itemId,
+            podIndex: target.dataset.podIndex,
+            itemIndex: target.dataset.itemIndex
+        };
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', target.outerHTML);
+    };
+    const handleDragEnd = (e) => {
+        const target = e.target;
+        target.classList.remove('dragging');
+        draggedElement = null;
+        draggedItemData = null;
+    };
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const target = e.currentTarget;
+        target.classList.add('drag-over');
+    };
+    const handleDragLeave = (e) => {
+        const target = e.currentTarget;
+        target.classList.remove('drag-over');
+    };
+    const handleDrop = (e) => {
+        e.preventDefault();
+        const target = e.currentTarget;
+        target.classList.remove('drag-over');
+        if (!draggedItemData)
+            return;
+        const targetPodIndex = target.dataset.podIndex;
+        const sourcePodIndex = draggedItemData.podIndex;
+        // Don't drop on the same pod
+        if (targetPodIndex === sourcePodIndex)
+            return;
+        // Move the item between pods
+        moveItemBetweenPods(draggedItemData, targetPodIndex);
+    };
+    const moveItemBetweenPods = (itemData, targetPodIndex) => {
+        if (!itemData)
+            return;
+        const sourcePodIndex = itemData.podIndex;
+        const itemIndex = parseInt(itemData.itemIndex);
+        // Find the item to move
+        let itemToMove = null;
+        if (sourcePodIndex === 'unassigned') {
+            // Handle unassigned items later if needed
+            return;
+        }
+        else {
+            const sourcePod = currentPods[parseInt(sourcePodIndex)];
+            itemToMove = sourcePod.players[itemIndex];
+            // Remove from source pod
+            sourcePod.players.splice(itemIndex, 1);
+            // Recalculate source pod power
+            sourcePod.power = calculatePodPower(sourcePod.players);
+        }
+        if (!itemToMove)
+            return;
+        // Add to target pod
+        if (targetPodIndex === 'unassigned') {
+            // Handle unassigned area later if needed
+            return;
+        }
+        else {
+            const targetPod = currentPods[parseInt(targetPodIndex)];
+            targetPod.players.push(itemToMove);
+            // Recalculate target pod power
+            targetPod.power = calculatePodPower(targetPod.players);
+        }
+        // Re-render the pods
+        renderPods(currentPods);
+    };
+    const calculatePodPower = (items) => {
+        if (items.length === 0)
+            return 0;
+        const totalPower = items.reduce((sum, item) => {
+            if ('players' in item) {
+                return sum + item.averagePower;
+            }
+            else {
+                // For individual players, use their average power
+                const powerValues = item.powerRange.split(',').map(p => parseFloat(p.trim()));
+                const avgPower = powerValues.reduce((s, p) => s + p, 0) / powerValues.length;
+                return sum + avgPower;
+            }
+        }, 0);
+        return Math.round((totalPower / items.length) * 10) / 10;
+    };
+    // Display Mode functionality
+    const enterDisplayMode = () => {
+        if (currentPods.length === 0)
+            return;
+        isDisplayMode = true;
+        document.body.classList.add('display-mode');
+        // Calculate grid size using ceil(sqrt(pods))
+        const gridSize = Math.ceil(Math.sqrt(currentPods.length));
+        // Create fullscreen container that replaces everything
+        const displayContainer = document.createElement('div');
+        displayContainer.className = 'display-mode-container';
+        displayContainer.style.position = 'fixed';
+        displayContainer.style.top = '0';
+        displayContainer.style.left = '0';
+        displayContainer.style.width = '100vw';
+        displayContainer.style.height = '100vh';
+        displayContainer.style.background = '#1a1a1a';
+        displayContainer.style.zIndex = '1000';
+        displayContainer.style.padding = '20px';
+        displayContainer.style.boxSizing = 'border-box';
+        displayContainer.style.overflow = 'hidden';
+        displayContainer.innerHTML = `
+            <div class="display-mode-controls">
+                <button id="exit-display-btn">Exit Display Mode</button>
+            </div>
+            <h1 style="text-align: center; margin: 0 0 20px 0; font-size: 2.5rem; color: white;">MTG Commander Pods</h1>
+            <div id="display-output" style="flex-grow: 1; height: calc(100vh - 140px);"></div>
+        `;
+        // Hide the original container completely
+        const originalContainer = document.querySelector('.container');
+        if (originalContainer) {
+            originalContainer.style.display = 'none';
+        }
+        document.body.appendChild(displayContainer);
+        // Render pods in grid layout
+        const displayOutput = displayContainer.querySelector('#display-output');
+        const podsGrid = document.createElement('div');
+        podsGrid.style.display = 'grid';
+        podsGrid.style.gap = '20px';
+        podsGrid.style.height = '100%';
+        podsGrid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+        podsGrid.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+        currentPods.forEach((pod, index) => {
+            const podElement = document.createElement('div');
+            podElement.style.display = 'flex';
+            podElement.style.flexDirection = 'column';
+            podElement.style.background = '#2a2a2a';
+            podElement.style.border = '2px solid #4a4a4a';
+            podElement.style.borderRadius = '8px';
+            podElement.style.padding = '15px';
+            podElement.style.boxSizing = 'border-box';
+            podElement.style.minHeight = '0';
+            podElement.classList.add(`pod-color-${index % 10}`);
+            const title = document.createElement('h3');
+            title.textContent = `Pod ${index + 1} (Power: ${pod.power})`;
+            title.style.fontSize = '1.6rem';
+            title.style.margin = '0 0 15px 0';
+            title.style.textAlign = 'center';
+            title.style.color = '#ffffff';
+            title.style.fontWeight = 'bold';
+            title.style.flexShrink = '0';
+            podElement.appendChild(title);
+            const list = document.createElement('ul');
+            list.style.flexGrow = '1';
+            list.style.display = 'flex';
+            list.style.flexDirection = 'column';
+            list.style.justifyContent = 'flex-start';
+            list.style.fontSize = '1.1rem';
+            list.style.lineHeight = '1.4';
+            list.style.margin = '0';
+            list.style.padding = '0';
+            list.style.listStyle = 'none';
+            list.style.overflowY = 'auto';
+            pod.players.forEach(item => {
+                if ('players' in item) { // It's a Group
+                    const groupItem = document.createElement('li');
+                    groupItem.style.marginBottom = '6px';
+                    groupItem.style.color = '#ffffff';
+                    groupItem.style.padding = '4px 0';
+                    groupItem.innerHTML = `<strong style="color: var(--accent-color);">Group ${item.id.split('-')[1]} (Avg Power: ${item.averagePower}):</strong>`;
+                    const subList = document.createElement('ul');
+                    subList.style.margin = '0';
+                    subList.style.padding = '0 0 0 20px';
+                    subList.style.listStyle = 'none';
+                    item.players.forEach(p => {
+                        const playerItem = document.createElement('li');
+                        playerItem.textContent = `${p.name} (P: ${p.powerRange})`;
+                        playerItem.style.color = '#ffffff';
+                        playerItem.style.marginBottom = '4px';
+                        subList.appendChild(playerItem);
+                    });
+                    groupItem.appendChild(subList);
+                    list.appendChild(groupItem);
+                }
+                else { // It's a Player
+                    const playerItem = document.createElement('li');
+                    playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+                    playerItem.style.marginBottom = '6px';
+                    playerItem.style.color = '#ffffff';
+                    playerItem.style.padding = '4px 0';
+                    list.appendChild(playerItem);
+                }
+            });
+            podElement.appendChild(list);
+            podsGrid.appendChild(podElement);
+        });
+        displayOutput.appendChild(podsGrid);
+        // Add exit button functionality
+        const exitBtn = displayContainer.querySelector('#exit-display-btn');
+        exitBtn.addEventListener('click', exitDisplayMode);
+        // Add ESC key support
+        handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isDisplayMode) {
+                exitDisplayMode();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+    };
+    // Store reference to the key handler for cleanup
+    let handleKeyDown;
+    const exitDisplayMode = () => {
+        isDisplayMode = false;
+        document.body.classList.remove('display-mode');
+        // Restore the original container
+        const originalContainer = document.querySelector('.container');
+        if (originalContainer) {
+            originalContainer.style.display = '';
+        }
+        // Remove display mode container
+        const displayContainer = document.querySelector('.display-mode-container');
+        if (displayContainer) {
+            displayContainer.remove();
+        }
+        // Remove ESC key listener if it exists
+        if (handleKeyDown) {
+            document.removeEventListener('keydown', handleKeyDown);
+        }
+    };
+    // Add display mode event listener
+    displayModeBtn.addEventListener('click', enterDisplayMode);
     // Backtracking algorithm for optimal pod assignment with virtual player support
     const findOptimalPodAssignment = (items, targetSizes, leniencySettings) => {
         console.log('DEBUG: findOptimalPodAssignment called with', items.length, 'items');
@@ -582,7 +879,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         for (let i = 0; i < candidates.length; i++) {
             const item = candidates[i];
-            const itemSize = 'size' in item ? item.size : 1;
+            const itemSize = 'players' in item ? item.size : 1;
             if (currentSize + itemSize <= targetSize) {
                 const newCombination = [...currentCombination, item];
                 const newCandidates = candidates.slice(i + 1); // Avoid duplicates
