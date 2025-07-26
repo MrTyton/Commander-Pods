@@ -7,7 +7,8 @@
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
     "build": "tsc",
-    "bundle": "esbuild src/main.ts --bundle --outfile=script.js --format=iife"
+    "bundle": "esbuild src/main.ts --bundle --outfile=script.js --format=iife",
+    "deploy": "npm run bundle"
   },
   "keywords": [],
   "author": "",
