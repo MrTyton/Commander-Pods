@@ -713,39 +713,9 @@ button {
     border-left: 4px solid #4CAF50;
 }
 
-/* Support Footer Styles */
-.support-footer {
-    margin-top: 40px;
-    padding: 20px;
-    text-align: center;
-    border-top: 1px solid #333;
-    color: #999;
-}
-
-.support-footer p {
-    margin: 0;
-    font-size: 0.9rem;
-}
-
-.kofi-link {
-    color: #00d9ff;
-    text-decoration: none;
-    padding: 6px 12px;
-    border-radius: 20px;
-    background: linear-gradient(135deg, #ff5f5f, #ff9068);
-    color: white;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    display: inline-block;
-    margin-left: 8px;
-}
-
-.kofi-link:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 95, 95, 0.3);
-    text-decoration: none;
-}
-
-.kofi-link:active {
-    transform: translateY(0);
+/* Hide Ko-fi widget in display mode */
+body.display-mode .kofi-widget,
+body.display-mode [id*="kofi"],
+body.display-mode iframe[src*="ko-fi"] {
+    display: none !important;
 }
