@@ -457,15 +457,26 @@
       for (const basePowerLevel of uniquePowerLevels) {
         const compatibleVirtualPlayers = availableVirtualPlayers.filter((vp) => {
           if (!("players" in vp.item)) {
-            const compatible2 = Math.abs(vp.powerLevel - basePowerLevel) <= tolerance;
-            console.log(`DEBUG: Player ${vp.item.name} (power ${vp.powerLevel}) vs base ${basePowerLevel}, tolerance ${tolerance}, compatible: ${compatible2}`);
-            return compatible2;
+            return Math.abs(vp.powerLevel - basePowerLevel) <= tolerance;
           }
-          const compatible = Math.abs(vp.powerLevel - basePowerLevel) <= tolerance;
-          console.log(`DEBUG: Group ${vp.item.id} (power ${vp.powerLevel}) vs base ${basePowerLevel}, tolerance ${tolerance}, compatible: ${compatible}`);
-          return compatible;
+          return Math.abs(vp.powerLevel - basePowerLevel) <= tolerance;
         });
-        const sortedCompatiblePlayers = compatibleVirtualPlayers.sort((a, b) => {
+        const deduplicatedPlayers = /* @__PURE__ */ new Map();
+        for (const vp of compatibleVirtualPlayers) {
+          const itemId = "players" in vp.item ? vp.item.id : vp.item.id.toString();
+          if (!deduplicatedPlayers.has(itemId)) {
+            deduplicatedPlayers.set(itemId, vp);
+          } else {
+            const existing = deduplicatedPlayers.get(itemId);
+            const existingDistance = Math.abs(existing.powerLevel - basePowerLevel);
+            const newDistance = Math.abs(vp.powerLevel - basePowerLevel);
+            if (newDistance < existingDistance) {
+              deduplicatedPlayers.set(itemId, vp);
+            }
+          }
+        }
+        const uniqueCompatiblePlayers = Array.from(deduplicatedPlayers.values());
+        const sortedCompatiblePlayers = uniqueCompatiblePlayers.sort((a, b) => {
           if ("players" in a.item && "players" in b.item) {
             const aIsAverage = Math.abs(a.powerLevel - a.item.averagePower) < 0.01;
             const bIsAverage = Math.abs(b.powerLevel - b.item.averagePower) < 0.01;

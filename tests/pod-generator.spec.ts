@@ -1853,21 +1853,16 @@ test.describe('MTG Commander Pod Generator', () => {
 
         // Debug: Log all the output
         const allOutput = await page.locator('#output-section').textContent();
-        console.log('DEBUG: Full output content:', allOutput);
 
         // Check that we have 2 pods
         const pods = page.locator('.pod:not(.unassigned-pod)');
         const podCount = await pods.count();
-        console.log('DEBUG: Pod count:', podCount);
 
         await expect(pods).toHaveCount(2);
 
         // Check pod contents
         const pod1Content = await pods.nth(0).textContent();
         const pod2Content = await pods.nth(1).textContent();
-
-        console.log('DEBUG: Pod 1 content:', pod1Content);
-        console.log('DEBUG: Pod 2 content:', pod2Content);
 
         // Pod 1 (Power: 1.5): players 1, 2, 3, and 4 (player 4's power 2 is within ±0.5 of 1.5)
         // Check that Pod 1 has power level 1.5 and contains the right players

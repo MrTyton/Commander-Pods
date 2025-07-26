@@ -296,19 +296,37 @@ export class PodGenerator {
             const compatibleVirtualPlayers = availableVirtualPlayers.filter(vp => {
                 // For individual Player: check if the virtual player's specific power level is within tolerance
                 if (!('players' in vp.item)) {
-                    const compatible = Math.abs(vp.powerLevel - basePowerLevel) <= tolerance;
-                    console.log(`DEBUG: Player ${vp.item.name} (power ${vp.powerLevel}) vs base ${basePowerLevel}, tolerance ${tolerance}, compatible: ${compatible}`);
-                    return compatible;
+                    return Math.abs(vp.powerLevel - basePowerLevel) <= tolerance;
                 }
                 // For Group: check if the virtual player's power level is within tolerance
                 // (virtual players for groups are only created for power levels all members can play)
-                const compatible = Math.abs(vp.powerLevel - basePowerLevel) <= tolerance;
-                console.log(`DEBUG: Group ${vp.item.id} (power ${vp.powerLevel}) vs base ${basePowerLevel}, tolerance ${tolerance}, compatible: ${compatible}`);
-                return compatible;
+                return Math.abs(vp.powerLevel - basePowerLevel) <= tolerance;
             });
 
+            // Deduplicate players - each player/group should appear only once
+            // For players with multiple compatible power levels, prefer the one closest to basePowerLevel
+            const deduplicatedPlayers = new Map<string, VirtualPlayer>();
+            for (const vp of compatibleVirtualPlayers) {
+                const itemId = 'players' in vp.item ? vp.item.id : vp.item.id.toString();
+
+                if (!deduplicatedPlayers.has(itemId)) {
+                    deduplicatedPlayers.set(itemId, vp);
+                } else {
+                    // If we already have this player, keep the one with power level closest to basePowerLevel
+                    const existing = deduplicatedPlayers.get(itemId)!;
+                    const existingDistance = Math.abs(existing.powerLevel - basePowerLevel);
+                    const newDistance = Math.abs(vp.powerLevel - basePowerLevel);
+
+                    if (newDistance < existingDistance) {
+                        deduplicatedPlayers.set(itemId, vp);
+                    }
+                }
+            }
+
+            const uniqueCompatiblePlayers = Array.from(deduplicatedPlayers.values());
+
             // Sort compatible virtual players to prefer group average power, then individual players
-            const sortedCompatiblePlayers = compatibleVirtualPlayers.sort((a, b) => {
+            const sortedCompatiblePlayers = uniqueCompatiblePlayers.sort((a, b) => {
                 // If both are groups, prefer based on power level proximity to average
                 if ('players' in a.item && 'players' in b.item) {
                     const aIsAverage = Math.abs(a.powerLevel - a.item.averagePower) < 0.01;
