@@ -4,6 +4,55 @@ export class DisplayModeManager {
     private isDisplayMode = false;
     private handleKeyDown: ((e: KeyboardEvent) => void) | null = null;
 
+    // Pool of 25 high-contrast colors for pod borders
+    private readonly borderColors = [
+        '#FF6B6B', // Red
+        '#4ECDC4', // Teal
+        '#45B7D1', // Blue
+        '#FFA726', // Orange
+        '#66BB6A', // Green
+        '#AB47BC', // Purple
+        '#EF5350', // Light Red
+        '#26A69A', // Dark Teal
+        '#42A5F5', // Light Blue
+        '#FF7043', // Deep Orange
+        '#9CCC65', // Light Green
+        '#7E57C2', // Deep Purple
+        '#EC407A', // Pink
+        '#29B6F6', // Cyan
+        '#FFCA28', // Amber
+        '#8BC34A', // Lime
+        '#673AB7', // Indigo
+        '#F06292', // Light Pink
+        '#00BCD4', // Dark Cyan
+        '#FFEB3B', // Yellow
+        '#795548', // Brown
+        '#607D8B', // Blue Grey
+        '#E91E63', // Deep Pink
+        '#009688', // Dark Teal
+        '#FF9800'  // Pure Orange
+    ];
+
+    private getShuffledColors(count: number): string[] {
+        // Create a copy of colors and shuffle them
+        const shuffled = [...this.borderColors];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        // If we need more colors than available, repeat the pattern
+        if (count > shuffled.length) {
+            const repeated = [];
+            for (let i = 0; i < count; i++) {
+                repeated.push(shuffled[i % shuffled.length]);
+            }
+            return repeated;
+        }
+
+        return shuffled.slice(0, count);
+    }
+
     enterDisplayMode(currentPods: Pod[]): void {
         if (currentPods.length === 0) return;
 
@@ -52,16 +101,20 @@ export class DisplayModeManager {
         podsGrid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
         podsGrid.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
 
+        // Get shuffled colors for the pods
+        const podColors = this.getShuffledColors(currentPods.length);
+
         currentPods.forEach((pod, index) => {
             const podElement = document.createElement('div');
             podElement.style.display = 'flex';
             podElement.style.flexDirection = 'column';
             podElement.style.background = '#2a2a2a';
-            podElement.style.border = '2px solid #4a4a4a';
+            podElement.style.border = `3px solid ${podColors[index]}`; // Use random color with thicker border
             podElement.style.borderRadius = '8px';
             podElement.style.padding = '15px';
             podElement.style.boxSizing = 'border-box';
             podElement.style.minHeight = '0';
+            podElement.style.boxShadow = `0 0 10px ${podColors[index]}40`; // Add subtle glow effect
             podElement.classList.add(`pod-color-${index % 10}`);
 
             const title = document.createElement('h3');
@@ -69,9 +122,10 @@ export class DisplayModeManager {
             title.style.fontSize = '1.6rem';
             title.style.margin = '0 0 15px 0';
             title.style.textAlign = 'center';
-            title.style.color = '#ffffff';
+            title.style.color = podColors[index]; // Make title match border color
             title.style.fontWeight = 'bold';
             title.style.flexShrink = '0';
+            title.style.textShadow = '1px 1px 2px rgba(0,0,0,0.8)'; // Add text shadow for better contrast
             podElement.appendChild(title);
 
             const list = document.createElement('ul');

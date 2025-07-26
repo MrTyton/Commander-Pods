@@ -1486,6 +1486,65 @@ test.describe('MTG Commander Pod Generator', () => {
         expect(hasContent).toBe(true);
     });
 
+    test('should assign random colors to pods in display mode', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Add more player rows to get multiple pods
+        for (let i = 0; i < 4; i++) {
+            await page.click('#add-player-btn');
+        }
+        await page.waitForTimeout(100);
+
+        // Fill in 8 players to get multiple pods
+        const players = ['Alice', 'Bob', 'Charlie', 'David', 'Eve', 'Frank', 'Grace', 'Henry'];
+        for (let i = 0; i < players.length; i++) {
+            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i]);
+            await setPowerLevels(page, i + 1, [6]);
+        }
+
+        // Generate pods and enter display mode
+        await page.click('#generate-pods-btn');
+        await page.waitForTimeout(200);
+        await page.click('#display-mode-btn');
+        await page.waitForTimeout(200);
+
+        // Check that we're in display mode
+        const displayContainer = await page.locator('.display-mode-container');
+        await expect(displayContainer).toBeVisible();
+
+        // Get all pod elements
+        const podElements = await page.locator('#display-output > div > div').all();
+        expect(podElements.length).toBeGreaterThan(1); // Need multiple pods to test colors
+
+        // Collect border colors from each pod
+        const borderColors: string[] = [];
+        for (const pod of podElements) {
+            const borderColor = await pod.evaluate((el) =>
+                window.getComputedStyle(el).borderColor
+            );
+            borderColors.push(borderColor);
+
+            // Verify the border is not the default gray color
+            expect(borderColor).not.toBe('rgb(74, 74, 74)'); // #4a4a4a default
+            expect(borderColor).not.toBe('transparent');
+
+            // Verify border width is 3px (thicker colored border)
+            const borderWidth = await pod.evaluate((el) =>
+                window.getComputedStyle(el).borderWidth
+            );
+            expect(borderWidth).toBe('3px');
+        }
+
+        // Verify that each pod has a different color (randomness test)
+        const uniqueColors = new Set(borderColors);
+        expect(uniqueColors.size).toBe(borderColors.length);
+
+        // Verify colors are valid RGB values from our color palette
+        for (const color of borderColors) {
+            expect(color).toMatch(/rgb\(\d+,\s*\d+,\s*\d+\)/);
+        }
+    });
+
     test('should make players draggable in pod view', async ({ page }) => {
         await page.goto('file://' + __dirname.replace('tests', 'index.html'));
 

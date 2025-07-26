@@ -676,6 +676,74 @@
     constructor() {
       this.isDisplayMode = false;
       this.handleKeyDown = null;
+      // Pool of 25 high-contrast colors for pod borders
+      this.borderColors = [
+        "#FF6B6B",
+        // Red
+        "#4ECDC4",
+        // Teal
+        "#45B7D1",
+        // Blue
+        "#FFA726",
+        // Orange
+        "#66BB6A",
+        // Green
+        "#AB47BC",
+        // Purple
+        "#EF5350",
+        // Light Red
+        "#26A69A",
+        // Dark Teal
+        "#42A5F5",
+        // Light Blue
+        "#FF7043",
+        // Deep Orange
+        "#9CCC65",
+        // Light Green
+        "#7E57C2",
+        // Deep Purple
+        "#EC407A",
+        // Pink
+        "#29B6F6",
+        // Cyan
+        "#FFCA28",
+        // Amber
+        "#8BC34A",
+        // Lime
+        "#673AB7",
+        // Indigo
+        "#F06292",
+        // Light Pink
+        "#00BCD4",
+        // Dark Cyan
+        "#FFEB3B",
+        // Yellow
+        "#795548",
+        // Brown
+        "#607D8B",
+        // Blue Grey
+        "#E91E63",
+        // Deep Pink
+        "#009688",
+        // Dark Teal
+        "#FF9800"
+        // Pure Orange
+      ];
+    }
+    getShuffledColors(count) {
+      const shuffled = [...this.borderColors];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      if (count > shuffled.length) {
+        const repeated = [];
+        for (let i = 0; i < count; i++) {
+          repeated.push(shuffled[i % shuffled.length]);
+        }
+        return repeated;
+      }
+      return shuffled.slice(0, count);
     }
     enterDisplayMode(currentPods) {
       if (currentPods.length === 0) return;
@@ -713,25 +781,28 @@
       podsGrid.style.height = "100%";
       podsGrid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
       podsGrid.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+      const podColors = this.getShuffledColors(currentPods.length);
       currentPods.forEach((pod, index) => {
         const podElement = document.createElement("div");
         podElement.style.display = "flex";
         podElement.style.flexDirection = "column";
         podElement.style.background = "#2a2a2a";
-        podElement.style.border = "2px solid #4a4a4a";
+        podElement.style.border = `3px solid ${podColors[index]}`;
         podElement.style.borderRadius = "8px";
         podElement.style.padding = "15px";
         podElement.style.boxSizing = "border-box";
         podElement.style.minHeight = "0";
+        podElement.style.boxShadow = `0 0 10px ${podColors[index]}40`;
         podElement.classList.add(`pod-color-${index % 10}`);
         const title = document.createElement("h3");
         title.textContent = `Pod ${index + 1} (Power: ${pod.power})`;
         title.style.fontSize = "1.6rem";
         title.style.margin = "0 0 15px 0";
         title.style.textAlign = "center";
-        title.style.color = "#ffffff";
+        title.style.color = podColors[index];
         title.style.fontWeight = "bold";
         title.style.flexShrink = "0";
+        title.style.textShadow = "1px 1px 2px rgba(0,0,0,0.8)";
         podElement.appendChild(title);
         const list = document.createElement("ul");
         list.style.flexGrow = "1";
