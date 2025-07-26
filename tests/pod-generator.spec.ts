@@ -2458,4 +2458,78 @@ test.describe('MTG Commander Pod Generator', () => {
         expect(allContent).toContain('Compatible4');
         expect(allContent).toContain('Outlier');
     });
+
+    test('should remove empty pods after all players are moved out', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Create a scenario with multiple pods
+        for (let i = 0; i < 4; i++) {
+            await page.click('#add-player-btn');
+        }
+
+        // Create 8 players to get multiple pods
+        const players = ['Alice', 'Bob', 'Charlie', 'David', 'Eve', 'Frank', 'Grace', 'Henry'];
+        for (let i = 0; i < players.length; i++) {
+            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i]);
+            await setPowerLevels(page, i + 1, [6]);
+        }
+
+        // Generate pods
+        await page.click('#generate-pods-btn');
+        await page.waitForTimeout(100);
+
+        // Should have multiple pods + new pod target
+        const initialPods = await page.locator('.pod:not(.unassigned-pod)');
+        const initialCount = await initialPods.count();
+        expect(initialCount).toBeGreaterThanOrEqual(3); // At least 2 actual pods + 1 new pod target
+
+        // Get the actual pods (not new pod target)
+        const actualPods = await page.locator('.pod:not(.unassigned-pod):not(.new-pod)');
+        const initialActualCount = await actualPods.count();
+        expect(initialActualCount).toBeGreaterThanOrEqual(2); // At least 2 actual pods
+
+        // Get the first pod and move all its players to the second pod
+        const firstPod = actualPods.first();
+        const secondPod = actualPods.nth(1);
+        
+        // Count players in the first pod initially
+        const firstPodPlayers = await firstPod.locator('.pod-player');
+        const playerCount = await firstPodPlayers.count();
+        expect(playerCount).toBeGreaterThan(0); // Should have players initially
+
+        // Move all players from first pod to second pod
+        for (let i = 0; i < playerCount; i++) {
+            // Always get the first player since the list shrinks as we move players
+            const playerToMove = await firstPod.locator('.pod-player').first();
+            if (await playerToMove.count() > 0) {
+                await playerToMove.dragTo(secondPod);
+                await page.waitForTimeout(50);
+            }
+        }
+
+        // Wait for UI to update
+        await page.waitForTimeout(200);
+
+        // The first pod should now be gone (removed automatically when empty)
+        const finalActualPods = await page.locator('.pod:not(.unassigned-pod):not(.new-pod)');
+        const finalActualCount = await finalActualPods.count();
+        expect(finalActualCount).toBe(initialActualCount - 1); // One less pod than before
+
+        // Verify the remaining pod has all the players
+        const remainingPod = finalActualPods.first();
+        const remainingPodContent = await remainingPod.textContent();
+        
+        // All original players should be in the remaining pod
+        for (const playerName of players) {
+            expect(remainingPodContent).toContain(playerName);
+        }
+
+        // Verify no empty pods exist in the DOM
+        const allPodElements = await page.locator('.pod:not(.unassigned-pod):not(.new-pod)').all();
+        for (const pod of allPodElements) {
+            const podPlayers = await pod.locator('.pod-player');
+            const count = await podPlayers.count();
+            expect(count).toBeGreaterThan(0); // No pod should be empty
+        }
+    });
 });

@@ -114,7 +114,15 @@ export class DragDropManager {
             targetPod.power = this.playerManager.calculatePodPower(targetPod.players);
         }
 
+        // Clean up empty pods after the move operation
+        this.cleanupEmptyPods();
+
         // Notify that pods have changed
         this.onPodsChanged(this.currentPods, this.currentUnassigned);
+    }
+
+    private cleanupEmptyPods(): void {
+        // Filter out empty pods and update the current pods array
+        this.currentPods = this.currentPods.filter(pod => pod.players.length > 0);
     }
 }

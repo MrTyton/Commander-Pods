@@ -673,7 +673,11 @@
         targetPod.players.push(itemToMove);
         targetPod.power = this.playerManager.calculatePodPower(targetPod.players);
       }
+      this.cleanupEmptyPods();
       this.onPodsChanged(this.currentPods, this.currentUnassigned);
+    }
+    cleanupEmptyPods() {
+      this.currentPods = this.currentPods.filter((pod) => pod.players.length > 0);
     }
   };
 
