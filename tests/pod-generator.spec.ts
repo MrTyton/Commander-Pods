@@ -2859,7 +2859,7 @@ test.describe('MTG Commander Pod Generator', () => {
         // Test closing by clicking outside modal
         await helpButton.click();
         await expect(helpModal).toBeVisible();
-        
+
         // Click on the modal backdrop (outside the content)
         await page.locator('#help-modal').click({ position: { x: 10, y: 10 } });
         await expect(helpModal).not.toBeVisible();
