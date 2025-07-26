@@ -335,6 +335,36 @@ export class UIManager {
             podsContainer.appendChild(podElement);
         });
 
+        // Add a "New Pod" drop target only if there are already some pods
+        if (pods.length > 0) {
+            const newPodElement = document.createElement('div');
+            newPodElement.classList.add('pod', 'new-pod', 'new-pod-target');
+            newPodElement.style.borderColor = '#4CAF50';
+            newPodElement.style.backgroundColor = '#1f2a1f';
+            newPodElement.style.borderStyle = 'dashed';
+            newPodElement.dataset.podIndex = 'new-pod';
+
+            // Make new pod area a drop target
+            newPodElement.addEventListener('dragover', this.dragDropManager.handleDragOver);
+            newPodElement.addEventListener('drop', this.dragDropManager.handleDrop);
+            newPodElement.addEventListener('dragleave', this.dragDropManager.handleDragLeave);
+
+            const newPodTitle = document.createElement('h3');
+            newPodTitle.textContent = 'Create New Pod';
+            newPodTitle.style.color = '#4CAF50';
+            newPodElement.appendChild(newPodTitle);
+
+            const newPodMessage = document.createElement('p');
+            newPodMessage.textContent = 'Drag players or groups here to create a new pod';
+            newPodMessage.style.color = '#999';
+            newPodMessage.style.fontStyle = 'italic';
+            newPodMessage.style.textAlign = 'center';
+            newPodMessage.style.margin = '20px 0';
+            newPodElement.appendChild(newPodMessage);
+
+            podsContainer.appendChild(newPodElement);
+        }
+
         // Display unassigned players if any
         if (unassignedPlayers.length > 0) {
             const unassignedElement = document.createElement('div');

@@ -189,6 +189,37 @@ button {
     border-color: #607d8b;
 }
 
+/* New Pod Area Styling */
+.new-pod {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 150px;
+    transition: all 0.3s ease;
+}
+
+.new-pod:hover {
+    background-color: #2a3f2a !important;
+    border-color: #66BB6A !important;
+}
+
+.new-pod.drag-over {
+    background-color: #2a3f2a !important;
+    border-color: #66BB6A !important;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+    transform: scale(1.02);
+}
+
+.new-pod h3 {
+    margin: 0 0 10px 0;
+}
+
+.new-pod p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
 .power-levels {
     position: relative;
     flex-basis: 30%;

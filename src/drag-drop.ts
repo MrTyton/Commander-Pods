@@ -99,8 +99,15 @@ export class DragDropManager {
         if (targetPodIndex === 'unassigned') {
             // Moving to unassigned area
             this.currentUnassigned.push(itemToMove);
+        } else if (targetPodIndex === 'new-pod') {
+            // Moving to a new pod - create a new pod with this item
+            const newPod: Pod = {
+                players: [itemToMove],
+                power: this.playerManager.calculatePodPower([itemToMove])
+            };
+            this.currentPods.push(newPod);
         } else {
-            // Moving to a pod
+            // Moving to an existing pod
             const targetPod = this.currentPods[parseInt(targetPodIndex)];
             targetPod.players.push(itemToMove);
             // Recalculate target pod power

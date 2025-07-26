@@ -161,15 +161,15 @@ test.describe('MTG Commander Pod Generator', () => {
         await page.click('#generate-pods-btn');
 
         // Check that pods are created
-        const pods = page.locator('.pod');
+        const pods = page.locator('.pod:not(.new-pod):not(.new-pod-target)');
         await expect(pods.first()).toBeVisible();
 
         // Check that the pod has the correct power level
-        await expect(page.locator('.pod h3')).toContainText('(Power: 7)');
+        await expect(page.locator('.pod:not(.new-pod):not(.new-pod-target) h3')).toContainText('(Power: 7)');
 
         // Check that all players are listed
         for (const player of players) {
-            await expect(page.locator('.pod')).toContainText(player.name);
+            await expect(page.locator('.pod:not(.new-pod):not(.new-pod-target)')).toContainText(player.name);
         }
     });
 
@@ -191,7 +191,7 @@ test.describe('MTG Commander Pod Generator', () => {
         await page.click('#generate-pods-btn');
 
         // Should create separate pods for different power levels
-        const pods = page.locator('.pod');
+        const pods = page.locator('.pod:not(.new-pod):not(.new-pod-target)');
         await expect(pods.first()).toBeVisible();
 
         // Wait for pods to be generated and check content
@@ -245,7 +245,7 @@ test.describe('MTG Commander Pod Generator', () => {
         await expect(pods.first()).toBeVisible();
 
         // Player 10 should either be in a pod or in unassigned section
-        const player10InPod = await page.locator('.pod').filter({ hasText: '10 (P: 2)' }).count();
+        const player10InPod = await page.locator('.pod:not(.new-pod):not(.new-pod-target)').filter({ hasText: '10 (P: 2)' }).count();
         const unassignedSection = page.locator('.unassigned-pod');
         const player10InUnassigned = await unassignedSection.filter({ hasText: '10 (P: 2)' }).count();
 
@@ -274,7 +274,7 @@ test.describe('MTG Commander Pod Generator', () => {
         await page.click('#generate-pods-btn');
 
         // Check that pods are created (leniency should help group them)
-        const pods = page.locator('.pod');
+        const pods = page.locator('.pod:not(.new-pod):not(.new-pod-target)');
         await expect(pods.first()).toBeVisible();
     });
 
@@ -349,11 +349,11 @@ test.describe('MTG Commander Pod Generator', () => {
         await page.click('#generate-pods-btn');
 
         // Check that the group shows average power
-        const pods = page.locator('.pod');
+        const pods = page.locator('.pod:not(.new-pod):not(.new-pod-target)');
         await expect(pods.first()).toBeVisible();
 
         // Group should show average power of 7 (6+8)/2 = 7
-        await expect(page.locator('.pod')).toContainText('Group 1 (Avg Power: 7)');
+        await expect(page.locator('.pod:not(.new-pod):not(.new-pod-target)')).toContainText('Group 1 (Avg Power: 7)');
     });
 
     test('should create multiple pods for larger groups', async ({ page }) => {
@@ -385,7 +385,7 @@ test.describe('MTG Commander Pod Generator', () => {
 
         // Should create 2 pods of 4 players each
         const pods = page.locator('.pod:not(.unassigned-pod)');
-        await expect(pods).toHaveCount(2);
+        await expect(pods).toHaveCount(3); // 2 actual pods + 1 new pod target
 
         // Each pod should have 4 players
         const pod1Content = await pods.nth(0).textContent();
@@ -999,7 +999,7 @@ test.describe('MTG Commander Pod Generator', () => {
 
         // All players should be in the same pod since they all can play power 7
         const podCount = await pods.count();
-        expect(podCount).toBe(1);
+        expect(podCount).toBe(2); // 1 actual pod + 1 new pod target
 
         const podContent = await pods.first().textContent();
         expect(podContent).toContain('Flexible1');
@@ -1093,7 +1093,7 @@ test.describe('MTG Commander Pod Generator', () => {
         if (hasPods) {
             // If pods are created, should have at least 1 pod, ideally 2
             expect(podCount).toBeGreaterThanOrEqual(1);
-            expect(podCount).toBeLessThanOrEqual(2);
+            expect(podCount).toBeLessThanOrEqual(3); // 2 actual pods + 1 new pod target max
 
             // Verify all players are assigned
             let totalPlayersInPods = 0;
@@ -1241,18 +1241,22 @@ test.describe('MTG Commander Pod Generator', () => {
         const pods = page.locator('.pod:not(.unassigned-pod)');
         await expect(pods.first()).toBeVisible();
         const podCount = await pods.count();
-        expect(podCount).toBe(2);
+        expect(podCount).toBe(3); // 2 actual pods + 1 new pod target
 
-        // Verify each pod has 4 players
-        for (let i = 0; i < podCount; i++) {
-            const podContent = await pods.nth(i).textContent();
+        // Verify each actual pod (not new pod target) has 4 players
+        const actualPods = page.locator('.pod:not(.unassigned-pod):not(.new-pod):not(.new-pod-target)');
+        const actualPodCount = await actualPods.count();
+        expect(actualPodCount).toBe(2); // Should be exactly 2 actual pods
+
+        for (let i = 0; i < actualPodCount; i++) {
+            const podContent = await actualPods.nth(i).textContent();
             const playerCount = (podContent?.match(/\([P]:/g) || []).length;
             expect(playerCount).toBe(4);
         }
 
         // Verify power levels are optimal (should be 6 and 8)
-        const pod1Content = await pods.nth(0).textContent();
-        const pod2Content = await pods.nth(1).textContent();
+        const pod1Content = await actualPods.nth(0).textContent();
+        const pod2Content = await actualPods.nth(1).textContent();
 
         const allPodContent = (pod1Content || '') + (pod2Content || '');
 
@@ -1591,7 +1595,7 @@ test.describe('MTG Commander Pod Generator', () => {
         for (const pod of podElements) {
             const title = await pod.locator('h3').first();
             const titleText = await title.textContent();
-            
+
             // The pod should show power 8 (the only power all can play)
             // or a range/list that includes 8
             expect(titleText).toMatch(/Pod \d+ \(Power: .*8.*\)/);
@@ -1632,7 +1636,7 @@ test.describe('MTG Commander Pod Generator', () => {
         for (const pod of podElements) {
             const title = await pod.locator('h3').first();
             const titleText = await title.textContent();
-            
+
             // Should show a range or list that includes both 7 and 7.5
             expect(titleText).toMatch(/Pod \d+ \(Power: .*(7.*7\.5|7\.5.*7).*\)/);
         }
@@ -1728,10 +1732,10 @@ test.describe('MTG Commander Pod Generator', () => {
         for (const pod of podElements) {
             const title = await pod.locator('h3').first();
             const titleText = await title.textContent();
-            
+
             // Should show valid power information (could be a range or specific values)
             expect(titleText).toMatch(/Pod \d+ \(Power: [\d\-\., ]+\)/);
-            
+
             // The power should include values that all players can reach with ±1.0 tolerance
             expect(titleText).toContain('Power:');
         }
@@ -1768,7 +1772,7 @@ test.describe('MTG Commander Pod Generator', () => {
         for (const pod of podElements) {
             const title = await pod.locator('h3').first();
             const titleText = await title.textContent();
-            
+
             expect(titleText).toMatch(/Pod \d+ \(Power: 7\)$/);
         }
     });
@@ -1855,10 +1859,11 @@ test.describe('MTG Commander Pod Generator', () => {
         await page.click('#generate-pods-btn');
         await page.waitForTimeout(100);
 
-        // Get initial pod contents
+        // Get initial pod contents (2 actual pods + 1 new pod target = 3 total)
         const pods = await page.locator('.pod:not(.unassigned-pod)');
-        await expect(pods).toHaveCount(2);
+        await expect(pods).toHaveCount(3);
 
+        // Use the first two pods (the actual generated pods, not the new pod target)
         const pod1Initial = await pods.nth(0).textContent();
         const pod2Initial = await pods.nth(1).textContent();
 
@@ -1877,6 +1882,58 @@ test.describe('MTG Commander Pod Generator', () => {
         // The content should have changed (indicating the drag worked)
         expect(pod1After).not.toBe(pod1Initial);
         expect(pod2After).not.toBe(pod2Initial);
+    });
+
+    test('should create new pod when dropping items on new pod target', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Add 6 players to ensure we have some variety
+        for (let i = 5; i <= 6; i++) {
+            await page.click('#add-player-btn');
+        }
+
+        const players = ['Alice', 'Bob', 'Charlie', 'David', 'Eve', 'Frank'];
+        for (let i = 0; i < players.length; i++) {
+            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i]);
+            await setPowerLevels(page, i + 1, [6]);
+        }
+
+        // Generate pods
+        await page.click('#generate-pods-btn');
+        await page.waitForTimeout(100);
+
+        // Should have pods generated successfully
+        const allPods = await page.locator('.pod:not(.unassigned-pod)');
+        const totalPods = await allPods.count();
+        expect(totalPods).toBeGreaterThanOrEqual(1); // At least 1 pod should exist
+
+        // The new pod target should exist when pods are generated
+        const newPodTarget = await page.locator('.new-pod.new-pod-target');
+        await expect(newPodTarget).toHaveCount(1);
+
+        // Get the actual generated pods (not the new pod target)
+        const actualPods = await page.locator('.pod:not(.unassigned-pod):not(.new-pod)');
+        const initialActualPodCount = await actualPods.count();
+        expect(initialActualPodCount).toBeGreaterThanOrEqual(1); // At least 1 actual pod
+
+        // Get a player from one of the actual pods to drag
+        const firstPod = actualPods.first();
+        const firstPlayer = await firstPod.locator('.pod-player').first();
+        await expect(firstPlayer).toBeVisible(); // Ensure the player exists
+
+        // Drag the player to the new pod target
+        await firstPlayer.dragTo(newPodTarget);
+        await page.waitForTimeout(100);
+
+        // Should now have more actual pods than before (new pod created)
+        const finalActualPods = await page.locator('.pod:not(.unassigned-pod):not(.new-pod)');
+        const finalActualPodCount = await finalActualPods.count();
+        expect(finalActualPodCount).toBeGreaterThan(initialActualPodCount);
+
+        // Verify the new pod was actually created and contains the dragged player
+        const lastPod = finalActualPods.last();
+        const lastPodContent = await lastPod.textContent();
+        expect(lastPodContent).toContain('Alice'); // The first player should now be in the new pod
     });
 
     test('should recalculate pod power levels after drag and drop', async ({ page }) => {
@@ -2077,7 +2134,7 @@ test.describe('MTG Commander Pod Generator', () => {
 
         // Perform multiple drag operations
         const pods = await page.locator('.pod:not(.unassigned-pod)');
-        await expect(pods).toHaveCount(2);
+        await expect(pods).toHaveCount(3); // 2 actual pods + 1 new pod target
 
         // Move players back and forth a few times
         for (let i = 0; i < 3; i++) {
@@ -2096,8 +2153,8 @@ test.describe('MTG Commander Pod Generator', () => {
             }
         }
 
-        // Verify that we still have all players and both pods
-        await expect(pods).toHaveCount(2);
+        // Verify that we still have all players and both pods + new pod target
+        await expect(pods).toHaveCount(3);
 
         // Count total players across all pods
         let totalPlayers = 0;
@@ -2147,7 +2204,7 @@ test.describe('MTG Commander Pod Generator', () => {
         const pods = page.locator('.pod:not(.unassigned-pod)');
         const podCount = await pods.count();
 
-        await expect(pods).toHaveCount(2);
+        await expect(pods).toHaveCount(3); // 2 actual pods + 1 new pod target
 
         // Check pod contents
         const pod1Content = await pods.nth(0).textContent();

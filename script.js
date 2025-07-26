@@ -662,6 +662,12 @@
       if (!itemToMove) return;
       if (targetPodIndex === "unassigned") {
         this.currentUnassigned.push(itemToMove);
+      } else if (targetPodIndex === "new-pod") {
+        const newPod = {
+          players: [itemToMove],
+          power: this.playerManager.calculatePodPower([itemToMove])
+        };
+        this.currentPods.push(newPod);
       } else {
         const targetPod = this.currentPods[parseInt(targetPodIndex)];
         targetPod.players.push(itemToMove);
@@ -1165,6 +1171,29 @@
         podElement.appendChild(list);
         podsContainer.appendChild(podElement);
       });
+      if (pods.length > 0) {
+        const newPodElement = document.createElement("div");
+        newPodElement.classList.add("pod", "new-pod", "new-pod-target");
+        newPodElement.style.borderColor = "#4CAF50";
+        newPodElement.style.backgroundColor = "#1f2a1f";
+        newPodElement.style.borderStyle = "dashed";
+        newPodElement.dataset.podIndex = "new-pod";
+        newPodElement.addEventListener("dragover", this.dragDropManager.handleDragOver);
+        newPodElement.addEventListener("drop", this.dragDropManager.handleDrop);
+        newPodElement.addEventListener("dragleave", this.dragDropManager.handleDragLeave);
+        const newPodTitle = document.createElement("h3");
+        newPodTitle.textContent = "Create New Pod";
+        newPodTitle.style.color = "#4CAF50";
+        newPodElement.appendChild(newPodTitle);
+        const newPodMessage = document.createElement("p");
+        newPodMessage.textContent = "Drag players or groups here to create a new pod";
+        newPodMessage.style.color = "#999";
+        newPodMessage.style.fontStyle = "italic";
+        newPodMessage.style.textAlign = "center";
+        newPodMessage.style.margin = "20px 0";
+        newPodElement.appendChild(newPodMessage);
+        podsContainer.appendChild(newPodElement);
+      }
       if (unassignedPlayers.length > 0) {
         const unassignedElement = document.createElement("div");
         unassignedElement.classList.add("pod", "unassigned-pod");
