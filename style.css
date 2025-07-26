@@ -760,7 +760,7 @@ body.display-mode iframe[src*="ko-fi"] {
         flex-direction: row;
         justify-content: space-around;
     }
-    
+
     .github-link {
         flex: 1;
         justify-content: center;
