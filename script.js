@@ -978,9 +978,11 @@
           } else {
             const min = selectedPowers[0];
             const max = selectedPowers[selectedPowers.length - 1];
-            const isContiguous = selectedPowers.every(
-              (power, index) => index === 0 || power === selectedPowers[index - 1] + 0.5
-            );
+            const isContiguous = selectedPowers.every((power, index) => {
+              if (index === 0) return true;
+              const diff = power - selectedPowers[index - 1];
+              return diff === 0.5 || diff === 1;
+            });
             if (isContiguous && selectedPowers.length > 2) {
               displayText = `Power: ${min}-${max}`;
             } else if (selectedPowers.length <= 4) {
@@ -1042,6 +1044,79 @@
       clearButton.addEventListener("click", () => {
         checkboxes.forEach((cb) => cb.checked = false);
         updateButtonText();
+      });
+      const closeDropdown = () => {
+        powerDropdown.classList.remove("show");
+        powerSelectorBtn.classList.remove("open");
+        setTimeout(() => {
+          if (!powerDropdown.classList.contains("show")) {
+            powerDropdown.style.display = "none";
+          }
+        }, 200);
+      };
+      let typedSequence = "";
+      let sequenceTimeout = null;
+      document.addEventListener("keydown", (e) => {
+        const isDropdownOpen = powerDropdown.style.display === "block" && powerDropdown.classList.contains("show");
+        const isButtonFocused = document.activeElement === powerSelectorBtn;
+        if (isDropdownOpen || isButtonFocused) {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            if (isDropdownOpen) {
+              closeDropdown();
+              powerSelectorBtn.focus();
+            }
+            typedSequence = "";
+            if (sequenceTimeout) clearTimeout(sequenceTimeout);
+          } else if (e.key >= "1" && e.key <= "9" || e.key === "." || e.key === "0" || e.key === "-") {
+            e.preventDefault();
+            typedSequence += e.key;
+            if (sequenceTimeout) clearTimeout(sequenceTimeout);
+            sequenceTimeout = setTimeout(() => {
+              if (typedSequence.includes("-")) {
+                const parts = typedSequence.split("-");
+                if (parts.length === 2) {
+                  const startValue = parseFloat(parts[0]);
+                  const endValue = parseFloat(parts[1]);
+                  const includeHalfSteps = parts[0].includes(".") || parts[1].includes(".");
+                  if (!isNaN(startValue) && !isNaN(endValue) && startValue >= 1 && startValue <= 10 && endValue >= 1 && endValue <= 10 && startValue <= endValue) {
+                    checkboxes.forEach((cb) => cb.checked = false);
+                    checkboxes.forEach((cb) => {
+                      const value = parseFloat(cb.value);
+                      if (value >= startValue && value <= endValue) {
+                        const isWholeNumber = value % 1 === 0;
+                        const isHalfStep = value % 1 === 0.5;
+                        if (isWholeNumber || includeHalfSteps && isHalfStep) {
+                          cb.checked = true;
+                        }
+                      }
+                    });
+                    updateButtonText();
+                    if (isDropdownOpen) {
+                      closeDropdown();
+                    }
+                  }
+                }
+              } else {
+                const targetValue = parseFloat(typedSequence);
+                if (!isNaN(targetValue) && targetValue >= 1 && targetValue <= 10) {
+                  checkboxes.forEach((cb) => cb.checked = false);
+                  const targetCheckbox = Array.from(checkboxes).find(
+                    (cb) => Math.abs(parseFloat(cb.value) - targetValue) < 0.01
+                  );
+                  if (targetCheckbox) {
+                    targetCheckbox.checked = true;
+                    updateButtonText();
+                    if (isDropdownOpen) {
+                      closeDropdown();
+                    }
+                  }
+                }
+              }
+              typedSequence = "";
+            }, 500);
+          }
+        }
       });
       updateButtonText();
       const removeBtn = newRow.querySelector(".remove-player-btn");

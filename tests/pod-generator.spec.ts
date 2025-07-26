@@ -2539,11 +2539,11 @@ test.describe('MTG Commander Pod Generator', () => {
         // Set same names for first two players (page starts with 4 players after reset)
         await page.fill('.player-row:nth-child(1) .player-name', 'Alice');
         await page.fill('.player-row:nth-child(2) .player-name', 'Alice');
-        
+
         // Add a third duplicate group
         await page.fill('.player-row:nth-child(3) .player-name', 'Bob');
         await page.fill('.player-row:nth-child(4) .player-name', 'Bob');
-        
+
         // Set power levels so only name validation fails
         await setPowerLevels(page, 1, '7');
         await setPowerLevels(page, 2, '7');
@@ -2559,7 +2559,7 @@ test.describe('MTG Commander Pod Generator', () => {
 
         // Try to generate pods
         await page.click('#generate-pods-btn');
-        
+
         // Wait for dialog to appear
         await page.waitForTimeout(500);
 
@@ -2570,28 +2570,253 @@ test.describe('MTG Commander Pod Generator', () => {
         // First duplicate group (Alice) should have error-1 class
         await expect(page.locator('.player-row:nth-child(1) .player-name')).toHaveClass(/name-duplicate-error-1/);
         await expect(page.locator('.player-row:nth-child(2) .player-name')).toHaveClass(/name-duplicate-error-1/);
-        
+
         // Second duplicate group (Bob) should have error-2 class  
         await expect(page.locator('.player-row:nth-child(3) .player-name')).toHaveClass(/name-duplicate-error-2/);
         await expect(page.locator('.player-row:nth-child(4) .player-name')).toHaveClass(/name-duplicate-error-2/);
 
         // Change one name to fix that group's error
         await page.fill('.player-row:nth-child(2) .player-name', 'Charlie');
-        
+
         // Wait for real-time validation to kick in
         await page.waitForTimeout(100);
-        
+
         // The Alice group error highlighting should be cleared since names are now unique
         await expect(page.locator('.player-row:nth-child(1) .player-name')).not.toHaveClass(/name-duplicate-error-[1-5]/);
         await expect(page.locator('.player-row:nth-child(2) .player-name')).not.toHaveClass(/name-duplicate-error-[1-5]/);
-        
+
         // But Bob group should still be highlighted (though it might change color index due to re-assignment)
         const bobInput1Class = await page.locator('.player-row:nth-child(3) .player-name').getAttribute('class');
         const bobInput2Class = await page.locator('.player-row:nth-child(4) .player-name').getAttribute('class');
         expect(bobInput1Class).toMatch(/name-duplicate-error-[1-5]/);
         expect(bobInput2Class).toMatch(/name-duplicate-error-[1-5]/);
-        
+
         // The Bob inputs should have the same error class
         expect(bobInput1Class).toBe(bobInput2Class);
+    });
+
+    test('should support keyboard shortcuts in power selector dropdown', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Click to open the power selector dropdown for the first player
+        const powerSelectorBtn = await page.locator('.player-row:nth-child(1) .power-selector-btn');
+        await powerSelectorBtn.click();
+        await page.waitForTimeout(200);
+
+        // Verify dropdown is open by checking its display style
+        const dropdown = await page.locator('.player-row:nth-child(1) .power-selector-dropdown');
+        await expect(dropdown).toBeVisible();
+
+        // Test Escape key closes the dropdown
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+
+        // Dropdown should be closed
+        await expect(dropdown).not.toBeVisible();
+
+        // Reopen dropdown to test number keys
+        await powerSelectorBtn.click();
+        await page.waitForTimeout(200);
+        await expect(dropdown).toBeVisible();
+
+        // Test pressing '7' selects power level 7
+        await page.keyboard.press('7');
+        await page.waitForTimeout(600); // Wait for sequence timeout
+
+        // Dropdown should close and power 7 should be selected
+        await expect(dropdown).not.toBeVisible();
+        const checkbox7 = await page.locator('.player-row:nth-child(1) input[value="7"]');
+        await expect(checkbox7).toBeChecked();
+
+        // Button text should show the selection
+        await expect(powerSelectorBtn).toContainText('Power: 7');
+
+        // Test decimal input - reopen dropdown and type '6.5'
+        await powerSelectorBtn.click();
+        await page.waitForTimeout(200);
+        await expect(dropdown).toBeVisible();
+
+        // Type '6.5' quickly
+        await page.keyboard.type('6.5');
+        await page.waitForTimeout(600); // Wait for sequence timeout
+
+        // Dropdown should close and power 6.5 should be selected
+        await expect(dropdown).not.toBeVisible();
+        const checkbox6_5 = await page.locator('.player-row:nth-child(1) input[value="6.5"]');
+        await expect(checkbox6_5).toBeChecked();
+
+        // Button text should show the new selection
+        await expect(powerSelectorBtn).toContainText('Power: 6.5');
+
+        // Verify previous selection was cleared
+        await expect(checkbox7).not.toBeChecked();
+    });
+
+    test('should support keyboard shortcuts when power selector button is focused via tab', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Focus on the first player's name input
+        const nameInput = await page.locator('.player-row:nth-child(1) .player-name');
+        await nameInput.focus();
+
+        // Tab to the power selector button
+        await page.keyboard.press('Tab');
+
+        // Verify the power selector button is focused
+        const powerSelectorBtn = await page.locator('.player-row:nth-child(1) .power-selector-btn');
+        await expect(powerSelectorBtn).toBeFocused();
+
+        // Verify dropdown is initially closed
+        const dropdown = await page.locator('.player-row:nth-child(1) .power-selector-dropdown');
+        await expect(dropdown).not.toBeVisible();
+
+        // Type '8' while button is focused - should open dropdown and select power 8
+        await page.keyboard.press('8');
+        await page.waitForTimeout(600); // Wait for sequence timeout
+
+        // Dropdown should close after selection and power 8 should be selected
+        await expect(dropdown).not.toBeVisible();
+        const checkbox8 = await page.locator('.player-row:nth-child(1) input[value="8"]');
+        await expect(checkbox8).toBeChecked();
+
+        // Button text should show the selection
+        await expect(powerSelectorBtn).toContainText('Power: 8');
+
+        // Test decimal input while button is focused - focus button again
+        await powerSelectorBtn.focus();
+
+        // Type '4.5' while button is focused
+        await page.keyboard.type('4.5');
+        await page.waitForTimeout(600); // Wait for sequence timeout
+
+        // Dropdown should close and power 4.5 should be selected
+        await expect(dropdown).not.toBeVisible();
+        const checkbox4_5 = await page.locator('.player-row:nth-child(1) input[value="4.5"]');
+        await expect(checkbox4_5).toBeChecked();
+
+        // Button text should show the new selection
+        await expect(powerSelectorBtn).toContainText('Power: 4.5');
+
+        // Verify previous selection was cleared
+        await expect(checkbox8).not.toBeChecked();
+
+        // Test that escape key works when button is focused (should do nothing if dropdown closed)
+        await powerSelectorBtn.focus();
+        await page.keyboard.press('Escape');
+
+        // Button should still be focused and selection should remain
+        await expect(powerSelectorBtn).toBeFocused();
+        await expect(checkbox4_5).toBeChecked();
+        await expect(powerSelectorBtn).toContainText('Power: 4.5');
+    });
+
+    test('should support range input (e.g., 7-9) for power selector', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        const powerSelectorBtn = await page.locator('.player-row:nth-child(1) .power-selector-btn');
+        const dropdown = await page.locator('.player-row:nth-child(1) .power-selector-dropdown');
+
+        // Test range input when dropdown is manually opened
+        await powerSelectorBtn.click();
+        await page.waitForTimeout(200);
+        await expect(dropdown).toBeVisible();
+
+        // Type '7-9' for a range selection
+        await page.keyboard.type('7-9');
+        await page.waitForTimeout(600); // Wait for sequence timeout
+
+        // Dropdown should close and power levels 7, 8, 9 should be selected (no half-steps)
+        await expect(dropdown).not.toBeVisible();
+
+        const checkbox7 = await page.locator('.player-row:nth-child(1) input[value="7"]');
+        const checkbox7_5 = await page.locator('.player-row:nth-child(1) input[value="7.5"]');
+        const checkbox8 = await page.locator('.player-row:nth-child(1) input[value="8"]');
+        const checkbox8_5 = await page.locator('.player-row:nth-child(1) input[value="8.5"]');
+        const checkbox9 = await page.locator('.player-row:nth-child(1) input[value="9"]');
+        const checkbox6_5 = await page.locator('.player-row:nth-child(1) input[value="6.5"]');
+        const checkbox9_5 = await page.locator('.player-row:nth-child(1) input[value="9.5"]');
+
+        // Should select whole numbers in range
+        await expect(checkbox7).toBeChecked();
+        await expect(checkbox8).toBeChecked();
+        await expect(checkbox9).toBeChecked();
+
+        // Should NOT select half-steps when no decimal specified
+        await expect(checkbox7_5).not.toBeChecked();
+        await expect(checkbox8_5).not.toBeChecked();
+
+        // Should not select values outside the range
+        await expect(checkbox6_5).not.toBeChecked();
+        await expect(checkbox9_5).not.toBeChecked();
+
+        // Button text should show the range
+        await expect(powerSelectorBtn).toContainText('Power: 7-9');
+
+        // Test range input with decimals to ensure half-steps are included when specified
+        await powerSelectorBtn.focus();
+        await page.keyboard.type('4.5-6');
+        await page.waitForTimeout(600);
+
+        const checkbox4 = await page.locator('.player-row:nth-child(1) input[value="4"]');
+        const checkbox4_5 = await page.locator('.player-row:nth-child(1) input[value="4.5"]');
+        const checkbox5 = await page.locator('.player-row:nth-child(1) input[value="5"]');
+        const checkbox5_5 = await page.locator('.player-row:nth-child(1) input[value="5.5"]');
+        const checkbox6 = await page.locator('.player-row:nth-child(1) input[value="6"]');
+
+        // Should select all values including half-steps because decimal was specified
+        await expect(checkbox4_5).toBeChecked();
+        await expect(checkbox5).toBeChecked();
+        await expect(checkbox5_5).toBeChecked();
+        await expect(checkbox6).toBeChecked();
+
+        // Should not select 4 since range starts at 4.5
+        await expect(checkbox4).not.toBeChecked();
+
+        // Previous selections should be cleared
+        await expect(checkbox7).not.toBeChecked();
+        await expect(checkbox8).not.toBeChecked();
+        await expect(checkbox9).not.toBeChecked();
+
+        // Test range input when button is focused via tab (no dropdown flash)
+        await powerSelectorBtn.focus();
+
+        // Type '3-5' while button is focused (whole numbers only)
+        await page.keyboard.type('3-5');
+        await page.waitForTimeout(600); // Wait for sequence timeout
+
+        // Dropdown should not have flashed open, and power levels 3, 4, 5 should be selected (no half-steps)
+        await expect(dropdown).not.toBeVisible();
+
+        const checkbox3 = await page.locator('.player-row:nth-child(1) input[value="3"]');
+        const checkbox3_5 = await page.locator('.player-row:nth-child(1) input[value="3.5"]');
+
+        await expect(checkbox3).toBeChecked();
+        await expect(checkbox4).toBeChecked();
+        await expect(checkbox5).toBeChecked();
+
+        // Should NOT select half-steps
+        await expect(checkbox3_5).not.toBeChecked();
+        await expect(checkbox4_5).not.toBeChecked();
+        await expect(checkbox5_5).not.toBeChecked();
+
+        // Verify previous range selections were cleared
+        await expect(checkbox6).not.toBeChecked();
+
+        // Button text should show the new range
+        await expect(powerSelectorBtn).toContainText('Power: 3-5');
+
+        // Test single value input (decimal) with focused button to ensure it still works
+        await powerSelectorBtn.focus();
+        await page.keyboard.type('6.5');
+        await page.waitForTimeout(600);
+
+        const checkbox6_5_new = await page.locator('.player-row:nth-child(1) input[value="6.5"]');
+        await expect(checkbox6_5_new).toBeChecked();
+        await expect(powerSelectorBtn).toContainText('Power: 6.5');
+
+        // Verify previous range selections were cleared
+        await expect(checkbox3).not.toBeChecked();
+        await expect(checkbox4).not.toBeChecked();
+        await expect(checkbox5).not.toBeChecked();
     });
 });

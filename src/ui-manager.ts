@@ -75,9 +75,11 @@ export class UIManager {
                 } else {
                     const min = selectedPowers[0];
                     const max = selectedPowers[selectedPowers.length - 1];
-                    const isContiguous = selectedPowers.every((power, index) =>
-                        index === 0 || power === selectedPowers[index - 1] + 0.5
-                    );
+                    const isContiguous = selectedPowers.every((power, index) => {
+                        if (index === 0) return true;
+                        const diff = power - selectedPowers[index - 1];
+                        return diff === 0.5 || diff === 1.0; // Allow both 0.5 and 1.0 increments
+                    });
 
                     if (isContiguous && selectedPowers.length > 2) {
                         displayText = `Power: ${min}-${max}`;
@@ -160,6 +162,121 @@ export class UIManager {
         clearButton.addEventListener('click', () => {
             checkboxes.forEach(cb => cb.checked = false);
             updateButtonText();
+        });
+
+        // Add keyboard shortcuts for power selector
+        const closeDropdown = () => {
+            powerDropdown.classList.remove('show');
+            powerSelectorBtn.classList.remove('open');
+            setTimeout(() => {
+                if (!powerDropdown.classList.contains('show')) {
+                    powerDropdown.style.display = 'none';
+                }
+            }, 200);
+        };
+
+        // Track typed sequence for decimal numbers
+        let typedSequence = '';
+        let sequenceTimeout: NodeJS.Timeout | null = null;
+
+        // Global keydown listener for this dropdown
+        document.addEventListener('keydown', (e) => {
+            const isDropdownOpen = powerDropdown.style.display === 'block' && powerDropdown.classList.contains('show');
+            const isButtonFocused = document.activeElement === powerSelectorBtn;
+
+            // Handle keys when dropdown is open OR when the button is focused
+            if (isDropdownOpen || isButtonFocused) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    if (isDropdownOpen) {
+                        closeDropdown();
+                        powerSelectorBtn.focus(); // Return focus to the button
+                    }
+                    typedSequence = '';
+                    if (sequenceTimeout) clearTimeout(sequenceTimeout);
+                } else if ((e.key >= '1' && e.key <= '9') || e.key === '.' || e.key === '0' || e.key === '-') {
+                    e.preventDefault();
+
+                    // Add to typed sequence
+                    typedSequence += e.key;
+
+                    // Clear any existing timeout
+                    if (sequenceTimeout) clearTimeout(sequenceTimeout);
+
+                    // Set timeout to process the sequence
+                    sequenceTimeout = setTimeout(() => {
+                        // Check if it's a range (contains dash)
+                        if (typedSequence.includes('-')) {
+                            const parts = typedSequence.split('-');
+                            if (parts.length === 2) {
+                                const startValue = parseFloat(parts[0]);
+                                const endValue = parseFloat(parts[1]);
+
+                                // Check if either part contains a decimal point
+                                const includeHalfSteps = parts[0].includes('.') || parts[1].includes('.');
+
+                                // Validate range values
+                                if (!isNaN(startValue) && !isNaN(endValue) &&
+                                    startValue >= 1 && startValue <= 10 &&
+                                    endValue >= 1 && endValue <= 10 &&
+                                    startValue <= endValue) {
+
+                                    // Clear all checkboxes first
+                                    checkboxes.forEach(cb => cb.checked = false);
+
+                                    // Select power levels in the range
+                                    checkboxes.forEach(cb => {
+                                        const value = parseFloat(cb.value);
+                                        if (value >= startValue && value <= endValue) {
+                                            // Include this value if:
+                                            // 1. It's a whole number, OR
+                                            // 2. User specified decimals AND it's a .5 increment
+                                            const isWholeNumber = value % 1 === 0;
+                                            const isHalfStep = value % 1 === 0.5;
+
+                                            if (isWholeNumber || (includeHalfSteps && isHalfStep)) {
+                                                cb.checked = true;
+                                            }
+                                        }
+                                    });
+
+                                    updateButtonText();
+                                    // Only close dropdown if it was already open
+                                    if (isDropdownOpen) {
+                                        closeDropdown();
+                                    }
+                                }
+                            }
+                        } else {
+                            // Handle single value (original logic)
+                            const targetValue = parseFloat(typedSequence);
+
+                            // Validate that it's a reasonable power level (1-10, including .5 increments)
+                            if (!isNaN(targetValue) && targetValue >= 1 && targetValue <= 10) {
+                                // Clear all checkboxes first
+                                checkboxes.forEach(cb => cb.checked = false);
+
+                                // Find and check the matching checkbox
+                                const targetCheckbox = Array.from(checkboxes).find(cb =>
+                                    Math.abs(parseFloat(cb.value) - targetValue) < 0.01
+                                );
+
+                                if (targetCheckbox) {
+                                    targetCheckbox.checked = true;
+                                    updateButtonText();
+                                    // Only close dropdown if it was already open
+                                    if (isDropdownOpen) {
+                                        closeDropdown();
+                                    }
+                                }
+                            }
+                        }
+
+                        // Reset sequence
+                        typedSequence = '';
+                    }, 500); // Wait 500ms for more input
+                }
+            }
         });
 
         // Initialize button text
