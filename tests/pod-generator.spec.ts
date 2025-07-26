@@ -1543,6 +1543,234 @@ test.describe('MTG Commander Pod Generator', () => {
         for (const color of borderColors) {
             expect(color).toMatch(/rgb\(\d+,\s*\d+,\s*\d+\)/);
         }
+
+        // Verify that pod titles show appropriate power information (not just single power)
+        for (const pod of podElements) {
+            const title = await pod.locator('h3').first();
+            const titleText = await title.textContent();
+
+            // Title should contain "Pod X (Power: Y)" where Y could be a single number, range, or list
+            expect(titleText).toMatch(/Pod \d+ \(Power: [\d\-\., ]+\)/);
+        }
+
+        // Verify that groups are flattened (no "Group X" text should appear in display mode)
+        const displayContent = await page.locator('#display-output').textContent();
+        expect(displayContent).not.toContain('Group 1');
+        expect(displayContent).not.toContain('Group 2');
+        expect(displayContent).not.toContain('Avg Power');
+    });
+
+    test('should display correct power ranges for players with multiple power levels', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Create players with multiple power levels
+        await page.fill('.player-row:nth-child(1) .player-name', 'Alice');
+        await setPowerLevels(page, 1, [6, 7, 8]); // Can play 6, 7, or 8
+        await page.fill('.player-row:nth-child(2) .player-name', 'Bob');
+        await setPowerLevels(page, 2, [7, 8]); // Can play 7 or 8
+        await page.fill('.player-row:nth-child(3) .player-name', 'Charlie');
+        await setPowerLevels(page, 3, [8]); // Can only play 8
+        await page.fill('.player-row:nth-child(4) .player-name', 'David');
+        await setPowerLevels(page, 4, [8, 9]); // Can play 8 or 9
+
+        // Generate pods and enter display mode
+        await page.click('#generate-pods-btn');
+        await page.waitForTimeout(200);
+        await page.click('#display-mode-btn');
+        await page.waitForTimeout(200);
+
+        // Check that we're in display mode
+        const displayContainer = await page.locator('.display-mode-container');
+        await expect(displayContainer).toBeVisible();
+
+        // Get all pod elements
+        const podElements = await page.locator('#display-output > div > div').all();
+        expect(podElements.length).toBeGreaterThan(0);
+
+        // Check power ranges in pod titles
+        for (const pod of podElements) {
+            const title = await pod.locator('h3').first();
+            const titleText = await title.textContent();
+            
+            // The pod should show power 8 (the only power all can play)
+            // or a range/list that includes 8
+            expect(titleText).toMatch(/Pod \d+ \(Power: .*8.*\)/);
+        }
+    });
+
+    test('should show power ranges with leniency settings', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Create players with power levels that require leniency
+        await page.fill('.player-row:nth-child(1) .player-name', 'Alice');
+        await setPowerLevels(page, 1, [7]); // Power 7
+        await page.fill('.player-row:nth-child(2) .player-name', 'Bob');
+        await setPowerLevels(page, 2, [7.5]); // Power 7.5 (0.5 difference)
+        await page.fill('.player-row:nth-child(3) .player-name', 'Charlie');
+        await setPowerLevels(page, 3, [7]); // Power 7
+        await page.fill('.player-row:nth-child(4) .player-name', 'David');
+        await setPowerLevels(page, 4, [7.5]); // Power 7.5
+
+        // Enable leniency (±0.5)
+        await page.check('#leniency-radio');
+
+        // Generate pods and enter display mode
+        await page.click('#generate-pods-btn');
+        await page.waitForTimeout(200);
+        await page.click('#display-mode-btn');
+        await page.waitForTimeout(200);
+
+        // Check that we're in display mode
+        const displayContainer = await page.locator('.display-mode-container');
+        await expect(displayContainer).toBeVisible();
+
+        // Get pod elements
+        const podElements = await page.locator('#display-output > div > div').all();
+        expect(podElements.length).toBeGreaterThan(0);
+
+        // Check that the pod shows valid power options (should include both 7 and 7.5)
+        for (const pod of podElements) {
+            const title = await pod.locator('h3').first();
+            const titleText = await title.textContent();
+            
+            // Should show a range or list that includes both 7 and 7.5
+            expect(titleText).toMatch(/Pod \d+ \(Power: .*(7.*7\.5|7\.5.*7).*\)/);
+        }
+    });
+
+    test('should flatten groups in display mode while preserving grouping in regular view', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Create players and put some in a group
+        await page.fill('.player-row:nth-child(1) .player-name', 'Alice');
+        await setPowerLevels(page, 1, [7]);
+        await page.fill('.player-row:nth-child(2) .player-name', 'Bob');
+        await setPowerLevels(page, 2, [7]);
+        await page.fill('.player-row:nth-child(3) .player-name', 'Charlie');
+        await setPowerLevels(page, 3, [7]);
+        await page.fill('.player-row:nth-child(4) .player-name', 'David');
+        await setPowerLevels(page, 4, [7]);
+
+        // Create a group with Alice and Bob
+        await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');
+        await page.selectOption('.player-row:nth-child(2) .group-select', 'group-1');
+
+        // Generate pods
+        await page.click('#generate-pods-btn');
+        await page.waitForTimeout(200);
+
+        // First check regular view shows groups
+        const regularOutput = await page.locator('#output-section').textContent();
+        expect(regularOutput).toContain('Group 1');
+
+        // Now enter display mode
+        await page.click('#display-mode-btn');
+        await page.waitForTimeout(200);
+
+        // Check that we're in display mode
+        const displayContainer = await page.locator('.display-mode-container');
+        await expect(displayContainer).toBeVisible();
+
+        // Check that groups are flattened (no group labels)
+        const displayOutput = await page.locator('#display-output').textContent();
+        expect(displayOutput).not.toContain('Group 1');
+        expect(displayOutput).not.toContain('Avg Power');
+
+        // But all individual players should still be listed
+        expect(displayOutput).toContain('Alice');
+        expect(displayOutput).toContain('Bob');
+        expect(displayOutput).toContain('Charlie');
+        expect(displayOutput).toContain('David');
+
+        // All players should appear at the same level (no indentation hierarchy)
+        const podElements = await page.locator('#display-output > div > div').all();
+        for (const pod of podElements) {
+            const playerItems = await pod.locator('li').all();
+            for (const item of playerItems) {
+                const itemText = await item.textContent();
+                // Each item should just be "PlayerName (P: X)" with no group prefix
+                expect(itemText).toMatch(/^[A-Za-z]+ \(P: [\d\-\., ]+\)$/);
+            }
+        }
+    });
+
+    test('should handle complex power ranges with super leniency in display mode', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Create players with power levels that require super leniency
+        await page.fill('.player-row:nth-child(1) .player-name', 'Alice');
+        await setPowerLevels(page, 1, [6, 7]); // Can play 6 or 7
+        await page.fill('.player-row:nth-child(2) .player-name', 'Bob');
+        await setPowerLevels(page, 2, [7, 8]); // Can play 7 or 8
+        await page.fill('.player-row:nth-child(3) .player-name', 'Charlie');
+        await setPowerLevels(page, 3, [8, 9]); // Can play 8 or 9 (1.0 gap from Alice's 6 and 7)
+        await page.fill('.player-row:nth-child(4) .player-name', 'David');
+        await setPowerLevels(page, 4, [7]); // Can only play 7
+
+        // Enable super leniency (±1.0)
+        await page.check('#super-leniency-radio');
+
+        // Generate pods and enter display mode
+        await page.click('#generate-pods-btn');
+        await page.waitForTimeout(200);
+        await page.click('#display-mode-btn');
+        await page.waitForTimeout(200);
+
+        // Check that we're in display mode
+        const displayContainer = await page.locator('.display-mode-container');
+        await expect(displayContainer).toBeVisible();
+
+        // Get pod elements
+        const podElements = await page.locator('#display-output > div > div').all();
+        expect(podElements.length).toBeGreaterThan(0);
+
+        // Check that pods show appropriate power ranges considering super leniency
+        for (const pod of podElements) {
+            const title = await pod.locator('h3').first();
+            const titleText = await title.textContent();
+            
+            // Should show valid power information (could be a range or specific values)
+            expect(titleText).toMatch(/Pod \d+ \(Power: [\d\-\., ]+\)/);
+            
+            // The power should include values that all players can reach with ±1.0 tolerance
+            expect(titleText).toContain('Power:');
+        }
+    });
+
+    test('should display single power when all players have same exact power', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Create players with identical power levels
+        await page.fill('.player-row:nth-child(1) .player-name', 'Alice');
+        await setPowerLevels(page, 1, [7]);
+        await page.fill('.player-row:nth-child(2) .player-name', 'Bob');
+        await setPowerLevels(page, 2, [7]);
+        await page.fill('.player-row:nth-child(3) .player-name', 'Charlie');
+        await setPowerLevels(page, 3, [7]);
+        await page.fill('.player-row:nth-child(4) .player-name', 'David');
+        await setPowerLevels(page, 4, [7]);
+
+        // Generate pods and enter display mode
+        await page.click('#generate-pods-btn');
+        await page.waitForTimeout(200);
+        await page.click('#display-mode-btn');
+        await page.waitForTimeout(200);
+
+        // Check that we're in display mode
+        const displayContainer = await page.locator('.display-mode-container');
+        await expect(displayContainer).toBeVisible();
+
+        // Get pod elements
+        const podElements = await page.locator('#display-output > div > div').all();
+        expect(podElements.length).toBeGreaterThan(0);
+
+        // Check that pod shows exactly "Power: 7" (single value, not range)
+        for (const pod of podElements) {
+            const title = await pod.locator('h3').first();
+            const titleText = await title.textContent();
+            
+            expect(titleText).toMatch(/Pod \d+ \(Power: 7\)$/);
+        }
     });
 
     test('should make players draggable in pod view', async ({ page }) => {

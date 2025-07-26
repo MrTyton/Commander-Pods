@@ -53,6 +53,75 @@ export class DisplayModeManager {
         return shuffled.slice(0, count);
     }
 
+    private calculateValidPowerRange(pod: Pod): string {
+        // Get all individual players from the pod (flatten groups)
+        const allPlayers = pod.players.flatMap(item =>
+            'players' in item ? item.players : [item]
+        );
+
+        if (allPlayers.length === 0) return pod.power.toString();
+
+        const tolerance = this.getCurrentLeniencyTolerance();
+
+        // Find all powers that every player can participate in (considering leniency)
+        const validPowers: number[] = [];
+
+        // Get all unique power levels that any player can play
+        const allPossiblePowers = new Set<number>();
+        allPlayers.forEach(player => {
+            player.availablePowers.forEach(power => allPossiblePowers.add(power));
+        });
+
+        // Check each possible power level to see if all players can participate
+        for (const testPower of allPossiblePowers) {
+            const canAllPlayersParticipate = allPlayers.every(player =>
+                player.availablePowers.some(playerPower =>
+                    Math.abs(testPower - playerPower) <= tolerance
+                )
+            );
+
+            if (canAllPlayersParticipate) {
+                validPowers.push(testPower);
+            }
+        }
+
+        // Sort the valid powers
+        validPowers.sort((a, b) => a - b);
+
+        if (validPowers.length === 0) {
+            return pod.power.toString(); // Fallback to current power
+        } else if (validPowers.length === 1) {
+            return validPowers[0].toString();
+        } else {
+            // Check if it's a continuous range or discrete values
+            const isConsecutive = validPowers.every((power, index) =>
+                index === 0 || power - validPowers[index - 1] <= 0.5
+            );
+
+            if (isConsecutive && validPowers.length > 2) {
+                // Show as range for 3+ consecutive values
+                return `${validPowers[0]}-${validPowers[validPowers.length - 1]}`;
+            } else {
+                // Show as comma-separated list for discrete values or small ranges
+                return validPowers.join(', ');
+            }
+        }
+    }
+
+    private getCurrentLeniencyTolerance(): number {
+        // Get current leniency setting from the DOM
+        const leniencyRadio = document.querySelector('#leniency-radio') as HTMLInputElement;
+        const superLeniencyRadio = document.querySelector('#super-leniency-radio') as HTMLInputElement;
+
+        if (superLeniencyRadio?.checked) {
+            return 1.0; // Super leniency
+        } else if (leniencyRadio?.checked) {
+            return 0.5; // Regular leniency
+        } else {
+            return 0.0; // No leniency
+        }
+    }
+
     enterDisplayMode(currentPods: Pod[]): void {
         if (currentPods.length === 0) return;
 
@@ -118,7 +187,8 @@ export class DisplayModeManager {
             podElement.classList.add(`pod-color-${index % 10}`);
 
             const title = document.createElement('h3');
-            title.textContent = `Pod ${index + 1} (Power: ${pod.power})`;
+            const validPowerRange = this.calculateValidPowerRange(pod);
+            title.textContent = `Pod ${index + 1} (Power: ${validPowerRange})`;
             title.style.fontSize = '1.6rem';
             title.style.margin = '0 0 15px 0';
             title.style.textAlign = 'center';
@@ -141,25 +211,15 @@ export class DisplayModeManager {
             list.style.overflowY = 'auto';
 
             pod.players.forEach(item => {
-                if ('players' in item) { // It's a Group
-                    const groupItem = document.createElement('li');
-                    groupItem.style.marginBottom = '6px';
-                    groupItem.style.color = '#ffffff';
-                    groupItem.style.padding = '4px 0';
-                    groupItem.innerHTML = `<strong style="color: var(--accent-color);">Group ${item.id.split('-')[1]} (Avg Power: ${item.averagePower}):</strong>`;
-                    const subList = document.createElement('ul');
-                    subList.style.margin = '0';
-                    subList.style.padding = '0 0 0 20px';
-                    subList.style.listStyle = 'none';
+                if ('players' in item) { // It's a Group - flatten to show individual players
                     item.players.forEach(p => {
-                        const subItem = document.createElement('li');
-                        subItem.textContent = `${p.name} (P: ${p.powerRange})`;
-                        subItem.style.marginBottom = '2px';
-                        subItem.style.color = '#cccccc';
-                        subList.appendChild(subItem);
+                        const playerItem = document.createElement('li');
+                        playerItem.textContent = `${p.name} (P: ${p.powerRange})`;
+                        playerItem.style.marginBottom = '6px';
+                        playerItem.style.color = '#ffffff';
+                        playerItem.style.padding = '4px 0';
+                        list.appendChild(playerItem);
                     });
-                    groupItem.appendChild(subList);
-                    list.appendChild(groupItem);
                 } else { // It's a Player
                     const playerItem = document.createElement('li');
                     playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
