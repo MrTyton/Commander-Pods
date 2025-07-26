@@ -966,7 +966,7 @@ test.describe('MTG Commander Pod Generator', () => {
         // Verify all players are assigned
         const podContent = await page.locator('#output-section').textContent();
         for (const player of players) {
-            expect(podContent).toContain(player.name);
+            await expect(podContent).toContain(player.name);
         }
 
         // Verify that players with overlapping ranges can be grouped
@@ -1043,9 +1043,6 @@ test.describe('MTG Commander Pod Generator', () => {
         const allPodContent = await page.locator('#output-section').textContent();
         expect(allPodContent).toContain('Group 1');
         expect(allPodContent).toContain('Group 2');
-
-        // Group A should be able to play at power 7
-        // Group B should be able to play at power 6
     });
 
     test('should handle complex multiple power level scenarios', async ({ page }) => {
@@ -1157,9 +1154,7 @@ test.describe('MTG Commander Pod Generator', () => {
         }
 
         // Create a challenging group: Leader, Casual, Competitive, Balanced
-        // The only common power level they all can play is... none!
-        // Leader (6,7,8), Casual (5,6), Competitive (8,9), Balanced (7)
-        // No single power level works for all, but algorithm should find best compromise
+        // The only common power level works for all, but algorithm should find best compromise
         await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');
         await page.selectOption('.player-row:nth-child(2) .group-select', 'group-1');
         await page.selectOption('.player-row:nth-child(3) .group-select', 'group-1');
@@ -1824,5 +1819,74 @@ test.describe('MTG Commander Pod Generator', () => {
         }
 
         expect(totalPlayers).toBe(8);
+    });
+
+    test('should assign players with leniency - bug reproduction test', async ({ page }) => {
+        // Reproduce the exact scenario from the screenshot
+        const players = [
+            { name: '1', power: [1, 1.5] },     // Power: 1, 1.5
+            { name: '2', power: [1.5] },        // Power: 1.5
+            { name: '3', power: [1.5] },        // Power: 1.5
+            { name: '4', power: [2] },          // Power: 2
+            { name: '5', power: [7, 8] },       // Power: 7-8
+            { name: '6', power: [7, 8] },       // Power: 7-8
+            { name: '7', power: [8, 9] },       // Power: 8-9
+            { name: '8', power: [7, 8] },       // Power: 7-8
+        ];
+
+        // Add more player rows
+        for (let i = 4; i < players.length; i++) {
+            await page.click('#add-player-btn');
+        }
+
+        // Fill in all players
+        for (let i = 0; i < players.length; i++) {
+            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
+            await setPowerLevels(page, i + 1, players[i].power);
+        }
+
+        // Set leniency to ±0.5 (Regular Leniency)
+        await page.check('#leniency-radio');
+
+        // Generate pods
+        await page.click('#generate-pods-btn');
+
+        // Debug: Log all the output
+        const allOutput = await page.locator('#output-section').textContent();
+        console.log('DEBUG: Full output content:', allOutput);
+
+        // Check that we have 2 pods
+        const pods = page.locator('.pod:not(.unassigned-pod)');
+        const podCount = await pods.count();
+        console.log('DEBUG: Pod count:', podCount);
+
+        await expect(pods).toHaveCount(2);
+
+        // Check pod contents
+        const pod1Content = await pods.nth(0).textContent();
+        const pod2Content = await pods.nth(1).textContent();
+
+        console.log('DEBUG: Pod 1 content:', pod1Content);
+        console.log('DEBUG: Pod 2 content:', pod2Content);
+
+        // Pod 1 (Power: 1.5): players 1, 2, 3, and 4 (player 4's power 2 is within ±0.5 of 1.5)
+        // Check that Pod 1 has power level 1.5 and contains the right players
+        expect(pod1Content).toContain('Power: 1.5');
+        expect(pod1Content).toContain('1');
+        expect(pod1Content).toContain('2');
+        expect(pod1Content).toContain('3');
+        expect(pod1Content).toContain('4');
+
+        // Pod 2 (Power: 8): players 5, 6, 8, and 7 (all can play power 8)
+        // Check that Pod 2 has power level 8 and contains the right players
+        expect(pod2Content).toContain('Power: 8');
+        expect(pod2Content).toContain('5');
+        expect(pod2Content).toContain('6');
+        expect(pod2Content).toContain('7');
+        expect(pod2Content).toContain('8');
+
+        // There should be NO unassigned players
+        const unassignedSection = page.locator('.unassigned-pod');
+        await expect(unassignedSection).toHaveCount(0);
     });
 });

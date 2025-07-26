@@ -455,9 +455,16 @@
       });
       const uniquePowerLevels = [...new Set(availableVirtualPlayers.map((vp) => vp.powerLevel))].sort((a, b) => a - b);
       for (const basePowerLevel of uniquePowerLevels) {
-        const compatibleVirtualPlayers = availableVirtualPlayers.filter(
-          (vp) => Math.abs(vp.powerLevel - basePowerLevel) <= tolerance
-        );
+        const compatibleVirtualPlayers = availableVirtualPlayers.filter((vp) => {
+          if (!("players" in vp.item)) {
+            const compatible2 = Math.abs(vp.powerLevel - basePowerLevel) <= tolerance;
+            console.log(`DEBUG: Player ${vp.item.name} (power ${vp.powerLevel}) vs base ${basePowerLevel}, tolerance ${tolerance}, compatible: ${compatible2}`);
+            return compatible2;
+          }
+          const compatible = Math.abs(vp.powerLevel - basePowerLevel) <= tolerance;
+          console.log(`DEBUG: Group ${vp.item.id} (power ${vp.powerLevel}) vs base ${basePowerLevel}, tolerance ${tolerance}, compatible: ${compatible}`);
+          return compatible;
+        });
         const sortedCompatiblePlayers = compatibleVirtualPlayers.sort((a, b) => {
           if ("players" in a.item && "players" in b.item) {
             const aIsAverage = Math.abs(a.powerLevel - a.item.averagePower) < 0.01;

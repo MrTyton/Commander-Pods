@@ -137,7 +137,6 @@ export class PodGenerator {
                 for (const powerLevel of uniqueGroupPowers) {
                     virtualPlayers.push({ item, powerLevel });
                 }
-
             } else {
                 // It's an individual player
                 for (const powerLevel of item.availablePowers) {
@@ -294,9 +293,19 @@ export class PodGenerator {
 
         for (const basePowerLevel of uniquePowerLevels) {
             // Find all virtual players compatible with this base power level
-            const compatibleVirtualPlayers = availableVirtualPlayers.filter(vp =>
-                Math.abs(vp.powerLevel - basePowerLevel) <= tolerance
-            );
+            const compatibleVirtualPlayers = availableVirtualPlayers.filter(vp => {
+                // For individual Player: check if the virtual player's specific power level is within tolerance
+                if (!('players' in vp.item)) {
+                    const compatible = Math.abs(vp.powerLevel - basePowerLevel) <= tolerance;
+                    console.log(`DEBUG: Player ${vp.item.name} (power ${vp.powerLevel}) vs base ${basePowerLevel}, tolerance ${tolerance}, compatible: ${compatible}`);
+                    return compatible;
+                }
+                // For Group: check if the virtual player's power level is within tolerance
+                // (virtual players for groups are only created for power levels all members can play)
+                const compatible = Math.abs(vp.powerLevel - basePowerLevel) <= tolerance;
+                console.log(`DEBUG: Group ${vp.item.id} (power ${vp.powerLevel}) vs base ${basePowerLevel}, tolerance ${tolerance}, compatible: ${compatible}`);
+                return compatible;
+            });
 
             // Sort compatible virtual players to prefer group average power, then individual players
             const sortedCompatiblePlayers = compatibleVirtualPlayers.sort((a, b) => {
@@ -414,7 +423,7 @@ export class PodGenerator {
     private findBestCommonPowerLevel(players: Player[]): number | null {
         if (players.length === 0) return null;
 
-        // Find the most common power level across all players
+        // Find the most common power level across all players (like original script.ts)
         const powerCounts = new Map<number, number>();
 
         for (const player of players) {
