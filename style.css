@@ -719,3 +719,51 @@ body.display-mode [id*="kofi"],
 body.display-mode iframe[src*="ko-fi"] {
     display: none !important;
 }
+
+/* GitHub links styling */
+.github-links {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 15px 0;
+}
+
+.github-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: #333;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border: 1px solid #444;
+}
+
+.github-link:hover {
+    background-color: #404040;
+    border-color: #555;
+    transform: translateY(-1px);
+    text-decoration: none;
+    color: #fff;
+}
+
+.github-icon {
+    flex-shrink: 0;
+    color: #fff;
+}
+
+/* Responsive layout for larger screens */
+@media (min-width: 600px) {
+    .github-links {
+        flex-direction: row;
+        justify-content: space-around;
+    }
+    
+    .github-link {
+        flex: 1;
+        justify-content: center;
+        max-width: 140px;
+    }
+}

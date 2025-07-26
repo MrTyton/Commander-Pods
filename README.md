@@ -14,7 +14,9 @@ A web tool for creating balanced Magic: The Gathering Commander pods based on pl
 
 ## Live Demo
 
-Visit the live version at: `https://[your-username].github.io/Commander-Pairings`
+Visit the live version at: `https://mrtyton.github.io/Commander-Pairings`
+
+**GitHub Repository**: `https://github.com/MrTyton/Commander-Pairings`
 
 ## Development
 
@@ -75,6 +77,19 @@ The site will be available at `https://[your-username].github.io/[repository-nam
 3. **Choose Leniency**: Adjust power level matching tolerance
 4. **Generate Pods**: Create balanced groups of 3-4 players
 5. **Manage Results**: Drag and drop to adjust, or use Display Mode for presentation
+
+## Feedback & Bug Reports
+
+Found a bug or have a feature request? We'd love to hear from you!
+
+- **Report Issues**: [Submit a bug report](https://github.com/MrTyton/Commander-Pairings/issues/new) on GitHub
+- **Feature Requests**: [Request a new feature](https://github.com/MrTyton/Commander-Pairings/issues/new) on GitHub
+- **General Feedback**: Use GitHub Issues for any suggestions or improvements
+
+When reporting bugs, please include:
+- Steps to reproduce the issue
+- Browser and operating system
+- Any error messages you see
 
 ## Contributing
 

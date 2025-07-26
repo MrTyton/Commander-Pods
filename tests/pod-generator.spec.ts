@@ -2844,6 +2844,8 @@ test.describe('MTG Commander Pod Generator', () => {
         await expect(page.locator('.help-content')).toContainText('Common Errors & Troubleshooting');
         await expect(page.locator('.help-content')).toContainText('Duplicate Player Names');
         await expect(page.locator('.help-content')).toContainText('Real-time Validation');
+        await expect(page.locator('.help-content')).toContainText('Feedback & Bug Reports');
+        await expect(page.locator('.help-content')).toContainText('Submit a bug report');
 
         // Test closing modal with X button
         const closeButton = await page.locator('.help-close');
