@@ -2819,4 +2819,49 @@ test.describe('MTG Commander Pod Generator', () => {
         await expect(checkbox4).not.toBeChecked();
         await expect(checkbox5).not.toBeChecked();
     });
+
+    test('should display and interact with help modal correctly', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Verify help button is visible
+        const helpButton = await page.locator('#help-btn');
+        await expect(helpButton).toBeVisible();
+        await expect(helpButton).toContainText('How to Use This Tool');
+
+        // Verify modal is initially hidden
+        const helpModal = await page.locator('#help-modal');
+        await expect(helpModal).not.toBeVisible();
+
+        // Click help button to open modal
+        await helpButton.click();
+        await expect(helpModal).toBeVisible();
+
+        // Verify modal content is present
+        await expect(page.locator('.help-modal-content h2')).toContainText('How to Use the MTG Commander Pod Generator');
+        await expect(page.locator('.help-content')).toContainText('What This Tool Does');
+        await expect(page.locator('.help-content')).toContainText('Keyboard Shortcuts');
+        await expect(page.locator('.help-content')).toContainText('Creating Groups');
+        await expect(page.locator('.help-content')).toContainText('Common Errors & Troubleshooting');
+        await expect(page.locator('.help-content')).toContainText('Duplicate Player Names');
+        await expect(page.locator('.help-content')).toContainText('Real-time Validation');
+
+        // Test closing modal with X button
+        const closeButton = await page.locator('.help-close');
+        await closeButton.click();
+        await expect(helpModal).not.toBeVisible();
+
+        // Test opening and closing with Escape key
+        await helpButton.click();
+        await expect(helpModal).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(helpModal).not.toBeVisible();
+
+        // Test closing by clicking outside modal
+        await helpButton.click();
+        await expect(helpModal).toBeVisible();
+        
+        // Click on the modal backdrop (outside the content)
+        await page.locator('#help-modal').click({ position: { x: 10, y: 10 } });
+        await expect(helpModal).not.toBeVisible();
+    });
 });

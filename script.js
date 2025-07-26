@@ -946,10 +946,13 @@
       const addPlayerBtn = document.getElementById("add-player-btn");
       const generatePodsBtn = document.getElementById("generate-pods-btn");
       const resetAllBtn = document.getElementById("reset-all-btn");
+      const helpBtn = document.getElementById("help-btn");
       addPlayerBtn.addEventListener("click", () => this.addPlayerRow());
       generatePodsBtn.addEventListener("click", () => this.generatePods());
       resetAllBtn.addEventListener("click", () => this.resetAll());
       this.displayModeBtn.addEventListener("click", () => this.displayModeManager.enterDisplayMode(this.currentPods));
+      helpBtn.addEventListener("click", () => this.showHelpModal());
+      this.initializeHelpModal();
     }
     addPlayerRow() {
       const clone = this.playerRowTemplate.content.cloneNode(true);
@@ -1406,6 +1409,31 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
           colorIndex = colorIndex % 5 + 1;
         }
       });
+    }
+    initializeHelpModal() {
+      const helpModal = document.getElementById("help-modal");
+      const helpCloseBtn = helpModal.querySelector(".help-close");
+      helpCloseBtn.addEventListener("click", () => this.hideHelpModal());
+      helpModal.addEventListener("click", (e) => {
+        if (e.target === helpModal) {
+          this.hideHelpModal();
+        }
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && helpModal.style.display === "block") {
+          this.hideHelpModal();
+        }
+      });
+    }
+    showHelpModal() {
+      const helpModal = document.getElementById("help-modal");
+      helpModal.style.display = "block";
+      document.body.style.overflow = "hidden";
+    }
+    hideHelpModal() {
+      const helpModal = document.getElementById("help-modal");
+      helpModal.style.display = "none";
+      document.body.style.overflow = "";
     }
   };
 

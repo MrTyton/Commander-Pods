@@ -35,11 +35,16 @@ export class UIManager {
         const addPlayerBtn = document.getElementById('add-player-btn')!;
         const generatePodsBtn = document.getElementById('generate-pods-btn')!;
         const resetAllBtn = document.getElementById('reset-all-btn')!;
+        const helpBtn = document.getElementById('help-btn')!;
 
         addPlayerBtn.addEventListener('click', () => this.addPlayerRow());
         generatePodsBtn.addEventListener('click', () => this.generatePods());
         resetAllBtn.addEventListener('click', () => this.resetAll());
         this.displayModeBtn.addEventListener('click', () => this.displayModeManager.enterDisplayMode(this.currentPods));
+        helpBtn.addEventListener('click', () => this.showHelpModal());
+
+        // Initialize help modal event listeners
+        this.initializeHelpModal();
     }
 
     addPlayerRow(): void {
@@ -648,5 +653,39 @@ export class UIManager {
                 colorIndex = (colorIndex % 5) + 1; // Cycle through colors 1-5
             }
         });
+    }
+
+    private initializeHelpModal(): void {
+        const helpModal = document.getElementById('help-modal')!;
+        const helpCloseBtn = helpModal.querySelector('.help-close')!;
+
+        // Close modal when clicking the X button
+        helpCloseBtn.addEventListener('click', () => this.hideHelpModal());
+
+        // Close modal when clicking outside the modal content
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) {
+                this.hideHelpModal();
+            }
+        });
+
+        // Close modal when pressing Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && helpModal.style.display === 'block') {
+                this.hideHelpModal();
+            }
+        });
+    }
+
+    private showHelpModal(): void {
+        const helpModal = document.getElementById('help-modal')!;
+        helpModal.style.display = 'block';
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
+
+    private hideHelpModal(): void {
+        const helpModal = document.getElementById('help-modal')!;
+        helpModal.style.display = 'none';
+        document.body.style.overflow = ''; // Restore scrolling
     }
 }

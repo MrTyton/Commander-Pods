@@ -49,6 +49,10 @@
             <!-- Pods will be displayed here -->
         </div>
 
+        <div class="help-section">
+            <button id="help-btn" class="help-button">❓ How to Use This Tool</button>
+        </div>
+
         <footer class="support-footer">
             <p>Enjoying this tool?
                 <a href="https://ko-fi.com/yourkofiname" target="_blank" rel="noopener noreferrer" class="kofi-link">
@@ -100,6 +104,101 @@
             <button class="remove-player-btn">Remove</button>
         </div>
     </template>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="help-modal">
+        <div class="help-modal-content">
+            <div class="help-modal-header">
+                <h2>How to Use the MTG Commander Pod Generator</h2>
+                <button class="help-close">&times;</button>
+            </div>
+            <div class="help-content">
+                <div class="help-section-title">🎯 What This Tool Does</div>
+                <p>This tool helps you create balanced pods for Magic: The Gathering Commander games by grouping players based on their deck power levels and preferences.</p>
+
+                <div class="help-section-title">👥 Adding Players</div>
+                <ul>
+                    <li>Enter player names in the text fields</li>
+                    <li>Click "Add Player" to add more rows</li>
+                    <li>Use "Remove" to delete players you no longer need</li>
+                </ul>
+
+                <div class="help-section-title">⚡ Setting Power Levels</div>
+                <p>Click the "Select Power Levels" button for each player to set their deck's power level:</p>
+                <ul>
+                    <li><strong>Single Level:</strong> Select one checkbox for a specific power level</li>
+                    <li><strong>Range Selection:</strong> Select multiple checkboxes for flexible power levels</li>
+                    <li><strong>Quick Range Buttons:</strong> Use 6-7, 7-8, 8-9 buttons for common ranges</li>
+                    <li><strong>Clear All:</strong> Removes all selections</li>
+                </ul>
+
+                <div class="feature-highlight">
+                    <strong>🚀 Keyboard Shortcuts:</strong>
+                    <ul>
+                        <li>Tab to a power level button and type a number (e.g., <code>7</code>) to select that level</li>
+                        <li>Type a range (e.g., <code>7-9</code>) to select multiple levels</li>
+                        <li>Include decimals (e.g., <code>6.5-8</code>) to include half-steps</li>
+                        <li>Press <code>Escape</code> to close an open dropdown</li>
+                    </ul>
+                </div>
+
+                <div class="help-section-title">👥 Creating Groups</div>
+                <p>Use the group dropdown to create groups of players who want to stay together:</p>
+                <ul>
+                    <li><strong>No Group:</strong> Player will be assigned individually</li>
+                    <li><strong>Start a New Group:</strong> Creates a new group for this player</li>
+                    <li><strong>Join Group:</strong> Adds player to an existing group</li>
+                </ul>
+
+                <div class="help-section-title">⚙️ Settings</div>
+                <p><strong>Power Level Tolerance</strong> determines how strict the matching is:</p>
+                <ul>
+                    <li><strong>No Leniency:</strong> Players must have overlapping power levels</li>
+                    <li><strong>Regular Leniency:</strong> Allows ±0.5 power level difference</li>
+                    <li><strong>Super Leniency:</strong> Allows ±1.0 power level difference</li>
+                </ul>
+
+                <div class="help-section-title">🎲 Generating Pods</div>
+                <p>Click "Generate Pods" to create balanced groups. The tool will:</p>
+                <ul>
+                    <li>Validate all player information</li>
+                    <li>Check for duplicate names (highlighted in different colors)</li>
+                    <li>Create pods of 3-4 players with similar power levels</li>
+                    <li>Keep grouped players together</li>
+                    <li>Show unassigned players if perfect matches aren't possible</li>
+                </ul>
+
+                <div class="help-section-title">⚠️ Common Errors & Troubleshooting</div>
+                <p>If pod generation fails, check for these common issues:</p>
+                <ul>
+                    <li><strong>Duplicate Player Names:</strong> Each player must have a unique name. Duplicates are highlighted in matching colors - simply change one of the names to fix this error.</li>
+                    <li><strong>Missing Player Names:</strong> All players must have a name entered before generating pods.</li>
+                    <li><strong>No Power Levels Selected:</strong> Each player must have at least one power level checked. Use the dropdown or keyboard shortcuts to select power levels.</li>
+                    <li><strong>Incompatible Power Levels:</strong> If players have very different power levels and no leniency is set, they may be left unassigned. Try increasing the leniency setting or adjusting power levels.</li>
+                    <li><strong>Too Few Players:</strong> You need at least 3 players to generate pods. Add more players using the "Add Player" button.</li>
+                    <li><strong>Group Conflicts:</strong> If a group has incompatible power levels, the entire group may be unassigned. Consider splitting the group or adjusting power levels within the group.</li>
+                </ul>
+                <p><strong>Real-time Validation:</strong> Duplicate names are highlighted automatically as you type. The Generate Pods button will show an error dialog if any validation issues are found.</p>
+
+                <div class="help-section-title">🔄 Managing Results</div>
+                <ul>
+                    <li><strong>Drag & Drop:</strong> Move players between pods after generation</li>
+                    <li><strong>Create New Pod:</strong> Drag players to the "Create New Pod" area</li>
+                    <li><strong>Display Mode:</strong> Clean view for showing results to players</li>
+                    <li><strong>Reset All:</strong> Clear everything and start over</li>
+                </ul>
+
+                <div class="help-section-title">💡 Tips for Best Results</div>
+                <ul>
+                    <li>Be honest about power levels - use the full 1-10 scale</li>
+                    <li>Select ranges when you have multiple decks of different strengths</li>
+                    <li>Use groups for friends who want to play together</li>
+                    <li>Try different leniency settings if pods aren't forming well</li>
+                    <li>Remember: power level 1-3 (precon), 4-6 (upgraded), 7-8 (optimized), 9-10 (cEDH)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
