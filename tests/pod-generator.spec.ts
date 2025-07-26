@@ -2532,4 +2532,66 @@ test.describe('MTG Commander Pod Generator', () => {
             expect(count).toBeGreaterThan(0); // No pod should be empty
         }
     });
+
+    test('should detect and highlight duplicate player names', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Set same names for first two players (page starts with 4 players after reset)
+        await page.fill('.player-row:nth-child(1) .player-name', 'Alice');
+        await page.fill('.player-row:nth-child(2) .player-name', 'Alice');
+        
+        // Add a third duplicate group
+        await page.fill('.player-row:nth-child(3) .player-name', 'Bob');
+        await page.fill('.player-row:nth-child(4) .player-name', 'Bob');
+        
+        // Set power levels so only name validation fails
+        await setPowerLevels(page, 1, '7');
+        await setPowerLevels(page, 2, '7');
+        await setPowerLevels(page, 3, '7');
+        await setPowerLevels(page, 4, '7');
+
+        // Set up dialog handler first
+        let dialogMessage = '';
+        page.on('dialog', dialog => {
+            dialogMessage = dialog.message();
+            dialog.accept();
+        });
+
+        // Try to generate pods
+        await page.click('#generate-pods-btn');
+        
+        // Wait for dialog to appear
+        await page.waitForTimeout(500);
+
+        // Check that dialog contained duplicate name error
+        expect(dialogMessage).toContain('Duplicate player names found');
+
+        // Check that duplicate groups have different colors
+        // First duplicate group (Alice) should have error-1 class
+        await expect(page.locator('.player-row:nth-child(1) .player-name')).toHaveClass(/name-duplicate-error-1/);
+        await expect(page.locator('.player-row:nth-child(2) .player-name')).toHaveClass(/name-duplicate-error-1/);
+        
+        // Second duplicate group (Bob) should have error-2 class  
+        await expect(page.locator('.player-row:nth-child(3) .player-name')).toHaveClass(/name-duplicate-error-2/);
+        await expect(page.locator('.player-row:nth-child(4) .player-name')).toHaveClass(/name-duplicate-error-2/);
+
+        // Change one name to fix that group's error
+        await page.fill('.player-row:nth-child(2) .player-name', 'Charlie');
+        
+        // Wait for real-time validation to kick in
+        await page.waitForTimeout(100);
+        
+        // The Alice group error highlighting should be cleared since names are now unique
+        await expect(page.locator('.player-row:nth-child(1) .player-name')).not.toHaveClass(/name-duplicate-error-[1-5]/);
+        await expect(page.locator('.player-row:nth-child(2) .player-name')).not.toHaveClass(/name-duplicate-error-[1-5]/);
+        
+        // But Bob group should still be highlighted (though it might change color index due to re-assignment)
+        const bobInput1Class = await page.locator('.player-row:nth-child(3) .player-name').getAttribute('class');
+        const bobInput2Class = await page.locator('.player-row:nth-child(4) .player-name').getAttribute('class');
+        expect(bobInput1Class).toMatch(/name-duplicate-error-[1-5]/);
+        expect(bobInput2Class).toMatch(/name-duplicate-error-[1-5]/);
+        
+        // The Bob inputs should have the same error class
+        expect(bobInput1Class).toBe(bobInput2Class);
+    });
 });

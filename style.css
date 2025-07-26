@@ -57,6 +57,42 @@ h2 {
     box-shadow: 0 0 5px #e53935;
 }
 
+.name-duplicate-error {
+    border-color: #ff9800 !important;
+    box-shadow: 0 0 5px #ff9800;
+    background-color: #2a2319 !important;
+}
+
+.name-duplicate-error-1 {
+    border-color: #ff9800 !important;
+    box-shadow: 0 0 5px #ff9800;
+    background-color: #2a2319 !important;
+}
+
+.name-duplicate-error-2 {
+    border-color: #e91e63 !important;
+    box-shadow: 0 0 5px #e91e63;
+    background-color: #2a1b21 !important;
+}
+
+.name-duplicate-error-3 {
+    border-color: #9c27b0 !important;
+    box-shadow: 0 0 5px #9c27b0;
+    background-color: #251a2a !important;
+}
+
+.name-duplicate-error-4 {
+    border-color: #3f51b5 !important;
+    box-shadow: 0 0 5px #3f51b5;
+    background-color: #1a1e2a !important;
+}
+
+.name-duplicate-error-5 {
+    border-color: #2196f3 !important;
+    box-shadow: 0 0 5px #2196f3;
+    background-color: #192529 !important;
+}
+
 .controls,
 .settings,
 .main-actions {

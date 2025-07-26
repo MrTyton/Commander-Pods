@@ -1049,6 +1049,10 @@
         this.playerRowsContainer.removeChild(newRow);
         this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
       });
+      const nameInput = newRow.querySelector(".player-name");
+      nameInput.addEventListener("input", () => {
+        this.clearDuplicateErrorsOnInput();
+      });
       const groupSelect = newRow.querySelector(".group-select");
       groupSelect.addEventListener("change", () => {
         this.playerManager.handleGroupChange(this.playerRowsContainer);
@@ -1063,6 +1067,10 @@
       const allPlayers = [];
       const playerRows = Array.from(this.playerRowsContainer.querySelectorAll(".player-row"));
       let validationFailed = false;
+      playerRows.forEach((row) => {
+        const nameInput = row.querySelector(".player-name");
+        nameInput.classList.remove("name-duplicate-error", "name-duplicate-error-1", "name-duplicate-error-2", "name-duplicate-error-3", "name-duplicate-error-4", "name-duplicate-error-5");
+      });
       for (const row of playerRows) {
         const player = this.playerManager.getPlayerFromRow(row);
         if (player) {
@@ -1071,8 +1079,39 @@
           validationFailed = true;
         }
       }
+      const nameCount = /* @__PURE__ */ new Map();
+      playerRows.forEach((row) => {
+        const nameInput = row.querySelector(".player-name");
+        const name = nameInput.value.trim().toLowerCase();
+        if (name) {
+          if (!nameCount.has(name)) {
+            nameCount.set(name, []);
+          }
+          nameCount.get(name).push(row);
+        }
+      });
+      const duplicateNames = [];
+      let colorIndex = 1;
+      nameCount.forEach((rows, name) => {
+        if (rows.length > 1) {
+          duplicateNames.push(name);
+          const colorClass = `name-duplicate-error-${colorIndex}`;
+          rows.forEach((row) => {
+            const nameInput = row.querySelector(".player-name");
+            nameInput.classList.add(colorClass);
+          });
+          colorIndex = colorIndex % 5 + 1;
+          validationFailed = true;
+        }
+      });
       if (validationFailed) {
-        alert("Please fix the errors before generating pods.");
+        let errorMessage = "Please fix the errors before generating pods.";
+        if (duplicateNames.length > 0) {
+          errorMessage += `
+
+Duplicate player names found: ${duplicateNames.join(", ")}`;
+        }
+        alert(errorMessage);
         return;
       }
       const processedGroups = /* @__PURE__ */ new Map();
@@ -1264,6 +1303,34 @@
       for (let i = 0; i < 4; i++) {
         this.addPlayerRow();
       }
+    }
+    clearDuplicateErrorsOnInput() {
+      const playerRows = Array.from(this.playerRowsContainer.querySelectorAll(".player-row"));
+      const nameInputs = /* @__PURE__ */ new Map();
+      playerRows.forEach((row) => {
+        const nameInput = row.querySelector(".player-name");
+        const name = nameInput.value.trim().toLowerCase();
+        if (name) {
+          if (!nameInputs.has(name)) {
+            nameInputs.set(name, []);
+          }
+          nameInputs.get(name).push(nameInput);
+        }
+      });
+      playerRows.forEach((row) => {
+        const nameInput = row.querySelector(".player-name");
+        nameInput.classList.remove("name-duplicate-error", "name-duplicate-error-1", "name-duplicate-error-2", "name-duplicate-error-3", "name-duplicate-error-4", "name-duplicate-error-5");
+      });
+      let colorIndex = 1;
+      nameInputs.forEach((inputs, name) => {
+        if (inputs.length > 1) {
+          const colorClass = `name-duplicate-error-${colorIndex}`;
+          inputs.forEach((input) => {
+            input.classList.add(colorClass);
+          });
+          colorIndex = colorIndex % 5 + 1;
+        }
+      });
     }
   };
 
