@@ -14,9 +14,9 @@ A web tool for creating balanced Magic: The Gathering Commander pods based on pl
 
 ## Live Demo
 
-Visit the live version at: `https://mrtyton.github.io/Commander-Pairings`
+Visit the live version at: `https://mrtyton.github.io/Commander-Pods`
 
-**GitHub Repository**: `https://github.com/MrTyton/Commander-Pairings`
+**GitHub Repository**: `https://github.com/MrTyton/Commander-Pods`
 
 ## Development
 
@@ -82,8 +82,8 @@ The site will be available at `https://[your-username].github.io/[repository-nam
 
 Found a bug or have a feature request? We'd love to hear from you!
 
-- **Report Issues**: [Submit a bug report](https://github.com/MrTyton/Commander-Pairings/issues/new) on GitHub
-- **Feature Requests**: [Request a new feature](https://github.com/MrTyton/Commander-Pairings/issues/new) on GitHub
+- **Report Issues**: [Submit a bug report](https://github.com/MrTyton/Commander-Pods/issues/new) on GitHub
+- **Feature Requests**: [Request a new feature](https://github.com/MrTyton/Commander-Pods/issues/new) on GitHub
 - **General Feedback**: Use GitHub Issues for any suggestions or improvements
 
 When reporting bugs, please include:
