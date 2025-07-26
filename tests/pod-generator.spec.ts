@@ -2491,7 +2491,7 @@ test.describe('MTG Commander Pod Generator', () => {
         // Get the first pod and move all its players to the second pod
         const firstPod = actualPods.first();
         const secondPod = actualPods.nth(1);
-        
+
         // Count players in the first pod initially
         const firstPodPlayers = await firstPod.locator('.pod-player');
         const playerCount = await firstPodPlayers.count();
@@ -2518,7 +2518,7 @@ test.describe('MTG Commander Pod Generator', () => {
         // Verify the remaining pod has all the players
         const remainingPod = finalActualPods.first();
         const remainingPodContent = await remainingPod.textContent();
-        
+
         // All original players should be in the remaining pod
         for (const playerName of players) {
             expect(remainingPodContent).toContain(playerName);
