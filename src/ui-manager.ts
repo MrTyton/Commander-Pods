@@ -15,6 +15,7 @@ export class UIManager {
     private dragDropManager: DragDropManager;
     private displayModeManager: DisplayModeManager;
     private currentPods: Pod[] = [];
+    private currentUnassigned: (Player | Group)[] = [];
 
     constructor() {
         this.playerRowsContainer = document.getElementById('player-rows')!;
@@ -24,7 +25,7 @@ export class UIManager {
 
         this.playerManager = new PlayerManager();
         this.podGenerator = new PodGenerator();
-        this.dragDropManager = new DragDropManager(this.playerManager, (pods) => this.renderPods(pods));
+        this.dragDropManager = new DragDropManager(this.playerManager, (pods, unassigned) => this.renderPods(pods, unassigned));
         this.displayModeManager = new DisplayModeManager();
 
         this.initializeEventListeners();
@@ -141,11 +142,11 @@ export class UIManager {
                 // Clear all checkboxes first
                 checkboxes.forEach(cb => cb.checked = false);
 
-                // Select the range
+                // Select only the start and end values (no 0.5 increments)
                 const [start, end] = range.split('-').map(Number);
                 checkboxes.forEach(cb => {
                     const value = parseFloat(cb.value);
-                    if (value >= start && value <= end) {
+                    if (value === start || value === end) {
                         cb.checked = true;
                     }
                 });
@@ -245,12 +246,15 @@ export class UIManager {
         const pods = result.pods;
         let unassignedPlayers = result.unassigned;
 
+        this.currentPods = [...pods]; // Store current pods for drag-and-drop
+        this.currentUnassigned = [...unassignedPlayers]; // Store current unassigned for drag-and-drop
         this.renderPods(pods, unassignedPlayers);
     }
 
     renderPods(pods: Pod[], unassignedPlayers: (Player | Group)[] = []): void {
         this.currentPods = [...pods]; // Store current pods for drag-and-drop
-        this.dragDropManager.setCurrentPods(this.currentPods);
+        this.currentUnassigned = [...unassignedPlayers]; // Store current unassigned for drag-and-drop
+        this.dragDropManager.setCurrentPods(this.currentPods, this.currentUnassigned);
         this.outputSection.innerHTML = '';
 
         if (pods.length === 0) {
@@ -407,6 +411,7 @@ export class UIManager {
         this.playerManager.resetPlayerIds();
         this.playerManager.resetGroupIds();
         this.currentPods = [];
+        this.currentUnassigned = [];
 
         const noLeniencyRadio = document.getElementById('no-leniency-radio') as HTMLInputElement;
         noLeniencyRadio.checked = true; // Reset to no leniency by default

@@ -517,6 +517,9 @@
           }
           if (currentSize >= 3) {
             const podItems = selectedItems.map((vi) => vi.item);
+            if (!this.isPodPowerSpreadValid(selectedItems, tolerance)) {
+              continue;
+            }
             const avgPowerLevel = selectedItems.reduce((sum, vi) => sum + vi.powerLevel, 0) / selectedItems.length;
             const newPod = {
               players: podItems,
@@ -556,6 +559,19 @@
         bestSolution
       );
     }
+    /**
+     * Validates that the power level spread in a pod doesn't exceed the leniency tolerance.
+     * With leniency, the maximum spread should equal the tolerance (not 2×).
+     * This ensures that all players in the pod are within a reasonable range of each other.
+     */
+    isPodPowerSpreadValid(selectedItems, tolerance) {
+      if (selectedItems.length === 0) return true;
+      const powerLevels = selectedItems.map((vi) => vi.powerLevel);
+      const minPower = Math.min(...powerLevels);
+      const maxPower = Math.max(...powerLevels);
+      const spread = maxPower - minPower;
+      return spread <= tolerance;
+    }
     findBestCommonPowerLevel(players) {
       if (players.length === 0) return null;
       const powerCounts = /* @__PURE__ */ new Map();
@@ -583,6 +599,7 @@
       this.draggedElement = null;
       this.draggedItemData = null;
       this.currentPods = [];
+      this.currentUnassigned = [];
       this.handleDragStart = (e) => {
         const target = e.target;
         this.draggedElement = target;
@@ -625,15 +642,17 @@
       this.playerManager = playerManager;
       this.onPodsChanged = onPodsChanged;
     }
-    setCurrentPods(pods) {
+    setCurrentPods(pods, unassigned = []) {
       this.currentPods = [...pods];
+      this.currentUnassigned = [...unassigned];
     }
     moveItemBetweenPods(itemData, targetPodIndex) {
       const sourcePodIndex = itemData.podIndex;
       const itemIndex = parseInt(itemData.itemIndex);
       let itemToMove = null;
       if (sourcePodIndex === "unassigned") {
-        return;
+        itemToMove = this.currentUnassigned[itemIndex];
+        this.currentUnassigned.splice(itemIndex, 1);
       } else {
         const sourcePod = this.currentPods[parseInt(sourcePodIndex)];
         itemToMove = sourcePod.players[itemIndex];
@@ -642,13 +661,13 @@
       }
       if (!itemToMove) return;
       if (targetPodIndex === "unassigned") {
-        return;
+        this.currentUnassigned.push(itemToMove);
       } else {
         const targetPod = this.currentPods[parseInt(targetPodIndex)];
         targetPod.players.push(itemToMove);
         targetPod.power = this.playerManager.calculatePodPower(targetPod.players);
       }
-      this.onPodsChanged(this.currentPods);
+      this.onPodsChanged(this.currentPods, this.currentUnassigned);
     }
   };
 
@@ -792,13 +811,14 @@
   var UIManager = class {
     constructor() {
       this.currentPods = [];
+      this.currentUnassigned = [];
       this.playerRowsContainer = document.getElementById("player-rows");
       this.outputSection = document.getElementById("output-section");
       this.displayModeBtn = document.getElementById("display-mode-btn");
       this.playerRowTemplate = document.getElementById("player-row-template");
       this.playerManager = new PlayerManager();
       this.podGenerator = new PodGenerator();
-      this.dragDropManager = new DragDropManager(this.playerManager, (pods) => this.renderPods(pods));
+      this.dragDropManager = new DragDropManager(this.playerManager, (pods, unassigned) => this.renderPods(pods, unassigned));
       this.displayModeManager = new DisplayModeManager();
       this.initializeEventListeners();
     }
@@ -891,7 +911,7 @@
           const [start, end] = range.split("-").map(Number);
           checkboxes.forEach((cb) => {
             const value = parseFloat(cb.value);
-            if (value >= start && value <= end) {
+            if (value === start || value === end) {
               cb.checked = true;
             }
           });
@@ -967,11 +987,14 @@
       const result = this.podGenerator.generatePodsWithBacktracking(itemsToPod, podSizes, leniencySettings);
       const pods = result.pods;
       let unassignedPlayers = result.unassigned;
+      this.currentPods = [...pods];
+      this.currentUnassigned = [...unassignedPlayers];
       this.renderPods(pods, unassignedPlayers);
     }
     renderPods(pods, unassignedPlayers = []) {
       this.currentPods = [...pods];
-      this.dragDropManager.setCurrentPods(this.currentPods);
+      this.currentUnassigned = [...unassignedPlayers];
+      this.dragDropManager.setCurrentPods(this.currentPods, this.currentUnassigned);
       this.outputSection.innerHTML = "";
       if (pods.length === 0) {
         this.outputSection.textContent = "Could not form pods with the given players.";
@@ -1092,6 +1115,7 @@
       this.playerManager.resetPlayerIds();
       this.playerManager.resetGroupIds();
       this.currentPods = [];
+      this.currentUnassigned = [];
       const noLeniencyRadio = document.getElementById("no-leniency-radio");
       noLeniencyRadio.checked = true;
       for (let i = 0; i < 4; i++) {

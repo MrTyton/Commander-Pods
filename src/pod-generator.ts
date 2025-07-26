@@ -389,6 +389,11 @@ export class PodGenerator {
                 if (currentSize >= 3) {
                     const podItems = selectedItems.map(vi => vi.item);
 
+                    // Validate that the power spread doesn't exceed the leniency tolerance
+                    if (!this.isPodPowerSpreadValid(selectedItems, tolerance)) {
+                        continue; // Skip this power level and try the next one
+                    }
+
                     // Calculate average power level for the pod
                     const avgPowerLevel = selectedItems.reduce((sum, vi) => sum + vi.powerLevel, 0) / selectedItems.length;
 
@@ -436,6 +441,24 @@ export class PodGenerator {
             newRemainingTargetSizes,
             bestSolution
         );
+    }
+
+    /**
+     * Validates that the power level spread in a pod doesn't exceed the leniency tolerance.
+     * With leniency, the maximum spread should equal the tolerance (not 2×).
+     * This ensures that all players in the pod are within a reasonable range of each other.
+     */
+    private isPodPowerSpreadValid(selectedItems: VirtualPlayer[], tolerance: number): boolean {
+        if (selectedItems.length === 0) return true;
+
+        const powerLevels = selectedItems.map(vi => vi.powerLevel);
+        const minPower = Math.min(...powerLevels);
+        const maxPower = Math.max(...powerLevels);
+        const spread = maxPower - minPower;
+
+        // The maximum acceptable spread should equal the tolerance
+        // This prevents scenarios like having players at 1.0, 1.5, 2.0 in the same pod with ±0.5 tolerance
+        return spread <= tolerance;
     }
 
     private findBestCommonPowerLevel(players: Player[]): number | null {

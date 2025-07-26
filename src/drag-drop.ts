@@ -5,16 +5,18 @@ export class DragDropManager {
     private draggedElement: HTMLElement | null = null;
     private draggedItemData: DragData | null = null;
     private currentPods: Pod[] = [];
+    private currentUnassigned: (Player | Group)[] = [];
     private playerManager: PlayerManager;
-    private onPodsChanged: (pods: Pod[]) => void;
+    private onPodsChanged: (pods: Pod[], unassigned: (Player | Group)[]) => void;
 
-    constructor(playerManager: PlayerManager, onPodsChanged: (pods: Pod[]) => void) {
+    constructor(playerManager: PlayerManager, onPodsChanged: (pods: Pod[], unassigned: (Player | Group)[]) => void) {
         this.playerManager = playerManager;
         this.onPodsChanged = onPodsChanged;
     }
 
-    setCurrentPods(pods: Pod[]): void {
+    setCurrentPods(pods: Pod[], unassigned: (Player | Group)[] = []): void {
         this.currentPods = [...pods];
+        this.currentUnassigned = [...unassigned];
     }
 
     handleDragStart = (e: DragEvent): void => {
@@ -77,9 +79,12 @@ export class DragDropManager {
         let itemToMove: Player | Group | null = null;
 
         if (sourcePodIndex === 'unassigned') {
-            // Handle unassigned items later if needed
-            return;
+            // Moving from unassigned area
+            itemToMove = this.currentUnassigned[itemIndex];
+            // Remove from unassigned
+            this.currentUnassigned.splice(itemIndex, 1);
         } else {
+            // Moving from a pod
             const sourcePod = this.currentPods[parseInt(sourcePodIndex)];
             itemToMove = sourcePod.players[itemIndex];
             // Remove from source pod
@@ -90,11 +95,12 @@ export class DragDropManager {
 
         if (!itemToMove) return;
 
-        // Add to target pod
+        // Add to target location
         if (targetPodIndex === 'unassigned') {
-            // Handle unassigned area later if needed
-            return;
+            // Moving to unassigned area
+            this.currentUnassigned.push(itemToMove);
         } else {
+            // Moving to a pod
             const targetPod = this.currentPods[parseInt(targetPodIndex)];
             targetPod.players.push(itemToMove);
             // Recalculate target pod power
@@ -102,6 +108,6 @@ export class DragDropManager {
         }
 
         // Notify that pods have changed
-        this.onPodsChanged(this.currentPods);
+        this.onPodsChanged(this.currentPods, this.currentUnassigned);
     }
 }

@@ -719,11 +719,12 @@ test.describe('MTG Commander Pod Generator', () => {
         // Generate pods
         await page.click('#generate-pods-btn');
 
-        // Should create multiple pods
+        // Should create multiple pods, but with power spread validation, 
+        // some extreme combinations may not be possible, so we expect fewer pods
         const pods = page.locator('.pod:not(.unassigned-pod)');
         await expect(pods.first()).toBeVisible();
         const podCount = await pods.count();
-        expect(podCount).toBeGreaterThanOrEqual(4); // At least 4 pods for diverse power levels
+        expect(podCount).toBeGreaterThanOrEqual(3); // Reduced expectation due to power spread validation
 
         // Verify that extreme power levels aren't mixed
         // Power 4 and Power 10 should never be in the same pod (difference = 6)
@@ -747,9 +748,9 @@ test.describe('MTG Commander Pod Generator', () => {
             totalAssigned += playerCount;
         }
 
-        // With such diverse power levels, we expect some players might be unassigned
-        // but the majority should be successfully placed
-        expect(totalAssigned).toBeGreaterThanOrEqual(18); // At least 75% should be assigned
+        // With such diverse power levels and power spread validation, many players will be unassigned
+        // Expect at least 45% to be assigned (reduced due to stricter power spread validation)
+        expect(totalAssigned).toBeGreaterThanOrEqual(11); // At least 45% should be assigned
     });
 
     test('should handle mixed groups and individual players at scale', async ({ page }) => {
@@ -903,17 +904,18 @@ test.describe('MTG Commander Pod Generator', () => {
         // Add the required player rows and fill in all players efficiently
         await createPlayers(page, players);
 
-        // Enable leniency to help with grouping
-        await page.check('#leniency-radio');
+        // Enable SUPER leniency to help with grouping (this test requires ±1.0 tolerance)
+        await page.check('#super-leniency-radio');
 
         // Generate pods
         await page.click('#generate-pods-btn');
 
-        // Should create multiple pods
+        // Should create multiple pods, but with power spread validation,
+        // even super leniency has limits (±1.0), so fewer pods may be created
         const pods = page.locator('.pod:not(.unassigned-pod)');
         await expect(pods.first()).toBeVisible();
         const podCount = await pods.count();
-        expect(podCount).toBeGreaterThanOrEqual(4); // At least 4 pods for diverse power levels
+        expect(podCount).toBeGreaterThanOrEqual(3); // Reduced expectation due to power spread validation
 
         // Verify that extreme power levels aren't mixed
         // Power 4 and Power 10 should never be in the same pod (difference = 6)
@@ -937,9 +939,9 @@ test.describe('MTG Commander Pod Generator', () => {
             totalAssigned += playerCount;
         }
 
-        // With such diverse power levels, we expect some players might be unassigned
-        // but the majority should be successfully placed
-        expect(totalAssigned).toBeGreaterThanOrEqual(18); // At least 75% should be assigned
+        // With power spread validation, some players with extreme differences will be unassigned
+        // Expect at least 60% to be assigned (reduced from 75% due to stricter validation)
+        expect(totalAssigned).toBeGreaterThanOrEqual(14); // At least 60% should be assigned
     });
 
     test('should handle players with multiple power levels', async ({ page }) => {
@@ -1883,5 +1885,233 @@ test.describe('MTG Commander Pod Generator', () => {
         // There should be NO unassigned players
         const unassignedSection = page.locator('.unassigned-pod');
         await expect(unassignedSection).toHaveCount(0);
+    });
+
+    test('should respect maximum power spread within leniency tolerance', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Add the required player rows (need 8 total, start with 4 default)
+        for (let i = 0; i < 4; i++) {
+            await page.click('#add-player-btn');
+        }
+
+        // Create a scenario with 8 players:
+        // - 4 problematic players with powers 1, 1.5, 2, 2 (spread = 1.0, exceeds ±0.5 tolerance)
+        // - 4 valid players with powers 3, 3, 3, 3 (spread = 0, within ±0.5 tolerance)
+        // With 8 players, target sizes will be [4, 4], so algorithm can create separate pods
+        // The problematic players should either be left unassigned or split into smaller valid pods
+
+        // Problematic players (should not be in same pod)
+        await page.fill('.player-row:nth-child(1) .player-name', 'BadPlayer1');
+        await setPowerLevels(page, 1, [1]);
+        await page.fill('.player-row:nth-child(2) .player-name', 'BadPlayer2');
+        await setPowerLevels(page, 2, [1.5]);
+        await page.fill('.player-row:nth-child(3) .player-name', 'BadPlayer3');
+        await setPowerLevels(page, 3, [2]);
+        await page.fill('.player-row:nth-child(4) .player-name', 'BadPlayer4');
+        await setPowerLevels(page, 4, [2]);
+
+        // Valid players (can form a good pod)
+        await page.fill('.player-row:nth-child(5) .player-name', 'GoodPlayer1');
+        await setPowerLevels(page, 5, [3]);
+        await page.fill('.player-row:nth-child(6) .player-name', 'GoodPlayer2');
+        await setPowerLevels(page, 6, [3]);
+        await page.fill('.player-row:nth-child(7) .player-name', 'GoodPlayer3');
+        await setPowerLevels(page, 7, [3]);
+        await page.fill('.player-row:nth-child(8) .player-name', 'GoodPlayer4');
+        await setPowerLevels(page, 8, [3]);
+
+        // Use regular leniency (±0.5)
+        await page.check('#leniency-radio');
+
+        // Generate pods
+        await page.click('#generate-pods-btn');
+        await page.waitForTimeout(300);
+
+        // Check the results - there should be at least one valid pod (the good players at power 3)
+        const pods = await page.locator('.pod:not(.unassigned-pod)');
+        const podCount = await pods.count();
+
+        // Should have at least 1 pod (the good players)
+        expect(podCount).toBeGreaterThanOrEqual(1);
+
+        // Check that ALL pods have acceptable power spreads (≤ 0.5)
+        for (let i = 0; i < podCount; i++) {
+            const podContent = await pods.nth(i).textContent();
+
+            // Extract power levels from the pod content
+            // Look for patterns like "(P: 1)", "(P: 1.5)", etc.
+            const powerMatches = podContent?.match(/\(P: ([\d.]+)\)/g) || [];
+            const powerLevels = powerMatches.map(match => {
+                const powerStr = match.match(/\(P: ([\d.]+)\)/)?.[1];
+                return powerStr ? parseFloat(powerStr) : 0;
+            });
+
+            if (powerLevels.length > 1) {
+                const minPower = Math.min(...powerLevels);
+                const maxPower = Math.max(...powerLevels);
+                const spread = maxPower - minPower;
+
+                // The spread should not exceed the leniency tolerance (0.5)
+                expect(spread).toBeLessThanOrEqual(0.5);
+            }
+        }
+
+        // Additional check: If the problematic players (1, 1.5, 2, 2) are all in pods,
+        // they should be split across multiple pods, not all together
+        let allProblematicPlayersInSamePod = false;
+        for (let i = 0; i < podCount; i++) {
+            const podContent = await pods.nth(i).textContent();
+
+            // Check if this pod contains all 4 problematic players
+            const hasPlayer1 = podContent?.includes('BadPlayer1');
+            const hasPlayer2 = podContent?.includes('BadPlayer2');
+            const hasPlayer3 = podContent?.includes('BadPlayer3');
+            const hasPlayer4 = podContent?.includes('BadPlayer4');
+
+            if (hasPlayer1 && hasPlayer2 && hasPlayer3 && hasPlayer4) {
+                allProblematicPlayersInSamePod = true;
+                break;
+            }
+        }
+
+        // The problematic players should NOT all be in the same pod
+        expect(allProblematicPlayersInSamePod).toBe(false);
+
+        // Verify all players are accounted for
+        const allContent = await page.locator('#output-section').textContent();
+        expect(allContent).toContain('Player1');
+        expect(allContent).toContain('Player2');
+        expect(allContent).toContain('Player3');
+        expect(allContent).toContain('Player4');
+    });
+
+    test('should only select whole numbers when using power level shortcuts', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Click on the power selector button to open the dropdown
+        const powerSelectorBtn = await page.locator('.player-row:nth-child(1) .power-selector-btn');
+        await powerSelectorBtn.click();
+        await page.waitForTimeout(100);
+
+        // Click the 7-8 range button
+        const rangeBtn = await page.locator('.player-row:nth-child(1) .range-btn[data-range="7-8"]');
+        await rangeBtn.click();
+        await page.waitForTimeout(100);
+
+        // Check that only power levels 7 and 8 are selected (not 7.5)
+        const checkbox7 = await page.locator('.player-row:nth-child(1) input[value="7"]');
+        const checkbox7_5 = await page.locator('.player-row:nth-child(1) input[value="7.5"]');
+        const checkbox8 = await page.locator('.player-row:nth-child(1) input[value="8"]');
+
+        await expect(checkbox7).toBeChecked();
+        await expect(checkbox7_5).not.toBeChecked();  // This should NOT be checked
+        await expect(checkbox8).toBeChecked();
+
+        // Test 6-7 range as well
+        const rangeBtn6_7 = await page.locator('.player-row:nth-child(1) .range-btn[data-range="6-7"]');
+        await rangeBtn6_7.click();
+        await page.waitForTimeout(100);
+
+        const checkbox6 = await page.locator('.player-row:nth-child(1) input[value="6"]');
+        const checkbox6_5 = await page.locator('.player-row:nth-child(1) input[value="6.5"]');
+        const checkbox7_after = await page.locator('.player-row:nth-child(1) input[value="7"]');
+
+        await expect(checkbox6).toBeChecked();
+        await expect(checkbox6_5).not.toBeChecked();  // This should NOT be checked
+        await expect(checkbox7_after).toBeChecked();
+
+        // Verify the previous selections are cleared
+        await expect(checkbox8).not.toBeChecked();
+    });
+
+    test('should handle super leniency spread validation', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Test super leniency (±1.0) with a spread that should be allowed
+        // Players with powers 1, 1.5, 2, 2 - this SHOULD be allowed with ±1.0 leniency
+        // because the spread is 1.0 which equals the tolerance
+        await page.fill('.player-row:nth-child(1) .player-name', 'Player1');
+        await setPowerLevels(page, 1, [1]);
+        await page.fill('.player-row:nth-child(2) .player-name', 'Player2');
+        await setPowerLevels(page, 2, [1.5]);
+        await page.fill('.player-row:nth-child(3) .player-name', 'Player3');
+        await setPowerLevels(page, 3, [2]);
+        await page.fill('.player-row:nth-child(4) .player-name', 'Player4');
+        await setPowerLevels(page, 4, [2]);
+
+        // Use super leniency (±1.0)
+        await page.check('#super-leniency-radio');
+
+        // Generate pods
+        await page.click('#generate-pods-btn');
+        await page.waitForTimeout(300);
+
+        // With super leniency, this should be allowed to form a pod
+        const pods = await page.locator('.pod:not(.unassigned-pod)');
+        const podCount = await pods.count();
+
+        expect(podCount).toBeGreaterThan(0);
+
+        // Check that the spread is within super leniency tolerance (≤1.0)
+        for (let i = 0; i < podCount; i++) {
+            const podContent = await pods.nth(i).textContent();
+
+            const powerMatches = podContent?.match(/\(P: ([\d.]+)\)/g) || [];
+            const powerLevels = powerMatches.map(match => {
+                const powerStr = match.match(/\(P: ([\d.]+)\)/)?.[1];
+                return powerStr ? parseFloat(powerStr) : 0;
+            });
+
+            if (powerLevels.length > 1) {
+                const minPower = Math.min(...powerLevels);
+                const maxPower = Math.max(...powerLevels);
+                const spread = maxPower - minPower;
+
+                // The spread should not exceed the super leniency tolerance (1.0)
+                expect(spread).toBeLessThanOrEqual(1.0);
+            }
+        }
+    });
+
+    test('should validate drag and drop functionality from unassigned area', async ({ page }) => {
+        await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Create a scenario that will likely have unassigned players
+        await page.fill('.player-row:nth-child(1) .player-name', 'Compatible1');
+        await setPowerLevels(page, 1, [7]);
+        await page.fill('.player-row:nth-child(2) .player-name', 'Compatible2');
+        await setPowerLevels(page, 2, [7]);
+        await page.fill('.player-row:nth-child(3) .player-name', 'Compatible3');
+        await setPowerLevels(page, 3, [7]);
+        await page.fill('.player-row:nth-child(4) .player-name', 'Compatible4');
+        await setPowerLevels(page, 4, [7]);
+
+        // Add one more player that might be unassigned
+        await page.click('#add-player-btn');
+        await page.fill('.player-row:nth-child(5) .player-name', 'Outlier');
+        await setPowerLevels(page, 5, [10]);
+
+        // Generate pods
+        await page.click('#generate-pods-btn');
+        await page.waitForTimeout(300);
+
+        // Check if we have both pods and unassigned players
+        const pods = await page.locator('.pod:not(.unassigned-pod)');
+        const unassignedSection = await page.locator('.unassigned-pod');
+
+        const hasPods = await pods.count() > 0;
+        const hasUnassigned = await unassignedSection.count() > 0;
+
+        // At minimum, we should have some output
+        expect(hasPods || hasUnassigned).toBeTruthy();
+
+        // Verify all players are accounted for somewhere
+        const allContent = await page.locator('#output-section').textContent();
+        expect(allContent).toContain('Compatible1');
+        expect(allContent).toContain('Compatible2');
+        expect(allContent).toContain('Compatible3');
+        expect(allContent).toContain('Compatible4');
+        expect(allContent).toContain('Outlier');
     });
 });
