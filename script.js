@@ -134,6 +134,27 @@
       this.nextPlayerId = 0;
     }
     getNextGroupId() {
+      const existingGroupNumbers = /* @__PURE__ */ new Set();
+      const groupSelects = document.querySelectorAll(".group-select");
+      groupSelects.forEach((select) => {
+        if (select.value.startsWith("group-")) {
+          const groupNumber = parseInt(select.value.split("-")[1]);
+          if (!isNaN(groupNumber)) {
+            existingGroupNumbers.add(groupNumber);
+          }
+        }
+        if (select.value === "new-group" && select.dataset.createdGroupId && select.dataset.createdGroupId.startsWith("group-")) {
+          const groupNumber = parseInt(select.dataset.createdGroupId.split("-")[1]);
+          if (!isNaN(groupNumber)) {
+            existingGroupNumbers.add(groupNumber);
+          }
+        }
+      });
+      for (let i = 1; i <= 50; i++) {
+        if (!existingGroupNumbers.has(i)) {
+          return i;
+        }
+      }
       return this.nextGroupId++;
     }
     resetGroupIds() {
@@ -235,10 +256,7 @@
         let groupId = "";
         if (select.value === "new-group") {
           if (!select.dataset.createdGroupId) {
-            let groupNum = 1;
-            while (existingGroupIds.has(`group-${groupNum}`)) {
-              groupNum++;
-            }
+            const groupNum = this.getNextGroupId();
             groupId = `group-${groupNum}`;
             existingGroupIds.add(groupId);
             select.dataset.createdGroupId = groupId;
@@ -257,15 +275,20 @@
             if (!this.groups.has(select.value)) this.groups.set(select.value, []);
             this.groups.get(select.value).push(player);
           }
+        } else {
+          if (select.dataset.createdGroupId) {
+            delete select.dataset.createdGroupId;
+          }
         }
         if (groupId) {
-          const colorNumber = this.assignRandomColor(groupId);
-          if (colorNumber >= 1 && colorNumber <= 50) {
-            select.classList.add(`group-${colorNumber}`);
+          const groupNumber = parseInt(groupId.split("-")[1]);
+          if (groupNumber >= 1 && groupNumber <= 50) {
+            select.classList.add(`group-${groupNumber}`);
           }
         }
       });
       this.cleanupUnusedGroups(existingGroupIds);
+      this.updateAllGroupDropdowns(playerRowsContainer);
     }
     updateAllGroupDropdowns(playerRowsContainer) {
       const createdGroupIds = /* @__PURE__ */ new Set();
@@ -293,17 +316,17 @@
           const option = new Option(`Group ${groupNumber}`, id);
           select.add(option);
         });
-        if (createdId && createdGroupIds.has(createdId)) {
+        if (createdId && createdGroupIds.has(createdId) && (currentValue === "new-group" || currentValue === "no-group")) {
           select.value = createdId;
-          const colorNumber = this.assignRandomColor(createdId);
-          if (colorNumber >= 1 && colorNumber <= 50) {
-            select.classList.add(`group-${colorNumber}`);
+          const groupNumber = parseInt(createdId.split("-")[1]);
+          if (groupNumber >= 1 && groupNumber <= 50) {
+            select.classList.add(`group-${groupNumber}`);
           }
         } else if (currentValue.startsWith("group-") && createdGroupIds.has(currentValue)) {
           select.value = currentValue;
-          const colorNumber = this.assignRandomColor(currentValue);
-          if (colorNumber >= 1 && colorNumber <= 50) {
-            select.classList.add(`group-${colorNumber}`);
+          const groupNumber = parseInt(currentValue.split("-")[1]);
+          if (groupNumber >= 1 && groupNumber <= 50) {
+            select.classList.add(`group-${groupNumber}`);
           }
         } else {
           select.value = "no-group";
@@ -376,6 +399,19 @@
       assignedGroups.forEach((groupId) => {
         if (!activeGroupIds.has(groupId)) {
           this.releaseColor(groupId);
+        }
+      });
+      const existingGroups = Array.from(this.groups.keys());
+      existingGroups.forEach((groupId) => {
+        if (!activeGroupIds.has(groupId)) {
+          this.groups.delete(groupId);
+        }
+      });
+      const groupSelects = document.querySelectorAll(".group-select");
+      groupSelects.forEach((select) => {
+        const createdId = select.dataset.createdGroupId;
+        if (createdId && !activeGroupIds.has(createdId)) {
+          delete select.dataset.createdGroupId;
         }
       });
     }
@@ -1443,7 +1479,6 @@
       const groupSelect = newRow.querySelector(".group-select");
       groupSelect.addEventListener("change", () => {
         this.playerManager.handleGroupChange(this.playerRowsContainer);
-        this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
       });
       this.playerRowsContainer.appendChild(newRow);
       this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
@@ -1886,7 +1921,40 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
   };
 
   // src/main.ts
+  function generateGroupColorCSS() {
+    const totalGroups = 50;
+    const hueStep = 360 / totalGroups;
+    const randomOffset = Math.floor(Math.random() * 360);
+    const minSpacing = 25;
+    const hues = [];
+    for (let i = 0; i < totalGroups; i++) {
+      const goldenRatio = 137.5;
+      const hue = (randomOffset + i * goldenRatio) % 360;
+      hues.push(Math.round(hue));
+    }
+    let css = "";
+    for (let i = 1; i <= totalGroups; i++) {
+      const hue = hues[i - 1];
+      const saturation = 70 + Math.floor(Math.random() * 20);
+      const borderLightness = 50;
+      const backgroundLightness = 28 + Math.floor(Math.random() * 8);
+      css += `
+.player-row .group-select.group-${i} {
+    border-color: hsl(${hue}, ${saturation}%, ${borderLightness}%) !important;
+    background-color: hsl(${hue}, ${saturation}%, ${backgroundLightness}%) !important;
+}`;
+      css += `
+.group-select option[value="group-${i}"] {
+    background-color: hsl(${hue}, ${saturation}%, ${backgroundLightness}%);
+}`;
+    }
+    const styleElement = document.createElement("style");
+    styleElement.id = "dynamic-group-colors";
+    styleElement.textContent = css;
+    document.head.appendChild(styleElement);
+  }
   document.addEventListener("DOMContentLoaded", () => {
+    generateGroupColorCSS();
     const uiManager = new UIManager();
     uiManager.resetAll();
   });

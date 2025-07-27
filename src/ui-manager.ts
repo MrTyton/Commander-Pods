@@ -479,7 +479,6 @@ export class UIManager {
         const groupSelect = newRow.querySelector('.group-select') as HTMLSelectElement;
         groupSelect.addEventListener('change', () => {
             this.playerManager.handleGroupChange(this.playerRowsContainer);
-            this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
         });
 
         this.playerRowsContainer.appendChild(newRow);

@@ -57,6 +57,38 @@ export class PlayerManager {
     }
 
     getNextGroupId(): number {
+        // Find the lowest available group ID by checking which groups are actually in use
+        // We need to check the DOM since this.groups might be cleared during updates
+        const existingGroupNumbers = new Set<number>();
+        
+        // Check all group select dropdowns to see which groups are currently selected
+        const groupSelects = document.querySelectorAll('.group-select') as NodeListOf<HTMLSelectElement>;
+        
+        groupSelects.forEach(select => {
+            if (select.value.startsWith('group-')) {
+                const groupNumber = parseInt(select.value.split('-')[1]);
+                if (!isNaN(groupNumber)) {
+                    existingGroupNumbers.add(groupNumber);
+                }
+            }
+            // Only check createdGroupId if the select is currently "new-group" 
+            // (meaning it just created a group but hasn't been updated yet)
+            if (select.value === 'new-group' && select.dataset.createdGroupId && select.dataset.createdGroupId.startsWith('group-')) {
+                const groupNumber = parseInt(select.dataset.createdGroupId.split('-')[1]);
+                if (!isNaN(groupNumber)) {
+                    existingGroupNumbers.add(groupNumber);
+                }
+            }
+        });
+        
+        // Find the lowest unused group number
+        for (let i = 1; i <= 50; i++) {
+            if (!existingGroupNumbers.has(i)) {
+                return i;
+            }
+        }
+        
+        // If all 50 groups are used, increment as before
         return this.nextGroupId++;
     }
 
@@ -188,10 +220,7 @@ export class PlayerManager {
             if (select.value === 'new-group') {
                 // Find the next available group ID
                 if (!select.dataset.createdGroupId) {
-                    let groupNum = 1;
-                    while (existingGroupIds.has(`group-${groupNum}`)) {
-                        groupNum++;
-                    }
+                    const groupNum = this.getNextGroupId();
                     groupId = `group-${groupNum}`;
                     existingGroupIds.add(groupId);
                     select.dataset.createdGroupId = groupId;
@@ -211,19 +240,27 @@ export class PlayerManager {
                     if (!this.groups.has(select.value)) this.groups.set(select.value, []);
                     this.groups.get(select.value)!.push(player);
                 }
+            } else {
+                // If not in a group, clear any createdGroupId
+                if (select.dataset.createdGroupId) {
+                    delete select.dataset.createdGroupId;
+                }
             }
 
             // Apply visual styling to dropdown only
             if (groupId) {
-                const colorNumber = this.assignRandomColor(groupId);
-                if (colorNumber >= 1 && colorNumber <= 50) {
-                    select.classList.add(`group-${colorNumber}`);
+                const groupNumber = parseInt(groupId.split('-')[1]);
+                if (groupNumber >= 1 && groupNumber <= 50) {
+                    select.classList.add(`group-${groupNumber}`);
                 }
             }
         });
 
         // Clean up unused group colors
         this.cleanupUnusedGroups(existingGroupIds);
+        
+        // Update all dropdowns to reflect the current state
+        this.updateAllGroupDropdowns(playerRowsContainer);
     }
 
     updateAllGroupDropdowns(playerRowsContainer: HTMLElement): void {
@@ -261,19 +298,20 @@ export class PlayerManager {
                 select.add(option);
             });
 
-            if (createdId && createdGroupIds.has(createdId)) {
+            if (createdId && createdGroupIds.has(createdId) && (currentValue === 'new-group' || currentValue === 'no-group')) {
+                // Only reassign to createdGroupId if they're not already in a specific group
                 select.value = createdId;
                 // Apply color styling for the current group
-                const colorNumber = this.assignRandomColor(createdId);
-                if (colorNumber >= 1 && colorNumber <= 50) {
-                    select.classList.add(`group-${colorNumber}`);
+                const groupNumber = parseInt(createdId.split('-')[1]);
+                if (groupNumber >= 1 && groupNumber <= 50) {
+                    select.classList.add(`group-${groupNumber}`);
                 }
             } else if (currentValue.startsWith('group-') && createdGroupIds.has(currentValue)) {
                 select.value = currentValue;
                 // Apply color styling for the current group
-                const colorNumber = this.assignRandomColor(currentValue);
-                if (colorNumber >= 1 && colorNumber <= 50) {
-                    select.classList.add(`group-${colorNumber}`);
+                const groupNumber = parseInt(currentValue.split('-')[1]);
+                if (groupNumber >= 1 && groupNumber <= 50) {
+                    select.classList.add(`group-${groupNumber}`);
                 }
             } else {
                 select.value = 'no-group';
@@ -371,6 +409,23 @@ export class PlayerManager {
         assignedGroups.forEach(groupId => {
             if (!activeGroupIds.has(groupId)) {
                 this.releaseColor(groupId);
+            }
+        });
+        
+        // Remove empty groups from the groups map
+        const existingGroups = Array.from(this.groups.keys());
+        existingGroups.forEach(groupId => {
+            if (!activeGroupIds.has(groupId)) {
+                this.groups.delete(groupId);
+            }
+        });
+        
+        // Clear createdGroupId from selects that no longer reference active groups
+        const groupSelects = document.querySelectorAll('.group-select') as NodeListOf<HTMLSelectElement>;
+        groupSelects.forEach(select => {
+            const createdId = select.dataset.createdGroupId;
+            if (createdId && !activeGroupIds.has(createdId)) {
+                delete select.dataset.createdGroupId;
             }
         });
     }
