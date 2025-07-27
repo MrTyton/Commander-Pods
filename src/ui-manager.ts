@@ -29,6 +29,7 @@ export class UIManager {
         this.displayModeManager = new DisplayModeManager();
 
         this.initializeEventListeners();
+        this.initializeRankingModeToggle();
     }
 
     private initializeEventListeners(): void {
@@ -287,6 +288,180 @@ export class UIManager {
         // Initialize button text
         updateButtonText();
 
+        // Bracket selector functionality
+        const bracketSelectorBtn = newRow.querySelector('.bracket-selector-btn') as HTMLButtonElement;
+        const bracketDropdown = newRow.querySelector('.bracket-selector-dropdown') as HTMLElement;
+        const bracketRangeButtons = newRow.querySelectorAll('.bracket-range-btn') as NodeListOf<HTMLButtonElement>;
+
+        const updateBracketButtonText = () => {
+            const bracketCheckboxes = newRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+            const selectedBrackets: string[] = [];
+
+            bracketCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selectedBrackets.push(checkbox.value);
+                }
+            });
+
+            if (selectedBrackets.length === 0) {
+                bracketSelectorBtn.textContent = 'Select Brackets';
+                bracketSelectorBtn.classList.remove('has-selection');
+            } else {
+                let displayText: string;
+                if (selectedBrackets.length === 1) {
+                    displayText = `Bracket: ${selectedBrackets[0]}`;
+                } else {
+                    displayText = `Brackets: ${selectedBrackets.join(', ')}`;
+                }
+                bracketSelectorBtn.textContent = displayText;
+                bracketSelectorBtn.classList.add('has-selection');
+            }
+        };
+
+        // Toggle bracket dropdown visibility
+        bracketSelectorBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const isOpen = bracketDropdown.style.display !== 'none';
+
+            // Close all other dropdowns first
+            document.querySelectorAll('.bracket-selector-dropdown, .power-selector-dropdown').forEach(dropdown => {
+                (dropdown as HTMLElement).style.display = 'none';
+                dropdown.classList.remove('show');
+            });
+            document.querySelectorAll('.bracket-selector-btn, .power-selector-btn').forEach(btn => {
+                btn.classList.remove('open');
+            });
+
+            if (!isOpen) {
+                bracketDropdown.style.display = 'block';
+                bracketSelectorBtn.classList.add('open');
+                setTimeout(() => bracketDropdown.classList.add('show'), 10);
+            }
+        });
+
+        // Close bracket dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!bracketSelectorBtn.contains(e.target as Node) && !bracketDropdown.contains(e.target as Node)) {
+                bracketDropdown.classList.remove('show');
+                bracketSelectorBtn.classList.remove('open');
+                setTimeout(() => {
+                    if (!bracketDropdown.classList.contains('show')) {
+                        bracketDropdown.style.display = 'none';
+                    }
+                }, 200);
+            }
+        });
+
+        // Add change listeners to bracket checkboxes
+        const bracketCheckboxes = newRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+        bracketCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateBracketButtonText);
+        });
+
+        // Bracket range button functionality
+        bracketRangeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const range = button.dataset.range!;
+
+                // Clear all checkboxes first
+                bracketCheckboxes.forEach(cb => cb.checked = false);
+
+                if (range === 'cedh') {
+                    // Special case for cEDH button
+                    bracketCheckboxes.forEach(cb => {
+                        if (cb.value === 'cedh') {
+                            cb.checked = true;
+                        }
+                    });
+                } else {
+                    // Select the range brackets
+                    const [start, end] = range.split('-');
+                    const startNum = parseInt(start);
+                    const endNum = parseInt(end);
+
+                    bracketCheckboxes.forEach(cb => {
+                        const value = cb.value;
+                        if (value !== 'cedh') {
+                            const num = parseInt(value);
+                            if (num >= startNum && num <= endNum) {
+                                cb.checked = true;
+                            }
+                        }
+                    });
+                }
+
+                updateBracketButtonText();
+            });
+        });
+
+        // Add event listener for bracket clear button
+        const bracketClearButton = newRow.querySelector('.bracket-clear-btn')!;
+        bracketClearButton.addEventListener('click', () => {
+            bracketCheckboxes.forEach(cb => cb.checked = false);
+            updateBracketButtonText();
+        });
+
+        // Bracket keyboard shortcuts
+        const closeBracketDropdown = () => {
+            bracketDropdown.classList.remove('show');
+            bracketSelectorBtn.classList.remove('open');
+            setTimeout(() => {
+                if (!bracketDropdown.classList.contains('show')) {
+                    bracketDropdown.style.display = 'none';
+                }
+            }, 200);
+        };
+
+        // Bracket keyboard handling
+        document.addEventListener('keydown', (e) => {
+            const isBracketDropdownOpen = bracketDropdown.style.display === 'block' && bracketDropdown.classList.contains('show');
+            const isBracketButtonFocused = document.activeElement === bracketSelectorBtn;
+
+            if (isBracketDropdownOpen || isBracketButtonFocused) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    if (isBracketDropdownOpen) {
+                        closeBracketDropdown();
+                        bracketSelectorBtn.focus();
+                    }
+                } else if (e.key >= '1' && e.key <= '4') {
+                    e.preventDefault();
+                    const targetValue = e.key;
+
+                    // Clear all checkboxes first
+                    bracketCheckboxes.forEach(cb => cb.checked = false);
+
+                    // Find and check the matching checkbox
+                    const targetCheckbox = Array.from(bracketCheckboxes).find(cb => cb.value === targetValue);
+                    if (targetCheckbox) {
+                        targetCheckbox.checked = true;
+                        updateBracketButtonText();
+                        if (isBracketDropdownOpen) {
+                            closeBracketDropdown();
+                        }
+                    }
+                } else if (e.key === '5' || e.key.toLowerCase() === 'c') {
+                    e.preventDefault();
+
+                    // Clear all checkboxes first
+                    bracketCheckboxes.forEach(cb => cb.checked = false);
+
+                    // Check cEDH
+                    const cedhCheckbox = Array.from(bracketCheckboxes).find(cb => cb.value === 'cedh');
+                    if (cedhCheckbox) {
+                        cedhCheckbox.checked = true;
+                        updateBracketButtonText();
+                        if (isBracketDropdownOpen) {
+                            closeBracketDropdown();
+                        }
+                    }
+                }
+            }
+        });
+
+        // Initialize bracket button text
+        updateBracketButtonText();
+
         // Add event listener for remove button
         const removeBtn = newRow.querySelector('.remove-player-btn')!;
         removeBtn.addEventListener('click', () => {
@@ -309,6 +484,20 @@ export class UIManager {
 
         this.playerRowsContainer.appendChild(newRow);
         this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
+
+        // Apply current ranking mode to the new row
+        const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+        const isBracketMode = bracketRadio.checked;
+        const powerLevels = newRow.querySelector('.power-levels') as HTMLElement;
+        const bracketLevels = newRow.querySelector('.bracket-levels') as HTMLElement;
+
+        if (isBracketMode) {
+            powerLevels.style.display = 'none';
+            bracketLevels.style.display = 'block';
+        } else {
+            powerLevels.style.display = 'block';
+            bracketLevels.style.display = 'none';
+        }
     }
 
     generatePods(): void {
@@ -453,7 +642,19 @@ export class UIManager {
             podElement.addEventListener('dragleave', this.dragDropManager.handleDragLeave);
 
             const title = document.createElement('h3');
-            title.textContent = `Pod ${index + 1} (Power: ${pod.power})`;
+
+            // Check if we're in bracket mode to display appropriate title
+            const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+            const isBracketMode = bracketRadio && bracketRadio.checked;
+
+            if (isBracketMode) {
+                // In bracket mode, calculate the valid bracket range like power level mode does
+                const validBracketRange = this.calculateValidBracketRange(pod);
+                title.textContent = `Pod ${index + 1} (Bracket: ${validBracketRange})`;
+            } else {
+                title.textContent = `Pod ${index + 1} (Power: ${pod.power})`;
+            }
+
             podElement.appendChild(title);
 
             const list = document.createElement('ul');
@@ -472,11 +673,24 @@ export class UIManager {
                     groupItem.addEventListener('dragstart', this.dragDropManager.handleDragStart);
                     groupItem.addEventListener('dragend', this.dragDropManager.handleDragEnd);
 
-                    groupItem.innerHTML = `<strong>Group ${item.id.split('-')[1]} (Avg Power: ${item.averagePower}):</strong>`;
+                    // Check if we're in bracket mode for group display
+                    const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+                    const isBracketMode = bracketRadio && bracketRadio.checked;
+
+                    if (isBracketMode) {
+                        groupItem.innerHTML = `<strong>Group ${item.id.split('-')[1]}:</strong>`;
+                    } else {
+                        groupItem.innerHTML = `<strong>Group ${item.id.split('-')[1]} (Avg Power: ${item.averagePower}):</strong>`;
+                    }
+
                     const subList = document.createElement('ul');
                     item.players.forEach(p => {
                         const subItem = document.createElement('li');
-                        subItem.textContent = `${p.name} (P: ${p.powerRange})`;
+                        if (isBracketMode && p.bracketRange) {
+                            subItem.textContent = `${p.name} (B: ${p.bracketRange})`;
+                        } else {
+                            subItem.textContent = `${p.name} (P: ${p.powerRange})`;
+                        }
                         subList.appendChild(subItem);
                     });
                     groupItem.appendChild(subList);
@@ -495,7 +709,16 @@ export class UIManager {
                     playerItem.addEventListener('dragstart', this.dragDropManager.handleDragStart);
                     playerItem.addEventListener('dragend', this.dragDropManager.handleDragEnd);
 
-                    playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+                    // Check if we're in bracket mode for player display
+                    const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+                    const isBracketMode = bracketRadio && bracketRadio.checked;
+
+                    if (isBracketMode && item.bracketRange) {
+                        playerItem.textContent = `${item.name} (B: ${item.bracketRange})`;
+                    } else {
+                        playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+                    }
+
                     list.appendChild(playerItem);
                 }
             });
@@ -567,11 +790,24 @@ export class UIManager {
                     groupItem.addEventListener('dragstart', this.dragDropManager.handleDragStart);
                     groupItem.addEventListener('dragend', this.dragDropManager.handleDragEnd);
 
-                    groupItem.innerHTML = `<strong>Group ${item.id.split('-')[1]} (Avg Power: ${item.averagePower}):</strong>`;
+                    // Check if we're in bracket mode for group display
+                    const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+                    const isBracketMode = bracketRadio && bracketRadio.checked;
+
+                    if (isBracketMode) {
+                        groupItem.innerHTML = `<strong>Group ${item.id.split('-')[1]}:</strong>`;
+                    } else {
+                        groupItem.innerHTML = `<strong>Group ${item.id.split('-')[1]} (Avg Power: ${item.averagePower}):</strong>`;
+                    }
+
                     const subList = document.createElement('ul');
                     item.players.forEach(p => {
                         const subItem = document.createElement('li');
-                        subItem.textContent = `${p.name} (P: ${p.powerRange})`;
+                        if (isBracketMode && p.bracketRange) {
+                            subItem.textContent = `${p.name} (B: ${p.bracketRange})`;
+                        } else {
+                            subItem.textContent = `${p.name} (P: ${p.powerRange})`;
+                        }
                         subList.appendChild(subItem);
                     });
                     groupItem.appendChild(subList);
@@ -590,7 +826,16 @@ export class UIManager {
                     playerItem.addEventListener('dragstart', this.dragDropManager.handleDragStart);
                     playerItem.addEventListener('dragend', this.dragDropManager.handleDragEnd);
 
-                    playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+                    // Check if we're in bracket mode for player display
+                    const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+                    const isBracketMode = bracketRadio && bracketRadio.checked;
+
+                    if (isBracketMode && item.bracketRange) {
+                        playerItem.textContent = `${item.name} (B: ${item.bracketRange})`;
+                    } else {
+                        playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+                    }
+
                     list.appendChild(playerItem);
                 }
             });
@@ -655,6 +900,76 @@ export class UIManager {
         });
     }
 
+    private initializeRankingModeToggle(): void {
+        const powerLevelRadio = document.getElementById('power-level-radio') as HTMLInputElement;
+        const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+
+        const toggleRankingMode = () => {
+            const isBracketMode = bracketRadio.checked;
+
+            // Add/remove bracket-mode class to body for CSS styling
+            if (isBracketMode) {
+                document.body.classList.add('bracket-mode');
+
+                // Set tolerance to 0 (no leniency) in bracket mode
+                const noLeniencyRadio = document.getElementById('no-leniency-radio') as HTMLInputElement;
+                if (noLeniencyRadio) {
+                    noLeniencyRadio.checked = true;
+                }
+            } else {
+                document.body.classList.remove('bracket-mode');
+            }
+
+            // Toggle visibility of power/bracket selectors in all existing rows
+            const playerRows = this.playerRowsContainer.querySelectorAll('.player-row');
+            playerRows.forEach(row => {
+                const powerLevels = row.querySelector('.power-levels') as HTMLElement;
+                const bracketLevels = row.querySelector('.bracket-levels') as HTMLElement;
+
+                if (isBracketMode) {
+                    powerLevels.style.display = 'none';
+                    bracketLevels.style.display = 'block';
+                } else {
+                    powerLevels.style.display = 'block';
+                    bracketLevels.style.display = 'none';
+                }
+
+                // Clear all selections when switching modes
+                this.clearAllSelections(row as HTMLElement);
+            });
+        };
+
+        powerLevelRadio.addEventListener('change', toggleRankingMode);
+        bracketRadio.addEventListener('change', toggleRankingMode);
+
+        // Initialize with default mode
+        toggleRankingMode();
+    }
+
+    private clearAllSelections(row: HTMLElement): void {
+        // Clear power level selections
+        const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+        powerCheckboxes.forEach(cb => cb.checked = false);
+
+        // Clear bracket selections
+        const bracketCheckboxes = row.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+        bracketCheckboxes.forEach(cb => cb.checked = false);
+
+        // Update button texts
+        const powerBtn = row.querySelector('.power-selector-btn') as HTMLButtonElement;
+        const bracketBtn = row.querySelector('.bracket-selector-btn') as HTMLButtonElement;
+
+        if (powerBtn) {
+            powerBtn.textContent = 'Select Power Levels';
+            powerBtn.classList.remove('has-selection');
+        }
+
+        if (bracketBtn) {
+            bracketBtn.textContent = 'Select Brackets';
+            bracketBtn.classList.remove('has-selection');
+        }
+    }
+
     private initializeHelpModal(): void {
         const helpModal = document.getElementById('help-modal')!;
         const helpCloseBtn = helpModal.querySelector('.help-close')!;
@@ -687,5 +1002,64 @@ export class UIManager {
         const helpModal = document.getElementById('help-modal')!;
         helpModal.style.display = 'none';
         document.body.style.overflow = ''; // Restore scrolling
+    }
+
+    private calculateValidBracketRange(pod: Pod): string {
+        // Get all individual players from the pod (flatten groups)
+        const allPlayers = pod.players.flatMap(item =>
+            'players' in item ? item.players : [item]
+        );
+
+        if (allPlayers.length === 0) return 'Unknown';
+
+        // Find all bracket levels that every player can participate in
+        const validBrackets: string[] = [];
+
+        // Get all unique bracket levels that any player can play
+        const allPossibleBrackets = new Set<string>();
+        allPlayers.forEach(player => {
+            if (player.brackets) {
+                player.brackets.forEach(bracket => allPossibleBrackets.add(bracket));
+            }
+        });
+
+        // Check each possible bracket level to see if all players can participate
+        for (const testBracket of allPossibleBrackets) {
+            const canAllPlayersParticipate = allPlayers.every(player =>
+                player.brackets && player.brackets.includes(testBracket)
+            );
+
+            if (canAllPlayersParticipate) {
+                validBrackets.push(testBracket);
+            }
+        }
+
+        // Sort brackets in order: 1, 2, 3, 4, cedh
+        const bracketOrder = ['1', '2', '3', '4', 'cedh'];
+        validBrackets.sort((a, b) => bracketOrder.indexOf(a) - bracketOrder.indexOf(b));
+
+        if (validBrackets.length === 0) {
+            return 'Unknown'; // Fallback
+        } else if (validBrackets.length === 1) {
+            return validBrackets[0];
+        } else {
+            // Check if it's a consecutive range (for numeric brackets only)
+            const numericBrackets = validBrackets.filter(b => b !== 'cedh');
+            const hasConsecutiveNumbers = numericBrackets.length > 1 &&
+                numericBrackets.every((bracket, index) => {
+                    if (index === 0) return true;
+                    const current = parseInt(bracket);
+                    const previous = parseInt(numericBrackets[index - 1]);
+                    return current === previous + 1;
+                });
+
+            if (hasConsecutiveNumbers && numericBrackets.length === validBrackets.length && validBrackets.length > 1) {
+                // Show as range for consecutive numeric brackets
+                return `${validBrackets[0]}-${validBrackets[validBrackets.length - 1]}`;
+            } else {
+                // Show as comma-separated list for discrete values or mixed brackets
+                return validBrackets.join(', ');
+            }
+        }
     }
 }

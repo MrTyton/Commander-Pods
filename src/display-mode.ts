@@ -122,6 +122,65 @@ export class DisplayModeManager {
         }
     }
 
+    private calculateValidBracketRange(pod: Pod): string {
+        // Get all individual players from the pod (flatten groups)
+        const allPlayers = pod.players.flatMap(item =>
+            'players' in item ? item.players : [item]
+        );
+
+        if (allPlayers.length === 0) return 'Unknown';
+
+        // Find all bracket levels that every player can participate in
+        const validBrackets: string[] = [];
+
+        // Get all unique bracket levels that any player can play
+        const allPossibleBrackets = new Set<string>();
+        allPlayers.forEach(player => {
+            if (player.brackets) {
+                player.brackets.forEach(bracket => allPossibleBrackets.add(bracket));
+            }
+        });
+
+        // Check each possible bracket level to see if all players can participate
+        for (const testBracket of allPossibleBrackets) {
+            const canAllPlayersParticipate = allPlayers.every(player =>
+                player.brackets && player.brackets.includes(testBracket)
+            );
+
+            if (canAllPlayersParticipate) {
+                validBrackets.push(testBracket);
+            }
+        }
+
+        // Sort brackets in order: 1, 2, 3, 4, cedh
+        const bracketOrder = ['1', '2', '3', '4', 'cedh'];
+        validBrackets.sort((a, b) => bracketOrder.indexOf(a) - bracketOrder.indexOf(b));
+
+        if (validBrackets.length === 0) {
+            return 'Unknown'; // Fallback
+        } else if (validBrackets.length === 1) {
+            return validBrackets[0];
+        } else {
+            // Check if it's a consecutive range (for numeric brackets only)
+            const numericBrackets = validBrackets.filter(b => b !== 'cedh');
+            const hasConsecutiveNumbers = numericBrackets.length > 1 &&
+                numericBrackets.every((bracket, index) => {
+                    if (index === 0) return true;
+                    const current = parseInt(bracket);
+                    const previous = parseInt(numericBrackets[index - 1]);
+                    return current === previous + 1;
+                });
+
+            if (hasConsecutiveNumbers && numericBrackets.length === validBrackets.length && validBrackets.length > 1) {
+                // Show as range for consecutive numeric brackets
+                return `${validBrackets[0]}-${validBrackets[validBrackets.length - 1]}`;
+            } else {
+                // Show as comma-separated list for discrete values or mixed brackets
+                return validBrackets.join(', ');
+            }
+        }
+    }
+
     enterDisplayMode(currentPods: Pod[]): void {
         if (currentPods.length === 0) return;
 
@@ -187,8 +246,20 @@ export class DisplayModeManager {
             podElement.classList.add(`pod-color-${index % 10}`);
 
             const title = document.createElement('h3');
-            const validPowerRange = this.calculateValidPowerRange(pod);
-            title.textContent = `Pod ${index + 1} (Power: ${validPowerRange})`;
+
+            // Check if we're in bracket mode (same logic as ui-manager.ts)
+            const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+            const isBracketMode = bracketRadio && bracketRadio.checked;
+
+            if (isBracketMode) {
+                // In bracket mode, calculate the valid bracket range like power level mode does
+                const validBracketRange = this.calculateValidBracketRange(pod);
+                title.textContent = `Pod ${index + 1} (Bracket: ${validBracketRange})`;
+            } else {
+                const validPowerRange = this.calculateValidPowerRange(pod);
+                title.textContent = `Pod ${index + 1} (Power: ${validPowerRange})`;
+            }
+
             title.style.fontSize = '1.6rem';
             title.style.margin = '0 0 15px 0';
             title.style.textAlign = 'center';
@@ -214,7 +285,17 @@ export class DisplayModeManager {
                 if ('players' in item) { // It's a Group - flatten to show individual players
                     item.players.forEach(p => {
                         const playerItem = document.createElement('li');
-                        playerItem.textContent = `${p.name} (P: ${p.powerRange})`;
+
+                        // Check if we're in bracket mode for player display
+                        const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+                        const isBracketMode = bracketRadio && bracketRadio.checked;
+
+                        if (isBracketMode && p.bracketRange) {
+                            playerItem.textContent = `${p.name} (B: ${p.bracketRange})`;
+                        } else {
+                            playerItem.textContent = `${p.name} (P: ${p.powerRange})`;
+                        }
+
                         playerItem.style.marginBottom = '6px';
                         playerItem.style.color = '#ffffff';
                         playerItem.style.padding = '4px 0';
@@ -222,7 +303,17 @@ export class DisplayModeManager {
                     });
                 } else { // It's a Player
                     const playerItem = document.createElement('li');
-                    playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+
+                    // Check if we're in bracket mode for player display
+                    const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+                    const isBracketMode = bracketRadio && bracketRadio.checked;
+
+                    if (isBracketMode && item.bracketRange) {
+                        playerItem.textContent = `${item.name} (B: ${item.bracketRange})`;
+                    } else {
+                        playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+                    }
+
                     playerItem.style.marginBottom = '6px';
                     playerItem.style.color = '#ffffff';
                     playerItem.style.padding = '4px 0';

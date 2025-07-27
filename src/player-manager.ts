@@ -32,35 +32,87 @@ export class PlayerManager {
 
     getPlayerFromRow(row: HTMLElement): Player | null {
         const nameInput = row.querySelector('.player-name') as HTMLInputElement;
-        const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
         nameInput.classList.remove('input-error');
 
         const name = nameInput.value.trim();
-        const powerData = parsePowerLevels(powerCheckboxes);
 
         if (!name) {
             nameInput.classList.add('input-error');
             return null;
         }
 
-        if (powerData.availablePowers.length === 0) {
-            const powerSelectorBtn = row.querySelector('.power-selector-btn') as HTMLButtonElement;
-            powerSelectorBtn.classList.add('error');
-            return null;
-        } else {
-            // Remove error styling
-            const powerSelectorBtn = row.querySelector('.power-selector-btn') as HTMLButtonElement;
-            powerSelectorBtn.classList.remove('error');
-        }
+        // Check if we're in bracket mode
+        const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+        const isBracketMode = bracketRadio.checked;
 
-        return {
-            id: parseInt(row.dataset.playerId!),
-            name,
-            power: powerData.averagePower,
-            availablePowers: powerData.availablePowers,
-            powerRange: powerData.powerRange,
-            rowElement: row
-        };
+        if (isBracketMode) {
+            // Handle bracket mode
+            const bracketCheckboxes = row.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+            const selectedBrackets: string[] = [];
+
+            bracketCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selectedBrackets.push(checkbox.value);
+                }
+            });
+
+            if (selectedBrackets.length === 0) {
+                const bracketSelectorBtn = row.querySelector('.bracket-selector-btn') as HTMLButtonElement;
+                bracketSelectorBtn.classList.add('error');
+                return null;
+            } else {
+                // Remove error styling
+                const bracketSelectorBtn = row.querySelector('.bracket-selector-btn') as HTMLButtonElement;
+                bracketSelectorBtn.classList.remove('error');
+            }
+
+            // Convert brackets to power levels for algorithm compatibility
+            // Map: 1=1, 2=2, 3=3, 4=4, cedh=10
+            const bracketToPowerMap: { [key: string]: number } = {
+                '1': 1,
+                '2': 2,
+                '3': 3,
+                '4': 4,
+                'cedh': 10
+            };
+
+            const availablePowers = selectedBrackets.map(bracket => bracketToPowerMap[bracket]);
+            const averagePower = availablePowers.reduce((sum, power) => sum + power, 0) / availablePowers.length;
+
+            return {
+                id: parseInt(row.dataset.playerId!),
+                name,
+                power: Math.round(averagePower * 2) / 2, // Round to nearest 0.5
+                availablePowers,
+                powerRange: selectedBrackets.join(', '),
+                brackets: selectedBrackets,
+                bracketRange: selectedBrackets.join(', '),
+                rowElement: row
+            };
+        } else {
+            // Handle power level mode (existing logic)
+            const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+            const powerData = parsePowerLevels(powerCheckboxes);
+
+            if (powerData.availablePowers.length === 0) {
+                const powerSelectorBtn = row.querySelector('.power-selector-btn') as HTMLButtonElement;
+                powerSelectorBtn.classList.add('error');
+                return null;
+            } else {
+                // Remove error styling
+                const powerSelectorBtn = row.querySelector('.power-selector-btn') as HTMLButtonElement;
+                powerSelectorBtn.classList.remove('error');
+            }
+
+            return {
+                id: parseInt(row.dataset.playerId!),
+                name,
+                power: powerData.averagePower,
+                availablePowers: powerData.availablePowers,
+                powerRange: powerData.powerRange,
+                rowElement: row
+            };
+        }
     }
 
     handleGroupChange(playerRowsContainer: HTMLElement): void {

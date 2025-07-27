@@ -29,7 +29,7 @@ async function setPowerLevels(page: any, playerIndex: number, powerLevels: strin
 
             // Check the desired power level checkboxes
             for (const power of powers) {
-                const checkbox = dropdown.querySelector(`input[value="${power}"]`) as HTMLInputElement;
+                const checkbox = dropdown.querySelector(`.power-checkbox input[value="${power}"]`) as HTMLInputElement;
                 if (checkbox) {
                     checkbox.checked = true;
                     // Trigger change event
@@ -1217,13 +1217,6 @@ test.describe('MTG Commander Pod Generator', () => {
             { name: 'Pod2D', powers: [7, 8] },
         ];
 
-        // Listen to console logs to debug what's happening
-        page.on('console', msg => {
-            if (msg.type() === 'log' && msg.text().includes('DEBUG')) {
-                console.log('BROWSER LOG:', msg.text());
-            }
-        });
-
         // Add more player rows
         for (let i = 4; i < players.length; i++) {
             await page.click('#add-player-btn');
@@ -1871,9 +1864,30 @@ test.describe('MTG Commander Pod Generator', () => {
         const firstPlayerInPod1 = await pods.nth(0).locator('.pod-player').first();
         const pod2Element = pods.nth(1);
 
-        // Simulate drag and drop
-        await firstPlayerInPod1.dragTo(pod2Element);
-        await page.waitForTimeout(100);
+        // Use HTML5 drag and drop events for better browser compatibility
+        await page.evaluate(({ sourceSelector, targetSelector }) => {
+            const source = document.querySelector(sourceSelector);
+            const target = document.querySelector(targetSelector);
+
+            if (source && target) {
+                // Create and dispatch drag events
+                const dragStartEvent = new DragEvent('dragstart', { bubbles: true, cancelable: true });
+                const dataTransfer = new DataTransfer();
+                Object.defineProperty(dragStartEvent, 'dataTransfer', { value: dataTransfer });
+
+                source.dispatchEvent(dragStartEvent);
+
+                const dropEvent = new DragEvent('drop', { bubbles: true, cancelable: true });
+                Object.defineProperty(dropEvent, 'dataTransfer', { value: dataTransfer });
+
+                target.dispatchEvent(dropEvent);
+            }
+        }, {
+            sourceSelector: '.pod:nth-child(1) .pod-player:first-child',
+            targetSelector: '.pod:nth-child(2)'
+        });
+
+        await page.waitForTimeout(500); // Wait for DOM updates
 
         // Check that the pods have updated content
         const pod1After = await pods.nth(0).textContent();
@@ -2344,9 +2358,9 @@ test.describe('MTG Commander Pod Generator', () => {
         await page.waitForTimeout(100);
 
         // Check that only power levels 7 and 8 are selected (not 7.5)
-        const checkbox7 = await page.locator('.player-row:nth-child(1) input[value="7"]');
-        const checkbox7_5 = await page.locator('.player-row:nth-child(1) input[value="7.5"]');
-        const checkbox8 = await page.locator('.player-row:nth-child(1) input[value="8"]');
+        const checkbox7 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="7"]');
+        const checkbox7_5 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="7.5"]');
+        const checkbox8 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="8"]');
 
         await expect(checkbox7).toBeChecked();
         await expect(checkbox7_5).not.toBeChecked();  // This should NOT be checked
@@ -2357,9 +2371,9 @@ test.describe('MTG Commander Pod Generator', () => {
         await rangeBtn6_7.click();
         await page.waitForTimeout(100);
 
-        const checkbox6 = await page.locator('.player-row:nth-child(1) input[value="6"]');
-        const checkbox6_5 = await page.locator('.player-row:nth-child(1) input[value="6.5"]');
-        const checkbox7_after = await page.locator('.player-row:nth-child(1) input[value="7"]');
+        const checkbox6 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="6"]');
+        const checkbox6_5 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="6.5"]');
+        const checkbox7_after = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="7"]');
 
         await expect(checkbox6).toBeChecked();
         await expect(checkbox6_5).not.toBeChecked();  // This should NOT be checked
@@ -2502,7 +2516,28 @@ test.describe('MTG Commander Pod Generator', () => {
             // Always get the first player since the list shrinks as we move players
             const playerToMove = await firstPod.locator('.pod-player').first();
             if (await playerToMove.count() > 0) {
-                await playerToMove.dragTo(secondPod);
+                // Use HTML5 drag and drop events for better browser compatibility
+                await page.evaluate(({ sourceSelector, targetSelector }) => {
+                    const source = document.querySelector(sourceSelector);
+                    const target = document.querySelector(targetSelector);
+
+                    if (source && target) {
+                        // Create and dispatch drag events
+                        const dragStartEvent = new DragEvent('dragstart', { bubbles: true, cancelable: true });
+                        const dataTransfer = new DataTransfer();
+                        Object.defineProperty(dragStartEvent, 'dataTransfer', { value: dataTransfer });
+
+                        source.dispatchEvent(dragStartEvent);
+
+                        const dropEvent = new DragEvent('drop', { bubbles: true, cancelable: true });
+                        Object.defineProperty(dropEvent, 'dataTransfer', { value: dataTransfer });
+
+                        target.dispatchEvent(dropEvent);
+                    }
+                }, {
+                    sourceSelector: '.pod:not(.unassigned-pod):not(.new-pod):first-child .pod-player:first-child',
+                    targetSelector: '.pod:not(.unassigned-pod):not(.new-pod):nth-child(2)'
+                });
                 await page.waitForTimeout(50);
             }
         }
@@ -2625,7 +2660,7 @@ test.describe('MTG Commander Pod Generator', () => {
 
         // Dropdown should close and power 7 should be selected
         await expect(dropdown).not.toBeVisible();
-        const checkbox7 = await page.locator('.player-row:nth-child(1) input[value="7"]');
+        const checkbox7 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="7"]');
         await expect(checkbox7).toBeChecked();
 
         // Button text should show the selection
@@ -2642,7 +2677,7 @@ test.describe('MTG Commander Pod Generator', () => {
 
         // Dropdown should close and power 6.5 should be selected
         await expect(dropdown).not.toBeVisible();
-        const checkbox6_5 = await page.locator('.player-row:nth-child(1) input[value="6.5"]');
+        const checkbox6_5 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="6.5"]');
         await expect(checkbox6_5).toBeChecked();
 
         // Button text should show the new selection
@@ -2676,7 +2711,7 @@ test.describe('MTG Commander Pod Generator', () => {
 
         // Dropdown should close after selection and power 8 should be selected
         await expect(dropdown).not.toBeVisible();
-        const checkbox8 = await page.locator('.player-row:nth-child(1) input[value="8"]');
+        const checkbox8 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="8"]');
         await expect(checkbox8).toBeChecked();
 
         // Button text should show the selection
@@ -2691,7 +2726,7 @@ test.describe('MTG Commander Pod Generator', () => {
 
         // Dropdown should close and power 4.5 should be selected
         await expect(dropdown).not.toBeVisible();
-        const checkbox4_5 = await page.locator('.player-row:nth-child(1) input[value="4.5"]');
+        const checkbox4_5 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="4.5"]');
         await expect(checkbox4_5).toBeChecked();
 
         // Button text should show the new selection
@@ -2728,13 +2763,13 @@ test.describe('MTG Commander Pod Generator', () => {
         // Dropdown should close and power levels 7, 8, 9 should be selected (no half-steps)
         await expect(dropdown).not.toBeVisible();
 
-        const checkbox7 = await page.locator('.player-row:nth-child(1) input[value="7"]');
-        const checkbox7_5 = await page.locator('.player-row:nth-child(1) input[value="7.5"]');
-        const checkbox8 = await page.locator('.player-row:nth-child(1) input[value="8"]');
-        const checkbox8_5 = await page.locator('.player-row:nth-child(1) input[value="8.5"]');
-        const checkbox9 = await page.locator('.player-row:nth-child(1) input[value="9"]');
-        const checkbox6_5 = await page.locator('.player-row:nth-child(1) input[value="6.5"]');
-        const checkbox9_5 = await page.locator('.player-row:nth-child(1) input[value="9.5"]');
+        const checkbox7 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="7"]');
+        const checkbox7_5 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="7.5"]');
+        const checkbox8 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="8"]');
+        const checkbox8_5 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="8.5"]');
+        const checkbox9 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="9"]');
+        const checkbox6_5 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="6.5"]');
+        const checkbox9_5 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="9.5"]');
 
         // Should select whole numbers in range
         await expect(checkbox7).toBeChecked();
@@ -2757,11 +2792,11 @@ test.describe('MTG Commander Pod Generator', () => {
         await page.keyboard.type('4.5-6');
         await page.waitForTimeout(600);
 
-        const checkbox4 = await page.locator('.player-row:nth-child(1) input[value="4"]');
-        const checkbox4_5 = await page.locator('.player-row:nth-child(1) input[value="4.5"]');
-        const checkbox5 = await page.locator('.player-row:nth-child(1) input[value="5"]');
-        const checkbox5_5 = await page.locator('.player-row:nth-child(1) input[value="5.5"]');
-        const checkbox6 = await page.locator('.player-row:nth-child(1) input[value="6"]');
+        const checkbox4 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="4"]');
+        const checkbox4_5 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="4.5"]');
+        const checkbox5 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="5"]');
+        const checkbox5_5 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="5.5"]');
+        const checkbox6 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="6"]');
 
         // Should select all values including half-steps because decimal was specified
         await expect(checkbox4_5).toBeChecked();
@@ -2787,8 +2822,8 @@ test.describe('MTG Commander Pod Generator', () => {
         // Dropdown should not have flashed open, and power levels 3, 4, 5 should be selected (no half-steps)
         await expect(dropdown).not.toBeVisible();
 
-        const checkbox3 = await page.locator('.player-row:nth-child(1) input[value="3"]');
-        const checkbox3_5 = await page.locator('.player-row:nth-child(1) input[value="3.5"]');
+        const checkbox3 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="3"]');
+        const checkbox3_5 = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="3.5"]');
 
         await expect(checkbox3).toBeChecked();
         await expect(checkbox4).toBeChecked();
@@ -2810,7 +2845,7 @@ test.describe('MTG Commander Pod Generator', () => {
         await page.keyboard.type('6.5');
         await page.waitForTimeout(600);
 
-        const checkbox6_5_new = await page.locator('.player-row:nth-child(1) input[value="6.5"]');
+        const checkbox6_5_new = await page.locator('.player-row:nth-child(1) .power-checkbox input[value="6.5"]');
         await expect(checkbox6_5_new).toBeChecked();
         await expect(powerSelectorBtn).toContainText('Power: 6.5');
 
@@ -2839,13 +2874,16 @@ test.describe('MTG Commander Pod Generator', () => {
         // Verify modal content is present
         await expect(page.locator('.help-modal-content h2')).toContainText('How to Use the MTG Commander Pod Generator');
         await expect(page.locator('.help-content')).toContainText('What This Tool Does');
+        await expect(page.locator('.help-content')).toContainText('Ranking Systems');
+        await expect(page.locator('.help-content')).toContainText('Power Level System');
+        await expect(page.locator('.help-content')).toContainText('Bracket System');
         await expect(page.locator('.help-content')).toContainText('Keyboard Shortcuts');
         await expect(page.locator('.help-content')).toContainText('Creating Groups');
         await expect(page.locator('.help-content')).toContainText('Common Errors & Troubleshooting');
         await expect(page.locator('.help-content')).toContainText('Duplicate Player Names');
         await expect(page.locator('.help-content')).toContainText('Real-time Validation');
         await expect(page.locator('.help-content')).toContainText('Feedback & Bug Reports');
-        await expect(page.locator('.help-content')).toContainText('Submit a bug report');
+        await expect(page.locator('.help-content')).toContainText('Report Bug');
 
         // Test closing modal with X button
         const closeButton = await page.locator('.help-close');

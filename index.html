@@ -23,6 +23,17 @@
         <div class="settings">
             <h2>Settings</h2>
             <fieldset>
+                <legend>Ranking System</legend>
+                <label>
+                    <input type="radio" name="ranking-mode" value="power-level" id="power-level-radio" checked>
+                    Power Level (1-10 scale)
+                </label>
+                <label>
+                    <input type="radio" name="ranking-mode" value="bracket" id="bracket-radio">
+                    Bracket System (1, 2, 3, 4, cEDH)
+                </label>
+            </fieldset>
+            <fieldset>
                 <legend>Power Level Tolerance</legend>
                 <label>
                     <input type="radio" name="leniency" value="none" id="no-leniency-radio" checked>
@@ -89,6 +100,25 @@
                     </div>
                 </div>
             </div>
+            <div class="bracket-levels" style="display: none;">
+                <button type="button" class="bracket-selector-btn">Select Brackets</button>
+                <div class="bracket-selector-dropdown" style="display: none;">
+                    <div class="bracket-range-buttons">
+                        <button type="button" class="bracket-range-btn" data-range="1-2">1-2</button>
+                        <button type="button" class="bracket-range-btn" data-range="2-3">2-3</button>
+                        <button type="button" class="bracket-range-btn" data-range="3-4">3-4</button>
+                        <button type="button" class="bracket-range-btn" data-range="cedh">cEDH</button>
+                        <button type="button" class="bracket-clear-btn">Clear All</button>
+                    </div>
+                    <div class="bracket-checkboxes">
+                        <label class="bracket-checkbox"><input type="checkbox" value="1"> 1</label>
+                        <label class="bracket-checkbox"><input type="checkbox" value="2"> 2</label>
+                        <label class="bracket-checkbox"><input type="checkbox" value="3"> 3</label>
+                        <label class="bracket-checkbox"><input type="checkbox" value="4"> 4</label>
+                        <label class="bracket-checkbox"><input type="checkbox" value="cedh"> cEDH</label>
+                    </div>
+                </div>
+            </div>
             <select class="group-select">
                 <option value="no-group">No Group</option>
                 <option value="new-group">Start a New Group</option>
@@ -116,8 +146,29 @@
                     <li>Use "Remove" to delete players you no longer need</li>
                 </ul>
 
+                <div class="help-section-title">⚙️ Ranking Systems</div>
+                <p>Choose between two ranking systems in the Settings section:</p>
+                <div class="feature-highlight">
+                    <strong>🔢 Power Level System (1-10 scale):</strong>
+                    <ul>
+                        <li><strong>Range:</strong> 1-10 with half-step increments (e.g., 6.5, 7, 7.5)</li>
+                        <li><strong>Best for:</strong> Fine-grained power level assessment</li>
+                        <li><strong>Tolerance:</strong> Can use leniency settings for ±0.5 or ±1.0 matching</li>
+                        <li><strong>Guidelines:</strong> 1-3 (precon), 4-6 (upgraded), 7-8 (optimized), 9-10 (cEDH)</li>
+                    </ul>
+                </div>
+                <div class="feature-highlight">
+                    <strong>🏆 Bracket System:</strong>
+                    <ul>
+                        <li><strong>Brackets:</strong> 1, 2, 3, 4, and cEDH</li>
+                        <li><strong>Best for:</strong> Simple, tournament-style classification</li>
+                        <li><strong>Matching:</strong> Always uses exact bracket matching (no leniency)</li>
+                        <li><strong>Algorithm:</strong> Pods matched by "highest bracket in group" logic</li>
+                    </ul>
+                </div>
+
                 <div class="help-section-title">⚡ Setting Power Levels</div>
-                <p>Click the "Select Power Levels" button for each player to set their deck's power level:</p>
+                <p><strong>Power Level Mode:</strong> Click "Select Power Levels" for each player:</p>
                 <ul>
                     <li><strong>Single Level:</strong> Select one checkbox for a specific power level</li>
                     <li><strong>Range Selection:</strong> Select multiple checkboxes for flexible power levels</li>
@@ -126,7 +177,7 @@
                 </ul>
 
                 <div class="feature-highlight">
-                    <strong>🚀 Keyboard Shortcuts:</strong>
+                    <strong>🚀 Power Level Keyboard Shortcuts:</strong>
                     <ul>
                         <li>Tab to a power level button and type a number (e.g., <code>7</code>) to select that level
                         </li>
@@ -136,7 +187,28 @@
                     </ul>
                 </div>
 
-                <div class="help-section-title">👥 Creating Groups</div>
+                <div class="help-section-title">🏆 Setting Brackets</div>
+                <p><strong>Bracket Mode:</strong> Click "Select Brackets" for each player:</p>
+                <ul>
+                    <li><strong>Single Bracket:</strong> Select one checkbox for a specific bracket</li>
+                    <li><strong>Multiple Brackets:</strong> Select multiple checkboxes if player has decks in different
+                        brackets</li>
+                    <li><strong>Quick Range Buttons:</strong> Use 1-2, 2-3, 3-4, or cEDH buttons for common ranges</li>
+                    <li><strong>Clear All:</strong> Removes all selections</li>
+                </ul>
+
+                <div class="feature-highlight">
+                    <strong>� Bracket Keyboard Shortcuts:</strong>
+                    <ul>
+                        <li>Tab to a bracket button and type <code>1</code>, <code>2</code>, <code>3</code>, or
+                            <code>4</code> to select that bracket
+                        </li>
+                        <li>Type <code>5</code> or <code>c</code> to select cEDH bracket</li>
+                        <li>Press <code>Escape</code> to close an open dropdown</li>
+                    </ul>
+                </div>
+
+                <div class="help-section-title">�👥 Creating Groups</div>
                 <p>Use the group dropdown to create groups of players who want to stay together:</p>
                 <ul>
                     <li><strong>No Group:</strong> Player will be assigned individually</li>
@@ -145,12 +217,15 @@
                 </ul>
 
                 <div class="help-section-title">⚙️ Settings</div>
-                <p><strong>Power Level Tolerance</strong> determines how strict the matching is:</p>
+                <p><strong>Ranking System:</strong> Choose between Power Level (1-10) or Bracket (1,2,3,4,cEDH) systems.
+                </p>
+                <p><strong>Power Level Tolerance</strong> (Power Level mode only):</p>
                 <ul>
                     <li><strong>No Leniency:</strong> Players must have overlapping power levels</li>
                     <li><strong>Regular Leniency:</strong> Allows ±0.5 power level difference</li>
                     <li><strong>Super Leniency:</strong> Allows ±1.0 power level difference</li>
                 </ul>
+                <p><em>Note: Bracket mode always uses exact matching with no leniency.</em></p>
 
                 <div class="help-section-title">🎲 Generating Pods</div>
                 <p>Click "Generate Pods" to create balanced groups. The tool will:</p>
@@ -169,15 +244,22 @@
                         highlighted in matching colors - simply change one of the names to fix this error.</li>
                     <li><strong>Missing Player Names:</strong> All players must have a name entered before generating
                         pods.</li>
-                    <li><strong>No Power Levels Selected:</strong> Each player must have at least one power level
-                        checked. Use the dropdown or keyboard shortcuts to select power levels.</li>
-                    <li><strong>Incompatible Power Levels:</strong> If players have very different power levels and no
+                    <li><strong>No Power Levels/Brackets Selected:</strong> Each player must have at least one power
+                        level or bracket
+                        checked. Use the dropdown or keyboard shortcuts to make selections.</li>
+                    <li><strong>Incompatible Power Levels:</strong> (Power Level mode) If players have very different
+                        power levels and no
                         leniency is set, they may be left unassigned. Try increasing the leniency setting or adjusting
                         power levels.</li>
+                    <li><strong>Incompatible Brackets:</strong> (Bracket mode) If players have different brackets with
+                        no overlap,
+                        they may be left unassigned. Consider adjusting bracket selections or grouping players manually.
+                    </li>
                     <li><strong>Too Few Players:</strong> You need at least 3 players to generate pods. Add more players
                         using the "Add Player" button.</li>
-                    <li><strong>Group Conflicts:</strong> If a group has incompatible power levels, the entire group may
-                        be unassigned. Consider splitting the group or adjusting power levels within the group.</li>
+                    <li><strong>Group Conflicts:</strong> If a group has incompatible power levels or brackets, the
+                        entire group may
+                        be unassigned. Consider splitting the group or adjusting selections within the group.</li>
                 </ul>
                 <p><strong>Real-time Validation:</strong> Duplicate names are highlighted automatically as you type. The
                     Generate Pods button will show an error dialog if any validation issues are found.</p>
@@ -192,11 +274,14 @@
 
                 <div class="help-section-title">💡 Tips for Best Results</div>
                 <ul>
-                    <li>Be honest about power levels - use the full 1-10 scale</li>
+                    <li><strong>Power Level Mode:</strong> Be honest about power levels - use the full 1-10 scale</li>
+                    <li><strong>Bracket Mode:</strong> Choose brackets based on deck optimization level and
+                        competitiveness</li>
                     <li>Select ranges when you have multiple decks of different strengths</li>
                     <li>Use groups for friends who want to play together</li>
-                    <li>Try different leniency settings if pods aren't forming well</li>
-                    <li>Remember: power level 1-3 (precon), 4-6 (upgraded), 7-8 (optimized), 9-10 (cEDH)</li>
+                    <li>Try different leniency settings (Power Level mode) if pods aren't forming well</li>
+                    <li><strong>Bracket Guidelines:</strong> 1 (casual/precon), 2-3 (optimized), 4 (high-power), cEDH
+                        (competitive)</li>
                 </ul>
 
                 <div class="help-section-title">🐛 Feedback & Bug Reports</div>

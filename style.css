@@ -404,6 +404,154 @@ button {
     background-color: #666;
 }
 
+/* Bracket Selector Styles */
+.bracket-levels {
+    position: relative;
+    flex-basis: 30%;
+}
+
+.bracket-selector-btn {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #444;
+    background-color: #333;
+    color: #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.bracket-selector-btn:hover {
+    background-color: #3a3a3a;
+}
+
+.bracket-selector-btn.has-selection {
+    background-color: #2a4a2a;
+    border-color: #4a8a4a;
+}
+
+.bracket-selector-btn.error {
+    border-color: #ff6b6b;
+    background-color: #2a1f1f;
+}
+
+.bracket-selector-btn::after {
+    content: '▼';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8em;
+    transition: transform 0.2s;
+}
+
+.bracket-selector-btn.open::after {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.bracket-selector-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    padding: 12px;
+    margin-top: 2px;
+    opacity: 0;
+    transform: translateY(-5px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.bracket-selector-dropdown.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.bracket-checkboxes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 8px;
+    background-color: #333;
+    border: 1px solid #444;
+    border-radius: 4px;
+}
+
+.bracket-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.8em;
+    white-space: nowrap;
+    cursor: pointer;
+    padding: 1px 3px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.bracket-checkbox:hover {
+    background-color: #3a3a3a;
+}
+
+.bracket-checkbox input[type="checkbox"] {
+    width: 12px;
+    height: 12px;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.bracket-checkbox input[type="checkbox"]:checked+span,
+.bracket-checkbox:has(input[type="checkbox"]:checked) {
+    background-color: #4a90e2;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.bracket-range-buttons {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.bracket-range-btn,
+.bracket-clear-btn {
+    padding: 4px 8px;
+    border: 1px solid #444;
+    background-color: #333;
+    color: #e0e0e0;
+    border-radius: 3px;
+    font-size: 0.8em;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.bracket-range-btn:hover,
+.bracket-clear-btn:hover {
+    background-color: #4a4a4a;
+}
+
+.bracket-clear-btn {
+    background-color: #555;
+    color: #ff6b6b;
+}
+
+.bracket-clear-btn:hover {
+    background-color: #666;
+}
+
+/* Hide tolerance settings in bracket mode */
+.bracket-mode .settings fieldset:nth-child(3) {
+    display: none;
+}
+
 /* Pods Grid Layout */
 .pods-container {
     display: grid;

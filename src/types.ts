@@ -5,6 +5,8 @@ export interface Player {
     availablePowers: number[]; // All power levels this player can play
     powerRange: string; // Original input string for display
     rowElement: HTMLElement;
+    brackets?: string[]; // Available brackets when in bracket mode
+    bracketRange?: string; // Original bracket input for display
 }
 
 export interface Group {

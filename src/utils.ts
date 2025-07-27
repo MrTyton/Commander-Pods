@@ -29,6 +29,16 @@ export function calculatePodSizes(n: number): number[] {
 }
 
 export function getLeniencySettings(): LeniencySettings {
+    // Check if we're in bracket mode - if so, disable leniency
+    const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+    if (bracketRadio && bracketRadio.checked) {
+        return {
+            allowLeniency: false,
+            allowSuperLeniency: false,
+            maxTolerance: 0
+        };
+    }
+
     const noLeniencyRadio = document.getElementById('no-leniency-radio') as HTMLInputElement;
     const leniencyRadio = document.getElementById('leniency-radio') as HTMLInputElement;
     const superLeniencyRadio = document.getElementById('super-leniency-radio') as HTMLInputElement;

@@ -26,6 +26,14 @@
     return [];
   }
   function getLeniencySettings() {
+    const bracketRadio = document.getElementById("bracket-radio");
+    if (bracketRadio && bracketRadio.checked) {
+      return {
+        allowLeniency: false,
+        allowSuperLeniency: false,
+        maxTolerance: 0
+      };
+    }
     const noLeniencyRadio = document.getElementById("no-leniency-radio");
     const leniencyRadio = document.getElementById("leniency-radio");
     const superLeniencyRadio = document.getElementById("super-leniency-radio");
@@ -108,30 +116,70 @@
     }
     getPlayerFromRow(row) {
       const nameInput = row.querySelector(".player-name");
-      const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]');
       nameInput.classList.remove("input-error");
       const name = nameInput.value.trim();
-      const powerData = parsePowerLevels(powerCheckboxes);
       if (!name) {
         nameInput.classList.add("input-error");
         return null;
       }
-      if (powerData.availablePowers.length === 0) {
-        const powerSelectorBtn = row.querySelector(".power-selector-btn");
-        powerSelectorBtn.classList.add("error");
-        return null;
+      const bracketRadio = document.getElementById("bracket-radio");
+      const isBracketMode = bracketRadio.checked;
+      if (isBracketMode) {
+        const bracketCheckboxes = row.querySelectorAll('.bracket-checkbox input[type="checkbox"]');
+        const selectedBrackets = [];
+        bracketCheckboxes.forEach((checkbox) => {
+          if (checkbox.checked) {
+            selectedBrackets.push(checkbox.value);
+          }
+        });
+        if (selectedBrackets.length === 0) {
+          const bracketSelectorBtn = row.querySelector(".bracket-selector-btn");
+          bracketSelectorBtn.classList.add("error");
+          return null;
+        } else {
+          const bracketSelectorBtn = row.querySelector(".bracket-selector-btn");
+          bracketSelectorBtn.classList.remove("error");
+        }
+        const bracketToPowerMap = {
+          "1": 1,
+          "2": 2,
+          "3": 3,
+          "4": 4,
+          "cedh": 10
+        };
+        const availablePowers = selectedBrackets.map((bracket) => bracketToPowerMap[bracket]);
+        const averagePower = availablePowers.reduce((sum, power) => sum + power, 0) / availablePowers.length;
+        return {
+          id: parseInt(row.dataset.playerId),
+          name,
+          power: Math.round(averagePower * 2) / 2,
+          // Round to nearest 0.5
+          availablePowers,
+          powerRange: selectedBrackets.join(", "),
+          brackets: selectedBrackets,
+          bracketRange: selectedBrackets.join(", "),
+          rowElement: row
+        };
       } else {
-        const powerSelectorBtn = row.querySelector(".power-selector-btn");
-        powerSelectorBtn.classList.remove("error");
+        const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]');
+        const powerData = parsePowerLevels(powerCheckboxes);
+        if (powerData.availablePowers.length === 0) {
+          const powerSelectorBtn = row.querySelector(".power-selector-btn");
+          powerSelectorBtn.classList.add("error");
+          return null;
+        } else {
+          const powerSelectorBtn = row.querySelector(".power-selector-btn");
+          powerSelectorBtn.classList.remove("error");
+        }
+        return {
+          id: parseInt(row.dataset.playerId),
+          name,
+          power: powerData.averagePower,
+          availablePowers: powerData.availablePowers,
+          powerRange: powerData.powerRange,
+          rowElement: row
+        };
       }
-      return {
-        id: parseInt(row.dataset.playerId),
-        name,
-        power: powerData.averagePower,
-        availablePowers: powerData.availablePowers,
-        powerRange: powerData.powerRange,
-        rowElement: row
-      };
     }
     handleGroupChange(playerRowsContainer) {
       this.groups.clear();
@@ -803,6 +851,47 @@
         return 0;
       }
     }
+    calculateValidBracketRange(pod) {
+      const allPlayers = pod.players.flatMap(
+        (item) => "players" in item ? item.players : [item]
+      );
+      if (allPlayers.length === 0) return "Unknown";
+      const validBrackets = [];
+      const allPossibleBrackets = /* @__PURE__ */ new Set();
+      allPlayers.forEach((player) => {
+        if (player.brackets) {
+          player.brackets.forEach((bracket) => allPossibleBrackets.add(bracket));
+        }
+      });
+      for (const testBracket of allPossibleBrackets) {
+        const canAllPlayersParticipate = allPlayers.every(
+          (player) => player.brackets && player.brackets.includes(testBracket)
+        );
+        if (canAllPlayersParticipate) {
+          validBrackets.push(testBracket);
+        }
+      }
+      const bracketOrder = ["1", "2", "3", "4", "cedh"];
+      validBrackets.sort((a, b) => bracketOrder.indexOf(a) - bracketOrder.indexOf(b));
+      if (validBrackets.length === 0) {
+        return "Unknown";
+      } else if (validBrackets.length === 1) {
+        return validBrackets[0];
+      } else {
+        const numericBrackets = validBrackets.filter((b) => b !== "cedh");
+        const hasConsecutiveNumbers = numericBrackets.length > 1 && numericBrackets.every((bracket, index) => {
+          if (index === 0) return true;
+          const current = parseInt(bracket);
+          const previous = parseInt(numericBrackets[index - 1]);
+          return current === previous + 1;
+        });
+        if (hasConsecutiveNumbers && numericBrackets.length === validBrackets.length && validBrackets.length > 1) {
+          return `${validBrackets[0]}-${validBrackets[validBrackets.length - 1]}`;
+        } else {
+          return validBrackets.join(", ");
+        }
+      }
+    }
     enterDisplayMode(currentPods) {
       if (currentPods.length === 0) return;
       this.isDisplayMode = true;
@@ -853,8 +942,15 @@
         podElement.style.boxShadow = `0 0 10px ${podColors[index]}40`;
         podElement.classList.add(`pod-color-${index % 10}`);
         const title = document.createElement("h3");
-        const validPowerRange = this.calculateValidPowerRange(pod);
-        title.textContent = `Pod ${index + 1} (Power: ${validPowerRange})`;
+        const bracketRadio = document.getElementById("bracket-radio");
+        const isBracketMode = bracketRadio && bracketRadio.checked;
+        if (isBracketMode) {
+          const validBracketRange = this.calculateValidBracketRange(pod);
+          title.textContent = `Pod ${index + 1} (Bracket: ${validBracketRange})`;
+        } else {
+          const validPowerRange = this.calculateValidPowerRange(pod);
+          title.textContent = `Pod ${index + 1} (Power: ${validPowerRange})`;
+        }
         title.style.fontSize = "1.6rem";
         title.style.margin = "0 0 15px 0";
         title.style.textAlign = "center";
@@ -878,7 +974,13 @@
           if ("players" in item) {
             item.players.forEach((p) => {
               const playerItem = document.createElement("li");
-              playerItem.textContent = `${p.name} (P: ${p.powerRange})`;
+              const bracketRadio2 = document.getElementById("bracket-radio");
+              const isBracketMode2 = bracketRadio2 && bracketRadio2.checked;
+              if (isBracketMode2 && p.bracketRange) {
+                playerItem.textContent = `${p.name} (B: ${p.bracketRange})`;
+              } else {
+                playerItem.textContent = `${p.name} (P: ${p.powerRange})`;
+              }
               playerItem.style.marginBottom = "6px";
               playerItem.style.color = "#ffffff";
               playerItem.style.padding = "4px 0";
@@ -886,7 +988,13 @@
             });
           } else {
             const playerItem = document.createElement("li");
-            playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+            const bracketRadio2 = document.getElementById("bracket-radio");
+            const isBracketMode2 = bracketRadio2 && bracketRadio2.checked;
+            if (isBracketMode2 && item.bracketRange) {
+              playerItem.textContent = `${item.name} (B: ${item.bracketRange})`;
+            } else {
+              playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+            }
             playerItem.style.marginBottom = "6px";
             playerItem.style.color = "#ffffff";
             playerItem.style.padding = "4px 0";
@@ -941,6 +1049,7 @@
       this.dragDropManager = new DragDropManager(this.playerManager, (pods, unassigned) => this.renderPods(pods, unassigned));
       this.displayModeManager = new DisplayModeManager();
       this.initializeEventListeners();
+      this.initializeRankingModeToggle();
     }
     initializeEventListeners() {
       const addPlayerBtn = document.getElementById("add-player-btn");
@@ -1122,6 +1231,140 @@
         }
       });
       updateButtonText();
+      const bracketSelectorBtn = newRow.querySelector(".bracket-selector-btn");
+      const bracketDropdown = newRow.querySelector(".bracket-selector-dropdown");
+      const bracketRangeButtons = newRow.querySelectorAll(".bracket-range-btn");
+      const updateBracketButtonText = () => {
+        const bracketCheckboxes2 = newRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]');
+        const selectedBrackets = [];
+        bracketCheckboxes2.forEach((checkbox) => {
+          if (checkbox.checked) {
+            selectedBrackets.push(checkbox.value);
+          }
+        });
+        if (selectedBrackets.length === 0) {
+          bracketSelectorBtn.textContent = "Select Brackets";
+          bracketSelectorBtn.classList.remove("has-selection");
+        } else {
+          let displayText;
+          if (selectedBrackets.length === 1) {
+            displayText = `Bracket: ${selectedBrackets[0]}`;
+          } else {
+            displayText = `Brackets: ${selectedBrackets.join(", ")}`;
+          }
+          bracketSelectorBtn.textContent = displayText;
+          bracketSelectorBtn.classList.add("has-selection");
+        }
+      };
+      bracketSelectorBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const isOpen = bracketDropdown.style.display !== "none";
+        document.querySelectorAll(".bracket-selector-dropdown, .power-selector-dropdown").forEach((dropdown) => {
+          dropdown.style.display = "none";
+          dropdown.classList.remove("show");
+        });
+        document.querySelectorAll(".bracket-selector-btn, .power-selector-btn").forEach((btn) => {
+          btn.classList.remove("open");
+        });
+        if (!isOpen) {
+          bracketDropdown.style.display = "block";
+          bracketSelectorBtn.classList.add("open");
+          setTimeout(() => bracketDropdown.classList.add("show"), 10);
+        }
+      });
+      document.addEventListener("click", (e) => {
+        if (!bracketSelectorBtn.contains(e.target) && !bracketDropdown.contains(e.target)) {
+          bracketDropdown.classList.remove("show");
+          bracketSelectorBtn.classList.remove("open");
+          setTimeout(() => {
+            if (!bracketDropdown.classList.contains("show")) {
+              bracketDropdown.style.display = "none";
+            }
+          }, 200);
+        }
+      });
+      const bracketCheckboxes = newRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]');
+      bracketCheckboxes.forEach((checkbox) => {
+        checkbox.addEventListener("change", updateBracketButtonText);
+      });
+      bracketRangeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const range = button.dataset.range;
+          bracketCheckboxes.forEach((cb) => cb.checked = false);
+          if (range === "cedh") {
+            bracketCheckboxes.forEach((cb) => {
+              if (cb.value === "cedh") {
+                cb.checked = true;
+              }
+            });
+          } else {
+            const [start, end] = range.split("-");
+            const startNum = parseInt(start);
+            const endNum = parseInt(end);
+            bracketCheckboxes.forEach((cb) => {
+              const value = cb.value;
+              if (value !== "cedh") {
+                const num = parseInt(value);
+                if (num >= startNum && num <= endNum) {
+                  cb.checked = true;
+                }
+              }
+            });
+          }
+          updateBracketButtonText();
+        });
+      });
+      const bracketClearButton = newRow.querySelector(".bracket-clear-btn");
+      bracketClearButton.addEventListener("click", () => {
+        bracketCheckboxes.forEach((cb) => cb.checked = false);
+        updateBracketButtonText();
+      });
+      const closeBracketDropdown = () => {
+        bracketDropdown.classList.remove("show");
+        bracketSelectorBtn.classList.remove("open");
+        setTimeout(() => {
+          if (!bracketDropdown.classList.contains("show")) {
+            bracketDropdown.style.display = "none";
+          }
+        }, 200);
+      };
+      document.addEventListener("keydown", (e) => {
+        const isBracketDropdownOpen = bracketDropdown.style.display === "block" && bracketDropdown.classList.contains("show");
+        const isBracketButtonFocused = document.activeElement === bracketSelectorBtn;
+        if (isBracketDropdownOpen || isBracketButtonFocused) {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            if (isBracketDropdownOpen) {
+              closeBracketDropdown();
+              bracketSelectorBtn.focus();
+            }
+          } else if (e.key >= "1" && e.key <= "4") {
+            e.preventDefault();
+            const targetValue = e.key;
+            bracketCheckboxes.forEach((cb) => cb.checked = false);
+            const targetCheckbox = Array.from(bracketCheckboxes).find((cb) => cb.value === targetValue);
+            if (targetCheckbox) {
+              targetCheckbox.checked = true;
+              updateBracketButtonText();
+              if (isBracketDropdownOpen) {
+                closeBracketDropdown();
+              }
+            }
+          } else if (e.key === "5" || e.key.toLowerCase() === "c") {
+            e.preventDefault();
+            bracketCheckboxes.forEach((cb) => cb.checked = false);
+            const cedhCheckbox = Array.from(bracketCheckboxes).find((cb) => cb.value === "cedh");
+            if (cedhCheckbox) {
+              cedhCheckbox.checked = true;
+              updateBracketButtonText();
+              if (isBracketDropdownOpen) {
+                closeBracketDropdown();
+              }
+            }
+          }
+        }
+      });
+      updateBracketButtonText();
       const removeBtn = newRow.querySelector(".remove-player-btn");
       removeBtn.addEventListener("click", () => {
         this.playerRowsContainer.removeChild(newRow);
@@ -1138,6 +1381,17 @@
       });
       this.playerRowsContainer.appendChild(newRow);
       this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
+      const bracketRadio = document.getElementById("bracket-radio");
+      const isBracketMode = bracketRadio.checked;
+      const powerLevels = newRow.querySelector(".power-levels");
+      const bracketLevels = newRow.querySelector(".bracket-levels");
+      if (isBracketMode) {
+        powerLevels.style.display = "none";
+        bracketLevels.style.display = "block";
+      } else {
+        powerLevels.style.display = "block";
+        bracketLevels.style.display = "none";
+      }
     }
     generatePods() {
       this.outputSection.innerHTML = "";
@@ -1252,7 +1506,14 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
         podElement.addEventListener("drop", this.dragDropManager.handleDrop);
         podElement.addEventListener("dragleave", this.dragDropManager.handleDragLeave);
         const title = document.createElement("h3");
-        title.textContent = `Pod ${index + 1} (Power: ${pod.power})`;
+        const bracketRadio = document.getElementById("bracket-radio");
+        const isBracketMode = bracketRadio && bracketRadio.checked;
+        if (isBracketMode) {
+          const validBracketRange = this.calculateValidBracketRange(pod);
+          title.textContent = `Pod ${index + 1} (Bracket: ${validBracketRange})`;
+        } else {
+          title.textContent = `Pod ${index + 1} (Power: ${pod.power})`;
+        }
         podElement.appendChild(title);
         const list = document.createElement("ul");
         pod.players.forEach((item, itemIndex) => {
@@ -1266,11 +1527,21 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
             groupItem.dataset.itemIndex = itemIndex.toString();
             groupItem.addEventListener("dragstart", this.dragDropManager.handleDragStart);
             groupItem.addEventListener("dragend", this.dragDropManager.handleDragEnd);
-            groupItem.innerHTML = `<strong>Group ${item.id.split("-")[1]} (Avg Power: ${item.averagePower}):</strong>`;
+            const bracketRadio2 = document.getElementById("bracket-radio");
+            const isBracketMode2 = bracketRadio2 && bracketRadio2.checked;
+            if (isBracketMode2) {
+              groupItem.innerHTML = `<strong>Group ${item.id.split("-")[1]}:</strong>`;
+            } else {
+              groupItem.innerHTML = `<strong>Group ${item.id.split("-")[1]} (Avg Power: ${item.averagePower}):</strong>`;
+            }
             const subList = document.createElement("ul");
             item.players.forEach((p) => {
               const subItem = document.createElement("li");
-              subItem.textContent = `${p.name} (P: ${p.powerRange})`;
+              if (isBracketMode2 && p.bracketRange) {
+                subItem.textContent = `${p.name} (B: ${p.bracketRange})`;
+              } else {
+                subItem.textContent = `${p.name} (P: ${p.powerRange})`;
+              }
               subList.appendChild(subItem);
             });
             groupItem.appendChild(subList);
@@ -1285,7 +1556,13 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
             playerItem.dataset.itemIndex = itemIndex.toString();
             playerItem.addEventListener("dragstart", this.dragDropManager.handleDragStart);
             playerItem.addEventListener("dragend", this.dragDropManager.handleDragEnd);
-            playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+            const bracketRadio2 = document.getElementById("bracket-radio");
+            const isBracketMode2 = bracketRadio2 && bracketRadio2.checked;
+            if (isBracketMode2 && item.bracketRange) {
+              playerItem.textContent = `${item.name} (B: ${item.bracketRange})`;
+            } else {
+              playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+            }
             list.appendChild(playerItem);
           }
         });
@@ -1340,11 +1617,21 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
             groupItem.dataset.itemIndex = itemIndex.toString();
             groupItem.addEventListener("dragstart", this.dragDropManager.handleDragStart);
             groupItem.addEventListener("dragend", this.dragDropManager.handleDragEnd);
-            groupItem.innerHTML = `<strong>Group ${item.id.split("-")[1]} (Avg Power: ${item.averagePower}):</strong>`;
+            const bracketRadio = document.getElementById("bracket-radio");
+            const isBracketMode = bracketRadio && bracketRadio.checked;
+            if (isBracketMode) {
+              groupItem.innerHTML = `<strong>Group ${item.id.split("-")[1]}:</strong>`;
+            } else {
+              groupItem.innerHTML = `<strong>Group ${item.id.split("-")[1]} (Avg Power: ${item.averagePower}):</strong>`;
+            }
             const subList = document.createElement("ul");
             item.players.forEach((p) => {
               const subItem = document.createElement("li");
-              subItem.textContent = `${p.name} (P: ${p.powerRange})`;
+              if (isBracketMode && p.bracketRange) {
+                subItem.textContent = `${p.name} (B: ${p.bracketRange})`;
+              } else {
+                subItem.textContent = `${p.name} (P: ${p.powerRange})`;
+              }
               subList.appendChild(subItem);
             });
             groupItem.appendChild(subList);
@@ -1359,7 +1646,13 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
             playerItem.dataset.itemIndex = itemIndex.toString();
             playerItem.addEventListener("dragstart", this.dragDropManager.handleDragStart);
             playerItem.addEventListener("dragend", this.dragDropManager.handleDragEnd);
-            playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+            const bracketRadio = document.getElementById("bracket-radio");
+            const isBracketMode = bracketRadio && bracketRadio.checked;
+            if (isBracketMode && item.bracketRange) {
+              playerItem.textContent = `${item.name} (B: ${item.bracketRange})`;
+            } else {
+              playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+            }
             list.appendChild(playerItem);
           }
         });
@@ -1410,6 +1703,54 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
         }
       });
     }
+    initializeRankingModeToggle() {
+      const powerLevelRadio = document.getElementById("power-level-radio");
+      const bracketRadio = document.getElementById("bracket-radio");
+      const toggleRankingMode = () => {
+        const isBracketMode = bracketRadio.checked;
+        if (isBracketMode) {
+          document.body.classList.add("bracket-mode");
+          const noLeniencyRadio = document.getElementById("no-leniency-radio");
+          if (noLeniencyRadio) {
+            noLeniencyRadio.checked = true;
+          }
+        } else {
+          document.body.classList.remove("bracket-mode");
+        }
+        const playerRows = this.playerRowsContainer.querySelectorAll(".player-row");
+        playerRows.forEach((row) => {
+          const powerLevels = row.querySelector(".power-levels");
+          const bracketLevels = row.querySelector(".bracket-levels");
+          if (isBracketMode) {
+            powerLevels.style.display = "none";
+            bracketLevels.style.display = "block";
+          } else {
+            powerLevels.style.display = "block";
+            bracketLevels.style.display = "none";
+          }
+          this.clearAllSelections(row);
+        });
+      };
+      powerLevelRadio.addEventListener("change", toggleRankingMode);
+      bracketRadio.addEventListener("change", toggleRankingMode);
+      toggleRankingMode();
+    }
+    clearAllSelections(row) {
+      const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]');
+      powerCheckboxes.forEach((cb) => cb.checked = false);
+      const bracketCheckboxes = row.querySelectorAll('.bracket-checkbox input[type="checkbox"]');
+      bracketCheckboxes.forEach((cb) => cb.checked = false);
+      const powerBtn = row.querySelector(".power-selector-btn");
+      const bracketBtn = row.querySelector(".bracket-selector-btn");
+      if (powerBtn) {
+        powerBtn.textContent = "Select Power Levels";
+        powerBtn.classList.remove("has-selection");
+      }
+      if (bracketBtn) {
+        bracketBtn.textContent = "Select Brackets";
+        bracketBtn.classList.remove("has-selection");
+      }
+    }
     initializeHelpModal() {
       const helpModal = document.getElementById("help-modal");
       const helpCloseBtn = helpModal.querySelector(".help-close");
@@ -1434,6 +1775,47 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
       const helpModal = document.getElementById("help-modal");
       helpModal.style.display = "none";
       document.body.style.overflow = "";
+    }
+    calculateValidBracketRange(pod) {
+      const allPlayers = pod.players.flatMap(
+        (item) => "players" in item ? item.players : [item]
+      );
+      if (allPlayers.length === 0) return "Unknown";
+      const validBrackets = [];
+      const allPossibleBrackets = /* @__PURE__ */ new Set();
+      allPlayers.forEach((player) => {
+        if (player.brackets) {
+          player.brackets.forEach((bracket) => allPossibleBrackets.add(bracket));
+        }
+      });
+      for (const testBracket of allPossibleBrackets) {
+        const canAllPlayersParticipate = allPlayers.every(
+          (player) => player.brackets && player.brackets.includes(testBracket)
+        );
+        if (canAllPlayersParticipate) {
+          validBrackets.push(testBracket);
+        }
+      }
+      const bracketOrder = ["1", "2", "3", "4", "cedh"];
+      validBrackets.sort((a, b) => bracketOrder.indexOf(a) - bracketOrder.indexOf(b));
+      if (validBrackets.length === 0) {
+        return "Unknown";
+      } else if (validBrackets.length === 1) {
+        return validBrackets[0];
+      } else {
+        const numericBrackets = validBrackets.filter((b) => b !== "cedh");
+        const hasConsecutiveNumbers = numericBrackets.length > 1 && numericBrackets.every((bracket, index) => {
+          if (index === 0) return true;
+          const current = parseInt(bracket);
+          const previous = parseInt(numericBrackets[index - 1]);
+          return current === previous + 1;
+        });
+        if (hasConsecutiveNumbers && numericBrackets.length === validBrackets.length && validBrackets.length > 1) {
+          return `${validBrackets[0]}-${validBrackets[validBrackets.length - 1]}`;
+        } else {
+          return validBrackets.join(", ");
+        }
+      }
     }
   };
 
