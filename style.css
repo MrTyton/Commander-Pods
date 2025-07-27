@@ -1,7 +1,19 @@
+:root {
+    --card-background: #2a2a2a;
+    --accent-color: #4a90e2;
+    --border-color: #444;
+    --input-background: #333;
+    --text-color: #e0e0e0;
+    --border-radius: 4px;
+    --border-radius-large: 8px;
+    --padding-small: 4px 8px;
+    --padding-medium: 8px 12px;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background-color: #1a1a1a;
-    color: #e0e0e0;
+    color: var(--text-color);
     margin: 0;
     padding: 20px;
     display: flex;
@@ -16,7 +28,6 @@ body {
 h1,
 h2 {
     text-align: center;
-    color: #ffffff;
 }
 
 #player-rows {
@@ -33,10 +44,10 @@ h2 {
 .player-row input,
 .player-row select {
     padding: 8px;
-    border-radius: 4px;
-    border: 1px solid #444;
-    background-color: #333;
-    color: #e0e0e0;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    background-color: var(--input-background);
+    color: var(--text-color);
     flex-grow: 1;
 }
 
@@ -57,12 +68,7 @@ h2 {
     box-shadow: 0 0 5px #e53935;
 }
 
-.name-duplicate-error {
-    border-color: #ff9800 !important;
-    box-shadow: 0 0 5px #ff9800;
-    background-color: #2a2319 !important;
-}
-
+.name-duplicate-error,
 .name-duplicate-error-1 {
     border-color: #ff9800 !important;
     box-shadow: 0 0 5px #ff9800;
@@ -149,9 +155,9 @@ button {
 }
 
 .settings {
-    background-color: #2a2a2a;
+    background-color: var(--card-background);
     padding: 15px;
-    border-radius: 8px;
+    border-radius: var(--border-radius-large);
     text-align: left;
 }
 
@@ -163,15 +169,15 @@ button {
 }
 
 .pod {
-    background-color: #2a2a2a;
-    border-radius: 8px;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-large);
     padding: 15px;
     border-left: 5px solid;
 }
 
 .pod h3 {
     margin-top: 0;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 10px;
 }
 
@@ -256,178 +262,21 @@ button {
     font-size: 0.9rem;
 }
 
-.power-levels {
-    position: relative;
-    flex-basis: 30%;
-}
-
-.power-selector-btn {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #444;
-    background-color: #333;
-    color: #e0e0e0;
-    border-radius: 4px;
-    cursor: pointer;
-    text-align: left;
-    font-size: 0.9em;
-    transition: background-color 0.2s;
-    position: relative;
-}
-
-.power-selector-btn:hover {
-    background-color: #3a3a3a;
-}
-
-.power-selector-btn.has-selection {
-    background-color: #2a4a2a;
-    border-color: #4a8a4a;
-}
-
-.power-selector-btn.error {
-    border-color: #ff6b6b;
-    background-color: #2a1f1f;
-}
-
-.power-selector-btn::after {
-    content: '▼';
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.8em;
-    transition: transform 0.2s;
-}
-
-.power-selector-btn.open::after {
-    transform: translateY(-50%) rotate(180deg);
-}
-
-.power-selector-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    background-color: #2a2a2a;
-    border: 1px solid #444;
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    padding: 12px;
-    margin-top: 2px;
-    opacity: 0;
-    transform: translateY(-5px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.power-selector-dropdown.show {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.power-levels-label {
-    font-size: 0.9em;
-    font-weight: bold;
-    color: #ffffff;
-}
-
-.power-checkboxes {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    padding: 8px;
-    background-color: #333;
-    border: 1px solid #444;
-    border-radius: 4px;
-}
-
-.power-checkbox {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8em;
-    white-space: nowrap;
-    cursor: pointer;
-    padding: 6px 8px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-    background-color: #555;
-    border: 1px solid #666;
-    color: #ccc;
-    font-weight: 500;
-    text-align: center;
-    min-height: 24px;
-}
-
-.power-checkbox:hover {
-    background-color: #666;
-    border-color: #777;
-}
-
-.power-checkbox input[type="checkbox"] {
-    position: absolute;
-    opacity: 0;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    cursor: pointer;
-}
-
-.power-checkbox:has(input[type="checkbox"]:checked) {
-    background-color: #4CAF50;
-    border-color: #45a049;
-    color: #ffffff;
-    font-weight: bold;
-    box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
-}
-
-.power-range-buttons {
-    display: flex;
-    gap: 5px;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-}
-
-.range-btn,
-.clear-btn {
-    padding: 4px 8px;
-    border: 1px solid #444;
-    background-color: #333;
-    color: #e0e0e0;
-    border-radius: 3px;
-    font-size: 0.8em;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.range-btn:hover,
-.clear-btn:hover {
-    background-color: #4a4a4a;
-}
-
-.clear-btn {
-    background-color: #555;
-    color: #ff6b6b;
-}
-
-.clear-btn:hover {
-    background-color: #666;
-}
-
-/* Bracket Selector Styles */
+/* Shared styles for power and bracket selectors */
+.power-levels,
 .bracket-levels {
     position: relative;
     flex-basis: 30%;
 }
 
+.power-selector-btn,
 .bracket-selector-btn {
     width: 100%;
     padding: 8px;
-    border: 1px solid #444;
-    background-color: #333;
-    color: #e0e0e0;
-    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background-color: var(--input-background);
+    color: var(--text-color);
+    border-radius: var(--border-radius);
     cursor: pointer;
     text-align: left;
     font-size: 0.9em;
@@ -435,20 +284,24 @@ button {
     position: relative;
 }
 
+.power-selector-btn:hover,
 .bracket-selector-btn:hover {
     background-color: #3a3a3a;
 }
 
+.power-selector-btn.has-selection,
 .bracket-selector-btn.has-selection {
     background-color: #2a4a2a;
     border-color: #4a8a4a;
 }
 
+.power-selector-btn.error,
 .bracket-selector-btn.error {
     border-color: #ff6b6b;
     background-color: #2a1f1f;
 }
 
+.power-selector-btn::after,
 .bracket-selector-btn::after {
     content: '▼';
     position: absolute;
@@ -459,19 +312,21 @@ button {
     transition: transform 0.2s;
 }
 
+.power-selector-btn.open::after,
 .bracket-selector-btn.open::after {
     transform: translateY(-50%) rotate(180deg);
 }
 
+.power-selector-dropdown,
 .bracket-selector-dropdown {
     position: absolute;
     top: 100%;
     left: 0;
     right: 0;
     z-index: 1000;
-    background-color: #2a2a2a;
-    border: 1px solid #444;
-    border-radius: 4px;
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     padding: 12px;
     margin-top: 2px;
@@ -480,9 +335,25 @@ button {
     transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
+.power-selector-dropdown.show,
 .bracket-selector-dropdown.show {
     opacity: 1;
     transform: translateY(0);
+}
+
+.power-levels-label {
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+.power-checkboxes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding: 8px;
+    background-color: var(--input-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
 }
 
 .bracket-checkboxes {
@@ -490,11 +361,12 @@ button {
     grid-template-columns: repeat(3, 1fr);
     gap: 6px;
     padding: 8px;
-    background-color: #333;
-    border: 1px solid #444;
-    border-radius: 4px;
+    background-color: var(--input-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
 }
 
+.power-checkbox,
 .bracket-checkbox {
     position: relative;
     display: flex;
@@ -503,8 +375,8 @@ button {
     font-size: 0.8em;
     white-space: nowrap;
     cursor: pointer;
-    padding: 6px 8px;
-    border-radius: 4px;
+    padding: var(--padding-small);
+    border-radius: var(--border-radius);
     transition: all 0.2s ease;
     background-color: #555;
     border: 1px solid #666;
@@ -514,11 +386,13 @@ button {
     min-height: 24px;
 }
 
+.power-checkbox:hover,
 .bracket-checkbox:hover {
     background-color: #666;
     border-color: #777;
 }
 
+.power-checkbox input[type="checkbox"],
 .bracket-checkbox input[type="checkbox"] {
     position: absolute;
     opacity: 0;
@@ -528,14 +402,16 @@ button {
     cursor: pointer;
 }
 
+.power-checkbox:has(input[type="checkbox"]:checked),
 .bracket-checkbox:has(input[type="checkbox"]:checked) {
     background-color: #4CAF50;
     border-color: #45a049;
-    color: #ffffff;
+
     font-weight: bold;
     box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
 }
 
+.power-range-buttons,
 .bracket-range-buttons {
     display: flex;
     gap: 5px;
@@ -543,28 +419,34 @@ button {
     flex-wrap: wrap;
 }
 
+.range-btn,
+.clear-btn,
 .bracket-range-btn,
 .bracket-clear-btn {
-    padding: 4px 8px;
-    border: 1px solid #444;
-    background-color: #333;
-    color: #e0e0e0;
+    padding: var(--padding-small);
+    border: 1px solid var(--border-color);
+    background-color: var(--input-background);
+    color: var(--text-color);
     border-radius: 3px;
     font-size: 0.8em;
     cursor: pointer;
     transition: background-color 0.2s;
 }
 
+.range-btn:hover,
+.clear-btn:hover,
 .bracket-range-btn:hover,
 .bracket-clear-btn:hover {
     background-color: #4a4a4a;
 }
 
+.clear-btn,
 .bracket-clear-btn {
     background-color: #555;
     color: #ff6b6b;
 }
 
+.clear-btn:hover,
 .bracket-clear-btn:hover {
     background-color: #666;
 }
@@ -582,41 +464,33 @@ button {
 }
 
 /* Drag and Drop Styles */
-.pod .pod-player {
-    cursor: move;
-    padding: 4px 8px;
+.pod .pod-player,
+.pod .pod-group {
+    padding: var(--padding-small);
     margin: 2px 0;
-    border-radius: 4px;
-    background-color: var(--card-background);
+    border-radius: var(--border-radius);
     border: 1px solid transparent;
     transition: all 0.2s ease;
 }
 
-.pod .pod-player:hover {
-    background-color: #3a3a3a;
-    border-color: var(--accent-color);
-}
-
-.pod .pod-player.dragging {
-    opacity: 0.5;
-    transform: scale(0.95);
+.pod .pod-player {
+    cursor: move;
+    background-color: var(--card-background);
 }
 
 .pod .pod-group {
     cursor: grab;
-    padding: 4px 8px;
-    margin: 2px 0;
-    border-radius: 4px;
-    background-color: #2a2a2a;
-    border: 1px solid #555;
-    transition: all 0.2s ease;
+    background-color: var(--card-background);
+    border-color: #555;
 }
 
+.pod .pod-player:hover,
 .pod .pod-group:hover {
     background-color: #3a3a3a;
     border-color: var(--accent-color);
 }
 
+.pod .pod-player.dragging,
 .pod .pod-group.dragging {
     opacity: 0.5;
     transform: scale(0.95);
@@ -694,7 +568,7 @@ button {
     margin: 0 0 15px 0;
     text-align: center;
     flex-shrink: 0;
-    color: #ffffff;
+
     font-weight: bold;
 }
 
@@ -713,7 +587,7 @@ button {
 
 .display-mode .pod li {
     margin-bottom: 6px;
-    color: #ffffff;
+
     padding: 4px 0;
 }
 
@@ -938,561 +812,467 @@ body.display-mode iframe[src*="ko-fi"] {
 }
 
 /* Group-colored dropdowns with better readability - 50 colors */
+/* Base styling for all group dropdowns */
+.group-select[class*="group-"] {
+    color: #ffffff !important;
+}
+
 .group-select.group-1 {
     border-color: hsl(0, 75%, 50%) !important;
     background-color: hsl(0, 75%, 30%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-2 {
     border-color: hsl(7, 80%, 50%) !important;
     background-color: hsl(7, 80%, 32%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-3 {
     border-color: hsl(14, 75%, 50%) !important;
     background-color: hsl(14, 75%, 30%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-4 {
     border-color: hsl(22, 85%, 50%) !important;
     background-color: hsl(22, 85%, 28%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-5 {
     border-color: hsl(29, 70%, 50%) !important;
     background-color: hsl(29, 70%, 35%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-6 {
     border-color: hsl(36, 80%, 50%) !important;
     background-color: hsl(36, 80%, 30%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-7 {
     border-color: hsl(43, 75%, 50%) !important;
     background-color: hsl(43, 75%, 32%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-8 {
     border-color: hsl(50, 85%, 50%) !important;
     background-color: hsl(50, 85%, 28%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-9 {
     border-color: hsl(58, 70%, 50%) !important;
     background-color: hsl(58, 70%, 35%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-10 {
     border-color: hsl(65, 80%, 50%) !important;
     background-color: hsl(65, 80%, 30%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-11 {
     border-color: hsl(72, 75%, 50%) !important;
     background-color: hsl(72, 75%, 32%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-12 {
     border-color: hsl(79, 85%, 50%) !important;
     background-color: hsl(79, 85%, 28%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-13 {
     border-color: hsl(86, 70%, 50%) !important;
     background-color: hsl(86, 70%, 35%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-14 {
     border-color: hsl(94, 80%, 50%) !important;
     background-color: hsl(94, 80%, 30%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-15 {
     border-color: hsl(101, 75%, 50%) !important;
     background-color: hsl(101, 75%, 32%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-16 {
     border-color: hsl(108, 85%, 50%) !important;
     background-color: hsl(108, 85%, 28%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-17 {
     border-color: hsl(115, 70%, 50%) !important;
     background-color: hsl(115, 70%, 35%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-18 {
     border-color: hsl(122, 80%, 50%) !important;
     background-color: hsl(122, 80%, 30%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-19 {
     border-color: hsl(130, 75%, 50%) !important;
     background-color: hsl(130, 75%, 32%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-20 {
     border-color: hsl(137, 85%, 50%) !important;
     background-color: hsl(137, 85%, 28%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-21 {
     border-color: hsl(144, 70%, 50%) !important;
     background-color: hsl(144, 70%, 35%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-22 {
     border-color: hsl(151, 80%, 50%) !important;
     background-color: hsl(151, 80%, 30%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-23 {
     border-color: hsl(158, 75%, 50%) !important;
     background-color: hsl(158, 75%, 32%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-24 {
     border-color: hsl(166, 85%, 50%) !important;
     background-color: hsl(166, 85%, 28%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-25 {
     border-color: hsl(173, 70%, 50%) !important;
     background-color: hsl(173, 70%, 35%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-26 {
     border-color: hsl(180, 80%, 50%) !important;
     background-color: hsl(180, 80%, 30%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-27 {
     border-color: hsl(187, 75%, 50%) !important;
     background-color: hsl(187, 75%, 32%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-28 {
     border-color: hsl(194, 85%, 50%) !important;
     background-color: hsl(194, 85%, 28%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-29 {
     border-color: hsl(202, 70%, 50%) !important;
     background-color: hsl(202, 70%, 35%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-30 {
     border-color: hsl(209, 80%, 50%) !important;
     background-color: hsl(209, 80%, 30%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-31 {
     border-color: hsl(216, 75%, 50%) !important;
     background-color: hsl(216, 75%, 32%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-32 {
     border-color: hsl(223, 85%, 50%) !important;
     background-color: hsl(223, 85%, 28%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-33 {
     border-color: hsl(230, 70%, 50%) !important;
     background-color: hsl(230, 70%, 35%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-34 {
     border-color: hsl(238, 80%, 50%) !important;
     background-color: hsl(238, 80%, 30%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-35 {
     border-color: hsl(245, 75%, 50%) !important;
     background-color: hsl(245, 75%, 32%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-36 {
     border-color: hsl(252, 85%, 50%) !important;
     background-color: hsl(252, 85%, 28%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-37 {
     border-color: hsl(259, 70%, 50%) !important;
     background-color: hsl(259, 70%, 35%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-38 {
     border-color: hsl(266, 80%, 50%) !important;
     background-color: hsl(266, 80%, 30%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-39 {
     border-color: hsl(274, 75%, 50%) !important;
     background-color: hsl(274, 75%, 32%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-40 {
     border-color: hsl(281, 85%, 50%) !important;
     background-color: hsl(281, 85%, 28%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-41 {
     border-color: hsl(288, 70%, 50%) !important;
     background-color: hsl(288, 70%, 35%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-42 {
     border-color: hsl(295, 80%, 50%) !important;
     background-color: hsl(295, 80%, 30%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-43 {
     border-color: hsl(302, 75%, 50%) !important;
     background-color: hsl(302, 75%, 32%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-44 {
     border-color: hsl(310, 85%, 50%) !important;
     background-color: hsl(310, 85%, 28%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-45 {
     border-color: hsl(317, 70%, 50%) !important;
     background-color: hsl(317, 70%, 35%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-46 {
     border-color: hsl(324, 80%, 50%) !important;
     background-color: hsl(324, 80%, 30%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-47 {
     border-color: hsl(331, 75%, 50%) !important;
     background-color: hsl(331, 75%, 32%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-48 {
     border-color: hsl(338, 85%, 50%) !important;
     background-color: hsl(338, 85%, 28%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-49 {
     border-color: hsl(346, 70%, 50%) !important;
     background-color: hsl(346, 70%, 35%) !important;
-    color: #ffffff !important;
 }
 
 .group-select.group-50 {
     border-color: hsl(353, 80%, 50%) !important;
     background-color: hsl(353, 80%, 30%) !important;
-    color: #ffffff !important;
 }
 
 /* Group dropdown option styling */
 .group-select option[value^="group-"] {
     font-weight: bold;
     padding: 4px 8px;
+    color: #ffffff;
 }
 
 /* Individual group option colors - 50 colors */
 .group-select option[value="group-1"] {
     background-color: hsl(0, 75%, 30%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-2"] {
     background-color: hsl(7, 80%, 32%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-3"] {
     background-color: hsl(14, 75%, 30%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-4"] {
     background-color: hsl(22, 85%, 28%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-5"] {
     background-color: hsl(29, 70%, 35%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-6"] {
     background-color: hsl(36, 80%, 30%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-7"] {
     background-color: hsl(43, 75%, 32%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-8"] {
     background-color: hsl(50, 85%, 28%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-9"] {
     background-color: hsl(58, 70%, 35%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-10"] {
     background-color: hsl(65, 80%, 30%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-11"] {
     background-color: hsl(72, 75%, 32%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-12"] {
     background-color: hsl(79, 85%, 28%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-13"] {
     background-color: hsl(86, 70%, 35%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-14"] {
     background-color: hsl(94, 80%, 30%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-15"] {
     background-color: hsl(101, 75%, 32%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-16"] {
     background-color: hsl(108, 85%, 28%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-17"] {
     background-color: hsl(115, 70%, 35%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-18"] {
     background-color: hsl(122, 80%, 30%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-19"] {
     background-color: hsl(130, 75%, 32%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-20"] {
     background-color: hsl(137, 85%, 28%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-21"] {
     background-color: hsl(144, 70%, 35%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-22"] {
     background-color: hsl(151, 80%, 30%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-23"] {
     background-color: hsl(158, 75%, 32%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-24"] {
     background-color: hsl(166, 85%, 28%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-25"] {
     background-color: hsl(173, 70%, 35%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-26"] {
     background-color: hsl(180, 80%, 30%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-27"] {
     background-color: hsl(187, 75%, 32%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-28"] {
     background-color: hsl(194, 85%, 28%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-29"] {
     background-color: hsl(202, 70%, 35%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-30"] {
     background-color: hsl(209, 80%, 30%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-31"] {
     background-color: hsl(216, 75%, 32%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-32"] {
     background-color: hsl(223, 85%, 28%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-33"] {
     background-color: hsl(230, 70%, 35%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-34"] {
     background-color: hsl(238, 80%, 30%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-35"] {
     background-color: hsl(245, 75%, 32%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-36"] {
     background-color: hsl(252, 85%, 28%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-37"] {
     background-color: hsl(259, 70%, 35%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-38"] {
     background-color: hsl(266, 80%, 30%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-39"] {
     background-color: hsl(274, 75%, 32%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-40"] {
     background-color: hsl(281, 85%, 28%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-41"] {
     background-color: hsl(288, 70%, 35%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-42"] {
     background-color: hsl(295, 80%, 30%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-43"] {
     background-color: hsl(302, 75%, 32%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-44"] {
     background-color: hsl(310, 85%, 28%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-45"] {
     background-color: hsl(317, 70%, 35%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-46"] {
     background-color: hsl(324, 80%, 30%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-47"] {
     background-color: hsl(331, 75%, 32%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-48"] {
     background-color: hsl(338, 85%, 28%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-49"] {
     background-color: hsl(346, 70%, 35%);
-    color: #ffffff;
 }
 
 .group-select option[value="group-50"] {
     background-color: hsl(353, 80%, 30%);
-    color: #ffffff;
 }
 
 /* Ensure default options have normal styling */
