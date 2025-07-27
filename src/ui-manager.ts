@@ -72,7 +72,12 @@ export class UIManager {
             if (selectedPowers.length === 0) {
                 powerSelectorBtn.textContent = 'Select Power Levels';
                 powerSelectorBtn.classList.remove('has-selection');
+                // Only show error if validation has been triggered (pods generation attempted)
+                if (powerSelectorBtn.dataset.validationTriggered === 'true') {
+                    powerSelectorBtn.classList.add('error');
+                }
             } else {
+                powerSelectorBtn.classList.remove('error');
                 selectedPowers.sort((a, b) => a - b);
                 let displayText: string;
 
@@ -306,7 +311,12 @@ export class UIManager {
             if (selectedBrackets.length === 0) {
                 bracketSelectorBtn.textContent = 'Select Brackets';
                 bracketSelectorBtn.classList.remove('has-selection');
+                // Only show error if validation has been triggered (pods generation attempted)
+                if (bracketSelectorBtn.dataset.validationTriggered === 'true') {
+                    bracketSelectorBtn.classList.add('error');
+                }
             } else {
+                bracketSelectorBtn.classList.remove('error');
                 let displayText: string;
                 if (selectedBrackets.length === 1) {
                     displayText = `Bracket: ${selectedBrackets[0]}`;
@@ -462,6 +472,8 @@ export class UIManager {
         // Initialize bracket button text
         updateBracketButtonText();
 
+        // Don't initialize bracket validation state for new rows
+
         // Add event listener for remove button
         const removeBtn = newRow.querySelector('.remove-player-btn')!;
         removeBtn.addEventListener('click', () => {
@@ -469,11 +481,25 @@ export class UIManager {
             this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
         });
 
-        // Add real-time validation for player name to clear duplicate errors
+        // Add real-time validation for player name
         const nameInput = newRow.querySelector('.player-name') as HTMLInputElement;
         nameInput.addEventListener('input', () => {
+            // Mark field as touched
+            nameInput.dataset.touched = 'true';
+
+            // Real-time validation for empty names - only if touched
+            const name = nameInput.value.trim();
+            if (!name && nameInput.dataset.touched === 'true') {
+                nameInput.classList.add('input-error');
+            } else {
+                nameInput.classList.remove('input-error');
+            }
+
+            // Clear duplicate errors on input
             this.clearDuplicateErrorsOnInput();
         });
+
+        // Don't initialize validation state for new rows
 
         // Add event listener for group select
         const groupSelect = newRow.querySelector('.group-select') as HTMLSelectElement;
@@ -500,6 +526,9 @@ export class UIManager {
     }
 
     generatePods(): void {
+        // Trigger validation for all fields before attempting pod generation
+        this.triggerValidationForAllFields();
+
         this.outputSection.innerHTML = '';
         this.playerManager.handleGroupChange(this.playerRowsContainer);
 
@@ -1060,5 +1089,49 @@ export class UIManager {
                 return validBrackets.join(', ');
             }
         }
+    }
+
+    private triggerValidationForAllFields(): void {
+        const playerRows = Array.from(this.playerRowsContainer.querySelectorAll('.player-row'));
+
+        playerRows.forEach(row => {
+            // Mark name fields as needing validation if they're empty
+            const nameInput = row.querySelector('.player-name') as HTMLInputElement;
+            const name = nameInput.value.trim();
+            if (!name) {
+                nameInput.classList.add('input-error');
+            }
+
+            // Mark power/bracket selectors as needing validation
+            const powerSelectorBtn = row.querySelector('.power-selector-btn') as HTMLButtonElement;
+            const bracketSelectorBtn = row.querySelector('.bracket-selector-btn') as HTMLButtonElement;
+
+            if (powerSelectorBtn) {
+                powerSelectorBtn.dataset.validationTriggered = 'true';
+            }
+            if (bracketSelectorBtn) {
+                bracketSelectorBtn.dataset.validationTriggered = 'true';
+            }
+
+            // Check current ranking mode and update validation accordingly
+            const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+            const isBracketMode = bracketRadio.checked;
+
+            if (isBracketMode) {
+                // Check if brackets are selected
+                const bracketCheckboxes = row.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+                const hasSelectedBrackets = Array.from(bracketCheckboxes).some(checkbox => checkbox.checked);
+                if (!hasSelectedBrackets) {
+                    bracketSelectorBtn.classList.add('error');
+                }
+            } else {
+                // Check if power levels are selected
+                const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+                const hasSelectedPowers = Array.from(powerCheckboxes).some(checkbox => checkbox.checked);
+                if (!hasSelectedPowers) {
+                    powerSelectorBtn.classList.add('error');
+                }
+            }
+        });
     }
 }

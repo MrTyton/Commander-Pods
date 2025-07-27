@@ -1184,7 +1184,11 @@
         if (selectedPowers.length === 0) {
           powerSelectorBtn.textContent = "Select Power Levels";
           powerSelectorBtn.classList.remove("has-selection");
+          if (powerSelectorBtn.dataset.validationTriggered === "true") {
+            powerSelectorBtn.classList.add("error");
+          }
         } else {
+          powerSelectorBtn.classList.remove("error");
           selectedPowers.sort((a, b) => a - b);
           let displayText;
           if (selectedPowers.length === 1) {
@@ -1347,7 +1351,11 @@
         if (selectedBrackets.length === 0) {
           bracketSelectorBtn.textContent = "Select Brackets";
           bracketSelectorBtn.classList.remove("has-selection");
+          if (bracketSelectorBtn.dataset.validationTriggered === "true") {
+            bracketSelectorBtn.classList.add("error");
+          }
         } else {
+          bracketSelectorBtn.classList.remove("error");
           let displayText;
           if (selectedBrackets.length === 1) {
             displayText = `Bracket: ${selectedBrackets[0]}`;
@@ -1474,6 +1482,13 @@
       });
       const nameInput = newRow.querySelector(".player-name");
       nameInput.addEventListener("input", () => {
+        nameInput.dataset.touched = "true";
+        const name = nameInput.value.trim();
+        if (!name && nameInput.dataset.touched === "true") {
+          nameInput.classList.add("input-error");
+        } else {
+          nameInput.classList.remove("input-error");
+        }
         this.clearDuplicateErrorsOnInput();
       });
       const groupSelect = newRow.querySelector(".group-select");
@@ -1495,6 +1510,7 @@
       }
     }
     generatePods() {
+      this.triggerValidationForAllFields();
       this.outputSection.innerHTML = "";
       this.playerManager.handleGroupChange(this.playerRowsContainer);
       const allPlayers = [];
@@ -1917,6 +1933,39 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
           return validBrackets.join(", ");
         }
       }
+    }
+    triggerValidationForAllFields() {
+      const playerRows = Array.from(this.playerRowsContainer.querySelectorAll(".player-row"));
+      playerRows.forEach((row) => {
+        const nameInput = row.querySelector(".player-name");
+        const name = nameInput.value.trim();
+        if (!name) {
+          nameInput.classList.add("input-error");
+        }
+        const powerSelectorBtn = row.querySelector(".power-selector-btn");
+        const bracketSelectorBtn = row.querySelector(".bracket-selector-btn");
+        if (powerSelectorBtn) {
+          powerSelectorBtn.dataset.validationTriggered = "true";
+        }
+        if (bracketSelectorBtn) {
+          bracketSelectorBtn.dataset.validationTriggered = "true";
+        }
+        const bracketRadio = document.getElementById("bracket-radio");
+        const isBracketMode = bracketRadio.checked;
+        if (isBracketMode) {
+          const bracketCheckboxes = row.querySelectorAll('.bracket-checkbox input[type="checkbox"]');
+          const hasSelectedBrackets = Array.from(bracketCheckboxes).some((checkbox) => checkbox.checked);
+          if (!hasSelectedBrackets) {
+            bracketSelectorBtn.classList.add("error");
+          }
+        } else {
+          const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]');
+          const hasSelectedPowers = Array.from(powerCheckboxes).some((checkbox) => checkbox.checked);
+          if (!hasSelectedPowers) {
+            powerSelectorBtn.classList.add("error");
+          }
+        }
+      });
     }
   };
 
