@@ -95,6 +95,37 @@
       this.groups = /* @__PURE__ */ new Map();
       this.nextPlayerId = 0;
       this.nextGroupId = 1;
+      this.availableColors = [];
+      this.groupColorAssignments = /* @__PURE__ */ new Map();
+      this.initializeAvailableColors();
+    }
+    initializeAvailableColors() {
+      this.availableColors = Array.from({ length: 50 }, (_, i) => i + 1);
+      this.shuffleArray(this.availableColors);
+    }
+    shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+    assignRandomColor(groupId) {
+      if (this.groupColorAssignments.has(groupId)) {
+        return this.groupColorAssignments.get(groupId);
+      }
+      if (this.availableColors.length === 0) {
+        this.initializeAvailableColors();
+      }
+      const colorNumber = this.availableColors.pop();
+      this.groupColorAssignments.set(groupId, colorNumber);
+      return colorNumber;
+    }
+    releaseColor(groupId) {
+      const colorNumber = this.groupColorAssignments.get(groupId);
+      if (colorNumber) {
+        this.availableColors.push(colorNumber);
+        this.groupColorAssignments.delete(groupId);
+      }
     }
     getNextPlayerId() {
       return this.nextPlayerId++;
@@ -184,6 +215,12 @@
     handleGroupChange(playerRowsContainer) {
       this.groups.clear();
       const allRows = Array.from(playerRowsContainer.querySelectorAll(".player-row"));
+      allRows.forEach((row) => {
+        for (let i = 1; i <= 50; i++) {
+          const groupSelect = row.querySelector(".group-select");
+          groupSelect.classList.remove(`group-${i}`);
+        }
+      });
       const existingGroupIds = /* @__PURE__ */ new Set();
       allRows.forEach((row) => {
         const select = row.querySelector(".group-select");
@@ -195,32 +232,40 @@
       });
       allRows.forEach((row) => {
         const select = row.querySelector(".group-select");
+        let groupId = "";
         if (select.value === "new-group") {
-          let newGroupId = "";
           if (!select.dataset.createdGroupId) {
             let groupNum = 1;
             while (existingGroupIds.has(`group-${groupNum}`)) {
               groupNum++;
             }
-            newGroupId = `group-${groupNum}`;
-            existingGroupIds.add(newGroupId);
-            select.dataset.createdGroupId = newGroupId;
+            groupId = `group-${groupNum}`;
+            existingGroupIds.add(groupId);
+            select.dataset.createdGroupId = groupId;
           } else {
-            newGroupId = select.dataset.createdGroupId;
+            groupId = select.dataset.createdGroupId;
           }
           const player = this.getPlayerFromRow(row);
           if (player) {
-            if (!this.groups.has(newGroupId)) this.groups.set(newGroupId, []);
-            this.groups.get(newGroupId).push(player);
+            if (!this.groups.has(groupId)) this.groups.set(groupId, []);
+            this.groups.get(groupId).push(player);
           }
         } else if (select.value.startsWith("group-")) {
+          groupId = select.value;
           const player = this.getPlayerFromRow(row);
           if (player) {
             if (!this.groups.has(select.value)) this.groups.set(select.value, []);
             this.groups.get(select.value).push(player);
           }
         }
+        if (groupId) {
+          const colorNumber = this.assignRandomColor(groupId);
+          if (colorNumber >= 1 && colorNumber <= 50) {
+            select.classList.add(`group-${colorNumber}`);
+          }
+        }
       });
+      this.cleanupUnusedGroups(existingGroupIds);
     }
     updateAllGroupDropdowns(playerRowsContainer) {
       const createdGroupIds = /* @__PURE__ */ new Set();
@@ -250,8 +295,21 @@
         });
         if (createdId && createdGroupIds.has(createdId)) {
           select.value = createdId;
-        } else {
+          const colorNumber = this.assignRandomColor(createdId);
+          if (colorNumber >= 1 && colorNumber <= 50) {
+            select.classList.add(`group-${colorNumber}`);
+          }
+        } else if (currentValue.startsWith("group-") && createdGroupIds.has(currentValue)) {
           select.value = currentValue;
+          const colorNumber = this.assignRandomColor(currentValue);
+          if (colorNumber >= 1 && colorNumber <= 50) {
+            select.classList.add(`group-${colorNumber}`);
+          }
+        } else {
+          select.value = "no-group";
+          for (let i = 1; i <= 50; i++) {
+            select.classList.remove(`group-${i}`);
+          }
         }
       });
     }
@@ -312,6 +370,14 @@
         }
       }, 0);
       return Math.round(totalPower / items.length * 10) / 10;
+    }
+    cleanupUnusedGroups(activeGroupIds) {
+      const assignedGroups = Array.from(this.groupColorAssignments.keys());
+      assignedGroups.forEach((groupId) => {
+        if (!activeGroupIds.has(groupId)) {
+          this.releaseColor(groupId);
+        }
+      });
     }
   };
 

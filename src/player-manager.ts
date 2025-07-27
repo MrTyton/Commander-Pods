@@ -5,6 +5,48 @@ export class PlayerManager {
     private groups: Map<string, Player[]> = new Map();
     private nextPlayerId = 0;
     private nextGroupId = 1;
+    private availableColors: number[] = [];
+    private groupColorAssignments: Map<string, number> = new Map();
+
+    constructor() {
+        this.initializeAvailableColors();
+    }
+
+    private initializeAvailableColors(): void {
+        // Initialize with all 50 colors available
+        this.availableColors = Array.from({ length: 50 }, (_, i) => i + 1);
+        this.shuffleArray(this.availableColors);
+    }
+
+    private shuffleArray(array: number[]): void {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    private assignRandomColor(groupId: string): number {
+        if (this.groupColorAssignments.has(groupId)) {
+            return this.groupColorAssignments.get(groupId)!;
+        }
+
+        if (this.availableColors.length === 0) {
+            // If all colors are used, shuffle and restart (shouldn't happen with 50 colors)
+            this.initializeAvailableColors();
+        }
+
+        const colorNumber = this.availableColors.pop()!;
+        this.groupColorAssignments.set(groupId, colorNumber);
+        return colorNumber;
+    }
+
+    private releaseColor(groupId: string): void {
+        const colorNumber = this.groupColorAssignments.get(groupId);
+        if (colorNumber) {
+            this.availableColors.push(colorNumber);
+            this.groupColorAssignments.delete(groupId);
+        }
+    }
 
     getNextPlayerId(): number {
         return this.nextPlayerId++;
@@ -119,6 +161,14 @@ export class PlayerManager {
         this.groups.clear();
         const allRows = Array.from(playerRowsContainer.querySelectorAll('.player-row'));
 
+        // Clear all existing group classes first
+        allRows.forEach(row => {
+            for (let i = 1; i <= 50; i++) {
+                const groupSelect = row.querySelector('.group-select') as HTMLSelectElement;
+                groupSelect.classList.remove(`group-${i}`);
+            }
+        });
+
         // Find existing group IDs to determine the next available ID
         const existingGroupIds = new Set<string>();
         allRows.forEach(row => {
@@ -130,36 +180,50 @@ export class PlayerManager {
             }
         });
 
+        // Apply group colors and collect group members
         allRows.forEach(row => {
             const select = row.querySelector('.group-select') as HTMLSelectElement;
+            let groupId = '';
+
             if (select.value === 'new-group') {
                 // Find the next available group ID
-                let newGroupId = '';
                 if (!select.dataset.createdGroupId) {
                     let groupNum = 1;
                     while (existingGroupIds.has(`group-${groupNum}`)) {
                         groupNum++;
                     }
-                    newGroupId = `group-${groupNum}`;
-                    existingGroupIds.add(newGroupId);
-                    select.dataset.createdGroupId = newGroupId;
+                    groupId = `group-${groupNum}`;
+                    existingGroupIds.add(groupId);
+                    select.dataset.createdGroupId = groupId;
                 } else {
-                    newGroupId = select.dataset.createdGroupId;
+                    groupId = select.dataset.createdGroupId;
                 }
 
                 const player = this.getPlayerFromRow(row as HTMLElement);
                 if (player) {
-                    if (!this.groups.has(newGroupId)) this.groups.set(newGroupId, []);
-                    this.groups.get(newGroupId)!.push(player);
+                    if (!this.groups.has(groupId)) this.groups.set(groupId, []);
+                    this.groups.get(groupId)!.push(player);
                 }
             } else if (select.value.startsWith('group-')) {
+                groupId = select.value;
                 const player = this.getPlayerFromRow(row as HTMLElement);
                 if (player) {
                     if (!this.groups.has(select.value)) this.groups.set(select.value, []);
                     this.groups.get(select.value)!.push(player);
                 }
             }
+
+            // Apply visual styling to dropdown only
+            if (groupId) {
+                const colorNumber = this.assignRandomColor(groupId);
+                if (colorNumber >= 1 && colorNumber <= 50) {
+                    select.classList.add(`group-${colorNumber}`);
+                }
+            }
         });
+
+        // Clean up unused group colors
+        this.cleanupUnusedGroups(existingGroupIds);
     }
 
     updateAllGroupDropdowns(playerRowsContainer: HTMLElement): void {
@@ -176,7 +240,7 @@ export class PlayerManager {
             }
         });
 
-        // Second pass: update dropdowns
+        // Second pass: update dropdowns and maintain colors
         allRows.forEach(row => {
             const select = row.querySelector('.group-select') as HTMLSelectElement;
             const currentValue = select.value;
@@ -199,8 +263,24 @@ export class PlayerManager {
 
             if (createdId && createdGroupIds.has(createdId)) {
                 select.value = createdId;
-            } else {
+                // Apply color styling for the current group
+                const colorNumber = this.assignRandomColor(createdId);
+                if (colorNumber >= 1 && colorNumber <= 50) {
+                    select.classList.add(`group-${colorNumber}`);
+                }
+            } else if (currentValue.startsWith('group-') && createdGroupIds.has(currentValue)) {
                 select.value = currentValue;
+                // Apply color styling for the current group
+                const colorNumber = this.assignRandomColor(currentValue);
+                if (colorNumber >= 1 && colorNumber <= 50) {
+                    select.classList.add(`group-${colorNumber}`);
+                }
+            } else {
+                select.value = 'no-group';
+                // Clear any group styling
+                for (let i = 1; i <= 50; i++) {
+                    select.classList.remove(`group-${i}`);
+                }
             }
         });
     }
@@ -283,5 +363,15 @@ export class PlayerManager {
         }, 0);
 
         return Math.round((totalPower / items.length) * 10) / 10;
+    }
+
+    private cleanupUnusedGroups(activeGroupIds: Set<string>): void {
+        // Release colors for groups that are no longer in use
+        const assignedGroups = Array.from(this.groupColorAssignments.keys());
+        assignedGroups.forEach(groupId => {
+            if (!activeGroupIds.has(groupId)) {
+                this.releaseColor(groupId);
+            }
+        });
     }
 }
