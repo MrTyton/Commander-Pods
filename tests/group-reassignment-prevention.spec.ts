@@ -40,7 +40,7 @@ test.describe('Group Reassignment Prevention', () => {
         let player1Group = await page.locator('.player-row:nth-child(1) .group-select').inputValue();
         let player2Group = await page.locator('.player-row:nth-child(2) .group-select').inputValue();
         let player3Group = await page.locator('.player-row:nth-child(3) .group-select').inputValue();
-        
+
         expect(player1Group).toBe('group-1');
         expect(player2Group).toBe('group-2');
         expect(player3Group).toBe('group-3');
@@ -68,7 +68,7 @@ test.describe('Group Reassignment Prevention', () => {
         // Verify all final assignments
         player1Group = await page.locator('.player-row:nth-child(1) .group-select').inputValue();
         player3Group = await page.locator('.player-row:nth-child(3) .group-select').inputValue();
-        
+
         expect(player1Group).toBe('group-1'); // Player 1 still in Group 1
         expect(player2Group).toBe('group-1'); // Player 2 still in Group 1 (moved here deliberately)
         expect(player3Group).toBe('group-3'); // Player 3 still in Group 3

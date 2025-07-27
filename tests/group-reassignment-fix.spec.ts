@@ -24,7 +24,7 @@ test.describe('Group Reassignment Bug Fix', () => {
 
         // Move Player 2 from Group 2 to Group 1
         await page.selectOption('.player-row:nth-child(2) .group-select', 'group-1');
-        
+
         // Verify Player 2 is now in Group 1
         player2Value = await page.locator('.player-row:nth-child(2) .group-select').inputValue();
         expect(player2Value).toBe('group-1');
@@ -39,11 +39,11 @@ test.describe('Group Reassignment Bug Fix', () => {
         // CRITICAL: Verify Player 2 is STILL in Group 1 (not reassigned back to Group 2)
         const finalPlayer2Value = await page.locator('.player-row:nth-child(2) .group-select').inputValue();
         expect(finalPlayer2Value).toBe('group-1');
-        
+
         // Verify final group assignments
         const player1Value = await page.locator('.player-row:nth-child(1) .group-select').inputValue();
         const player3Value = await page.locator('.player-row:nth-child(3) .group-select').inputValue();
-        
+
         expect(player1Value).toBe('group-1'); // Player 1 in Group 1
         expect(finalPlayer2Value).toBe('group-1'); // Player 2 moved to Group 1 and stayed there
         expect(player3Value).toBe('group-3'); // Player 3 in Group 3

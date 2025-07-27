@@ -60,10 +60,10 @@ export class PlayerManager {
         // Find the lowest available group ID by checking which groups are actually in use
         // We need to check the DOM since this.groups might be cleared during updates
         const existingGroupNumbers = new Set<number>();
-        
+
         // Check all group select dropdowns to see which groups are currently selected
         const groupSelects = document.querySelectorAll('.group-select') as NodeListOf<HTMLSelectElement>;
-        
+
         groupSelects.forEach(select => {
             if (select.value.startsWith('group-')) {
                 const groupNumber = parseInt(select.value.split('-')[1]);
@@ -80,14 +80,14 @@ export class PlayerManager {
                 }
             }
         });
-        
+
         // Find the lowest unused group number
         for (let i = 1; i <= 50; i++) {
             if (!existingGroupNumbers.has(i)) {
                 return i;
             }
         }
-        
+
         // If all 50 groups are used, increment as before
         return this.nextGroupId++;
     }
@@ -258,7 +258,7 @@ export class PlayerManager {
 
         // Clean up unused group colors
         this.cleanupUnusedGroups(existingGroupIds);
-        
+
         // Update all dropdowns to reflect the current state
         this.updateAllGroupDropdowns(playerRowsContainer);
     }
@@ -411,7 +411,7 @@ export class PlayerManager {
                 this.releaseColor(groupId);
             }
         });
-        
+
         // Remove empty groups from the groups map
         const existingGroups = Array.from(this.groups.keys());
         existingGroups.forEach(groupId => {
@@ -419,7 +419,7 @@ export class PlayerManager {
                 this.groups.delete(groupId);
             }
         });
-        
+
         // Clear createdGroupId from selects that no longer reference active groups
         const groupSelects = document.querySelectorAll('.group-select') as NodeListOf<HTMLSelectElement>;
         groupSelects.forEach(select => {
