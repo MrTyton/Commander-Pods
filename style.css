@@ -342,33 +342,44 @@ button {
 }
 
 .power-checkbox {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 3px;
+    justify-content: center;
     font-size: 0.8em;
     white-space: nowrap;
     cursor: pointer;
-    padding: 1px 3px;
-    border-radius: 3px;
-    transition: background-color 0.2s;
+    padding: 6px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    background-color: #555;
+    border: 1px solid #666;
+    color: #ccc;
+    font-weight: 500;
+    text-align: center;
+    min-height: 24px;
 }
 
 .power-checkbox:hover {
-    background-color: #3a3a3a;
+    background-color: #666;
+    border-color: #777;
 }
 
 .power-checkbox input[type="checkbox"] {
-    width: 12px;
-    height: 12px;
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
     margin: 0;
-    flex-shrink: 0;
+    cursor: pointer;
 }
 
-.power-checkbox input[type="checkbox"]:checked+span,
 .power-checkbox:has(input[type="checkbox"]:checked) {
-    background-color: #4a90e2;
+    background-color: #4CAF50;
+    border-color: #45a049;
     color: #ffffff;
     font-weight: bold;
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
 }
 
 .power-range-buttons {
@@ -485,33 +496,44 @@ button {
 }
 
 .bracket-checkbox {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 3px;
+    justify-content: center;
     font-size: 0.8em;
     white-space: nowrap;
     cursor: pointer;
-    padding: 1px 3px;
-    border-radius: 3px;
-    transition: background-color 0.2s;
+    padding: 6px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    background-color: #555;
+    border: 1px solid #666;
+    color: #ccc;
+    font-weight: 500;
+    text-align: center;
+    min-height: 24px;
 }
 
 .bracket-checkbox:hover {
-    background-color: #3a3a3a;
+    background-color: #666;
+    border-color: #777;
 }
 
 .bracket-checkbox input[type="checkbox"] {
-    width: 12px;
-    height: 12px;
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
     margin: 0;
-    flex-shrink: 0;
+    cursor: pointer;
 }
 
-.bracket-checkbox input[type="checkbox"]:checked+span,
 .bracket-checkbox:has(input[type="checkbox"]:checked) {
-    background-color: #4a90e2;
+    background-color: #4CAF50;
+    border-color: #45a049;
     color: #ffffff;
     font-weight: bold;
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
 }
 
 .bracket-range-buttons {
