@@ -76,6 +76,28 @@ export async function createPlayers(page: Page, players: { name: string; power?:
     }
 }
 
+export async function setGroup(page: Page, playerIndex: number, group: string) {
+    await page.selectOption(`.player-row:nth-child(${playerIndex}) .group-select`, group);
+}
+
+export async function generatePods(page: Page) {
+    await page.click('#generate-pods-btn');
+}
+
+export async function goToDisplayMode(page: Page) {
+    await page.click('#display-mode-btn');
+}
+
+export async function setGroup(page: Page, playerIndex: number, group: string | { new: boolean } | { existing: number }) {
+    if (typeof group === 'string') {
+        await page.selectOption(`.player-row:nth-child(${playerIndex}) .group-select`, group);
+    } else if ('new' in group && group.new) {
+        await page.selectOption(`.player-row:nth-child(${playerIndex}) .group-select`, 'new-group');
+    } else if ('existing' in group) {
+        await page.selectOption(`.player-row:nth-child(${playerIndex}) .group-select`, `group-${group.existing}`);
+    }
+}
+
 export async function setLeniency(page: Page, leniency: 'none' | 'regular' | 'super') {
     switch (leniency) {
         case 'none':

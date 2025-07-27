@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createPlayers, setLeniency } from './test-helpers';
+import { createPlayers, setLeniency, setGroup, generatePods } from './test-helpers';
 
 test.describe('Pod Generation', () => {
     test.beforeEach(async ({ page }) => {
@@ -13,7 +13,7 @@ test.describe('Pod Generation', () => {
             { name: 'Charlie', power: [7] },
             { name: 'Dave', power: [7] },
         ]);
-        await page.click('#generate-pods-btn');
+        await generatePods(page);
         const pods = page.locator('.pod:not(.new-pod):not(.new-pod-target)');
         await expect(pods.first()).toBeVisible();
         await expect(page.locator('.pod:not(.new-pod):not(.new-pod-target) h3')).toContainText('(Power: 7)');
@@ -26,7 +26,7 @@ test.describe('Pod Generation', () => {
             { name: 'Charlie', power: [6] },
             { name: 'Dave', power: [6] },
         ]);
-        await page.click('#generate-pods-btn');
+        await generatePods(page);
         const pods = page.locator('.pod:not(.new-pod):not(.new-pod-target)');
         await expect(pods.first()).toBeVisible();
         const podContent = await page.locator('#output-section').textContent();
@@ -43,7 +43,7 @@ test.describe('Pod Generation', () => {
             { name: 'Dave', power: [7] },
         ]);
         await setLeniency(page, 'regular');
-        await page.click('#generate-pods-btn');
+        await generatePods(page);
         const pods = page.locator('.pod:not(.new-pod):not(.new-pod-target)');
         await expect(pods.first()).toBeVisible();
     });
@@ -56,7 +56,7 @@ test.describe('Pod Generation', () => {
             { name: 'Player4', power: [5] },
             { name: 'Player5', power: [9] },
         ]);
-        await page.click('#generate-pods-btn');
+        await generatePods(page);
         const unassignedSection = page.locator('.unassigned-pod');
         await expect(unassignedSection).toBeVisible();
         await expect(unassignedSection.locator('h3')).toContainText('Unassigned Players');
@@ -69,9 +69,9 @@ test.describe('Pod Generation', () => {
             { name: 'Charlie', power: [7] },
             { name: 'Dave', power: [7] },
         ]);
-        await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');
-        await page.selectOption('.player-row:nth-child(2) .group-select', 'group-1');
-        await page.click('#generate-pods-btn');
+        await setGroup(page, 1, { new: true });
+        await setGroup(page, 2, { existing: 1 });
+        await generatePods(page);
         const pods = page.locator('.pod:not(.new-pod):not(.new-pod-target)');
         await expect(pods.first()).toBeVisible();
         await expect(page.locator('.pod:not(.new-pod):not(.new-pod-target)')).toContainText('Group 1 (Avg Power: 7)');
@@ -88,8 +88,36 @@ test.describe('Pod Generation', () => {
             { name: 'Grace', power: [8] },
             { name: 'Henry', power: [8] },
         ]);
-        await page.click('#generate-pods-btn');
+        await generatePods(page);
         const pods = page.locator('.pod:not(.unassigned-pod)');
         await expect(pods).toHaveCount(3);
+    });
+
+    test('should keep groups together across multiple pods', async ({ page }) => {
+        await createPlayers(page, [
+            { name: 'Alice', power: [7] },
+            { name: 'Bob', power: [7] },
+            { name: 'Charlie', power: [7] },
+            { name: 'Dave', power: [7] },
+            { name: 'Eve', power: [8] },
+            { name: 'Frank', power: [8] },
+            { name: 'Grace', power: [8] },
+            { name: 'Henry', power: [8] },
+        ]);
+        await setGroup(page, 1, { new: true });
+        await setGroup(page, 2, { existing: 1 });
+        await generatePods(page);
+        const pods = page.locator('.pod:not(.unassigned-pod)');
+        let groupFound = false;
+        for (let i = 0; i < await pods.count(); i++) {
+            const podContent = await pods.nth(i).textContent();
+            if (podContent?.includes('Group 1')) {
+                expect(podContent).toContain('Alice');
+                expect(podContent).toContain('Bob');
+                groupFound = true;
+                break;
+            }
+        }
+        expect(groupFound).toBeTruthy();
     });
 });

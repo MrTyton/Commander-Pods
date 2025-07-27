@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createPlayers } from './test-helpers';
+import { createPlayers, generatePods } from './test-helpers';
 
 test.describe('Drag and Drop', () => {
     test.beforeEach(async ({ page }) => {
@@ -14,7 +14,7 @@ test.describe('Drag and Drop', () => {
             { name: 'Grace', power: [7] },
             { name: 'Henry', power: [7] },
         ]);
-        await page.click('#generate-pods-btn');
+        await generatePods(page);
     });
 
     test('should make players draggable in pod view', async ({ page }) => {
@@ -68,5 +68,14 @@ test.describe('Drag and Drop', () => {
         const finalActualPods = await page.locator('.pod:not(.unassigned-pod):not(.new-pod)');
         const finalActualCount = await finalActualPods.count();
         expect(finalActualCount).toBe(initialActualCount - 1);
+    });
+
+    test('should prevent dropping items on the same pod', async ({ page }) => {
+        const pod1 = await page.locator('.pod:not(.unassigned-pod)').first();
+        const pod1Content = await pod1.textContent();
+        const firstPlayer = await pod1.locator('.pod-player').first();
+        await firstPlayer.dragTo(pod1);
+        const pod1ContentAfter = await pod1.textContent();
+        expect(pod1ContentAfter).toBe(pod1Content);
     });
 });

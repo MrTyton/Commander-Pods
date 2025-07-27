@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createPlayers, setPowerLevels } from './test-helpers';
+import { createPlayers, generatePods, goToDisplayMode, setGroup } from './test-helpers';
 
 test.describe('Display Mode', () => {
     test.beforeEach(async ({ page }) => {
@@ -10,8 +10,8 @@ test.describe('Display Mode', () => {
             { name: 'Charlie', power: [6] },
             { name: 'David', power: [6] },
         ]);
-        await page.click('#generate-pods-btn');
-        await page.click('#display-mode-btn');
+        await generatePods(page);
+        await goToDisplayMode(page);
     });
 
     test('should enter and exit display mode correctly', async ({ page }) => {
@@ -53,8 +53,8 @@ test.describe('Display Mode', () => {
             { name: 'Grace', power: [7] },
             { name: 'Henry', power: [7] },
         ]);
-        await page.click('#generate-pods-btn');
-        await page.click('#display-mode-btn');
+        await generatePods(page);
+        await goToDisplayMode(page);
 
         const podElements = await page.locator('#display-output > div > div').all();
         const borderColors: string[] = [];
@@ -66,5 +66,22 @@ test.describe('Display Mode', () => {
         }
         const uniqueColors = new Set(borderColors);
         expect(uniqueColors.size).toBe(borderColors.length);
+    });
+
+    test('should flatten groups in display mode', async ({ page }) => {
+        await page.reload();
+        await createPlayers(page, [
+            { name: 'Alice', power: [7] },
+            { name: 'Bob', power: [7] },
+            { name: 'Charlie', power: [7] },
+            { name: 'David', power: [7] },
+        ]);
+        await setGroup(page, 1, { new: true });
+        await setGroup(page, 2, { existing: 1 });
+        await generatePods(page);
+        await goToDisplayMode(page);
+
+        const displayOutput = await page.locator('#display-output').textContent();
+        expect(displayOutput).not.toContain('Group 1');
     });
 });

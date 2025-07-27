@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createPlayers } from './test-helpers';
+import { createPlayers, generatePods, setLeniency } from './test-helpers';
 
 test.describe('UI Functionality', () => {
     test.beforeEach(async ({ page }) => {
@@ -30,8 +30,8 @@ test.describe('UI Functionality', () => {
 
     test('should reset all data when reset button is clicked', async ({ page }) => {
         await createPlayers(page, [{ name: 'TestPlayer', power: [5] }]);
-        await page.check('#leniency-radio');
-        await page.click('#generate-pods-btn');
+        await setLeniency(page, 'regular');
+        await generatePods(page);
         await page.click('#reset-all-btn');
         await expect(page.locator('.player-name').first()).toHaveValue('');
         await expect(page.locator('.power-selector-btn').first()).toContainText('Select Power Levels');
@@ -50,5 +50,19 @@ test.describe('UI Functionality', () => {
         const closeButton = await page.locator('.help-close');
         await closeButton.click();
         await expect(helpModal).not.toBeVisible();
+    });
+
+    test('should support keyboard shortcuts in power selector dropdown', async ({ page }) => {
+        const powerSelectorBtn = page.locator('.player-row:nth-child(1) .power-selector-btn');
+        await powerSelectorBtn.click();
+        const dropdown = page.locator('.player-row:nth-child(1) .power-selector-dropdown');
+        await expect(dropdown).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(dropdown).not.toBeVisible();
+        await powerSelectorBtn.click();
+        await page.keyboard.press('7');
+        await expect(dropdown).not.toBeVisible();
+        const checkbox7 = page.locator('.player-row:nth-child(1) .power-checkbox input[value="7"]');
+        await expect(checkbox7).toBeChecked();
     });
 });
