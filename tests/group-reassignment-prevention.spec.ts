@@ -87,18 +87,21 @@ test.describe('Group Reassignment Prevention', () => {
         await page.click('#add-player-btn');
         await page.fill('.player-row:nth-child(1) .player-name', 'Alice');
         await page.click('.player-row:nth-child(1) .power-selector-btn');
+        await page.waitForSelector('.player-row:nth-child(1) .power-checkbox input[value="5"]', { state: 'visible' });
         await page.check('.player-row:nth-child(1) .power-checkbox input[value="5"]');
         await page.click('.player-row:nth-child(1) .power-selector-btn');
 
         await page.click('#add-player-btn');
         await page.fill('.player-row:nth-child(2) .player-name', 'Bob');
         await page.click('.player-row:nth-child(2) .power-selector-btn');
+        await page.waitForSelector('.player-row:nth-child(2) .power-checkbox input[value="5"]', { state: 'visible' });
         await page.check('.player-row:nth-child(2) .power-checkbox input[value="5"]');
         await page.click('.player-row:nth-child(2) .power-selector-btn');
 
         await page.click('#add-player-btn');
         await page.fill('.player-row:nth-child(3) .player-name', 'Carol');
         await page.click('.player-row:nth-child(3) .power-selector-btn');
+        await page.waitForSelector('.player-row:nth-child(3) .power-checkbox input[value="5"]', { state: 'visible' });
         await page.check('.player-row:nth-child(3) .power-checkbox input[value="5"]');
         await page.click('.player-row:nth-child(3) .power-selector-btn');
 
@@ -127,12 +130,14 @@ test.describe('Group Reassignment Prevention', () => {
         await page.click('#add-player-btn');
         await page.fill('.player-row:nth-child(1) .player-name', 'Player 1');
         await page.click('.player-row:nth-child(1) .power-selector-btn');
+        await page.waitForSelector('.player-row:nth-child(1) .power-checkbox input[value="7"]', { state: 'visible' });
         await page.check('.player-row:nth-child(1) .power-checkbox input[value="7"]');
         await page.click('.player-row:nth-child(1) .power-selector-btn');
 
         await page.click('#add-player-btn');
         await page.fill('.player-row:nth-child(2) .player-name', 'Player 2');
         await page.click('.player-row:nth-child(2) .power-selector-btn');
+        await page.waitForSelector('.player-row:nth-child(2) .power-checkbox input[value="7"]', { state: 'visible' });
         await page.check('.player-row:nth-child(2) .power-checkbox input[value="7"]');
         await page.click('.player-row:nth-child(2) .power-selector-btn');
 

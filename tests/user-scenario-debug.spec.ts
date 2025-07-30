@@ -2,13 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Exact User Scenario Debug', () => {
     test('reproduce user scenario: 1,2,3 -> move 2 to 1 -> create new', async ({ page }) => {
-        const consoleLogs: string[] = [];
-
-        page.on('console', msg => {
-            if (msg.text().includes('DEBUG')) {
-                consoleLogs.push(msg.text());
-            }
-        });
 
         await page.goto('http://localhost:8080/index.html');
 
@@ -48,6 +41,7 @@ test.describe('Exact User Scenario Debug', () => {
         await page.click('#add-player-btn');
         await page.fill('.player-row:nth-child(4) .player-name', 'Player 4');
         await page.click('.player-row:nth-child(4) .power-selector-btn');
+        await page.waitForSelector('.player-row:nth-child(4) .power-checkbox input[value="6"]', { state: 'visible' });
         await page.check('.player-row:nth-child(4) .power-checkbox input[value="6"]');
         await page.click('.player-row:nth-child(4) .power-selector-btn');
 

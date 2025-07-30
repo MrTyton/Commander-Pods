@@ -287,6 +287,11 @@ test.describe('MTG Commander Pod Generator', () => {
         // Generate pods to create output
         await page.click('#generate-pods-btn');
 
+        // Set up dialog handler to accept the reset confirmation
+        page.on('dialog', dialog => {
+            dialog.accept();
+        });
+
         // Reset everything
         await page.click('#reset-all-btn');
 
@@ -2045,6 +2050,11 @@ test.describe('MTG Commander Pod Generator', () => {
     test('should use ceil(sqrt(n)) grid layout for different pod counts', async ({ page }) => {
         await page.goto('file://' + __dirname.replace('tests', 'index.html'));
 
+        // Set up dialog handler to accept any reset confirmation (once for the whole test)
+        page.on('dialog', dialog => {
+            dialog.accept();
+        });
+
         // Test with different player counts to verify grid calculations
         const testCases = [
             { players: 8, expectedPods: 2 },  // Should create 2 pods reliably
@@ -2052,9 +2062,13 @@ test.describe('MTG Commander Pod Generator', () => {
         ];
 
         for (const testCase of testCases) {
-            // Clear existing content
-            await page.click('#reset-all-btn');
-            await page.waitForTimeout(100);
+            // Clear existing content - click reset all if there's data
+            try {
+                await page.click('#reset-all-btn');
+                await page.waitForTimeout(100);
+            } catch (e) {
+                // Reset button might not show dialog if no data, that's fine
+            }
 
             // Add required player rows (if more than 4 needed)
             if (testCase.players > 4) {

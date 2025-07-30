@@ -1139,9 +1139,13 @@
 
   // src/ui-manager.ts
   var UIManager = class {
+    // Flag to prevent clearAllSelections during restoration
     constructor() {
       this.currentPods = [];
       this.currentUnassigned = [];
+      this.lastResetData = null;
+      // Store data before reset for undo functionality
+      this.isRestoring = false;
       this.playerRowsContainer = document.getElementById("player-rows");
       this.outputSection = document.getElementById("output-section");
       this.displayModeBtn = document.getElementById("display-mode-btn");
@@ -1160,7 +1164,7 @@
       const helpBtn = document.getElementById("help-btn");
       addPlayerBtn.addEventListener("click", () => this.addPlayerRow());
       generatePodsBtn.addEventListener("click", () => this.generatePods());
-      resetAllBtn.addEventListener("click", () => this.resetAll());
+      resetAllBtn.addEventListener("click", () => this.resetAllWithConfirmation());
       this.displayModeBtn.addEventListener("click", () => this.displayModeManager.enterDisplayMode(this.currentPods));
       helpBtn.addEventListener("click", () => this.showHelpModal());
       this.initializeHelpModal();
@@ -1778,6 +1782,203 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
       }
       this.outputSection.appendChild(podsContainer);
     }
+    // Capture current player data for potential undo
+    captureCurrentPlayerData() {
+      const playerRows = Array.from(this.playerRowsContainer.querySelectorAll(".player-row"));
+      const playersData = [];
+      playerRows.forEach((row) => {
+        const nameInput = row.querySelector(".player-name");
+        const groupSelect = row.querySelector(".group-select");
+        const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]');
+        const selectedPowers = [];
+        powerCheckboxes.forEach((checkbox) => {
+          if (checkbox.checked) {
+            selectedPowers.push(checkbox.value);
+          }
+        });
+        const bracketCheckboxes = row.querySelectorAll('.bracket-checkbox input[type="checkbox"]');
+        const selectedBrackets = [];
+        bracketCheckboxes.forEach((checkbox) => {
+          if (checkbox.checked) {
+            selectedBrackets.push(checkbox.value);
+          }
+        });
+        playersData.push({
+          name: nameInput.value.trim(),
+          groupValue: groupSelect.value,
+          createdGroupId: groupSelect.dataset.createdGroupId,
+          selectedPowers,
+          selectedBrackets
+        });
+      });
+      const leniencySettings = {
+        noLeniency: document.getElementById("no-leniency-radio")?.checked || false,
+        leniency: document.getElementById("leniency-radio")?.checked || false,
+        superLeniency: document.getElementById("super-leniency-radio")?.checked || false,
+        bracket: document.getElementById("bracket-radio")?.checked || false
+      };
+      return {
+        players: playersData,
+        leniencySettings,
+        currentPods: [...this.currentPods],
+        currentUnassigned: [...this.currentUnassigned]
+      };
+    }
+    // Show confirmation dialog before reset
+    resetAllWithConfirmation() {
+      const playerRows = Array.from(this.playerRowsContainer.querySelectorAll(".player-row"));
+      const hasData = playerRows.some((row) => {
+        const nameInput = row.querySelector(".player-name");
+        if (nameInput.value.trim()) return true;
+        const checkboxes = row.querySelectorAll('input[type="checkbox"]');
+        return Array.from(checkboxes).some((cb) => cb.checked);
+      });
+      if (!hasData) {
+        this.resetAll();
+        return;
+      }
+      const confirmed = confirm(
+        "Are you sure you want to reset all player data?\n\nThis will clear all players, groups, and generated pods. You will be able to undo this action immediately after."
+      );
+      if (confirmed) {
+        this.lastResetData = this.captureCurrentPlayerData();
+        this.resetAll();
+        this.showUndoResetButton();
+      }
+    }
+    // Show the undo reset button
+    showUndoResetButton() {
+      const existingUndoBtn = document.getElementById("undo-reset-btn");
+      if (existingUndoBtn) {
+        existingUndoBtn.remove();
+      }
+      const undoBtn = document.createElement("button");
+      undoBtn.id = "undo-reset-btn";
+      undoBtn.textContent = "Undo Reset";
+      undoBtn.style.marginLeft = "10px";
+      undoBtn.style.backgroundColor = "#28a745";
+      undoBtn.style.color = "white";
+      undoBtn.style.border = "none";
+      undoBtn.style.padding = "8px 16px";
+      undoBtn.style.borderRadius = "4px";
+      undoBtn.style.cursor = "pointer";
+      undoBtn.style.fontSize = "14px";
+      undoBtn.addEventListener("click", () => this.undoReset());
+      const resetBtn = document.getElementById("reset-all-btn");
+      resetBtn.parentNode.insertBefore(undoBtn, resetBtn.nextSibling);
+      setTimeout(() => {
+        if (document.getElementById("undo-reset-btn")) {
+          undoBtn.remove();
+          this.lastResetData = null;
+        }
+      }, 3e4);
+    }
+    // Restore data from before reset
+    undoReset() {
+      if (!this.lastResetData) {
+        alert("No reset data available to restore.");
+        return;
+      }
+      this.playerRowsContainer.innerHTML = "";
+      this.outputSection.innerHTML = "";
+      this.playerManager.clearGroups();
+      this.playerManager.resetPlayerIds();
+      this.playerManager.resetGroupIds();
+      const settings = this.lastResetData.leniencySettings;
+      if (settings.noLeniency) document.getElementById("no-leniency-radio").checked = true;
+      if (settings.leniency) document.getElementById("leniency-radio").checked = true;
+      if (settings.superLeniency) document.getElementById("super-leniency-radio").checked = true;
+      if (settings.bracket) document.getElementById("bracket-radio").checked = true;
+      this.lastResetData.players.forEach((playerData) => {
+        this.addPlayerRow();
+        const rows = Array.from(this.playerRowsContainer.querySelectorAll(".player-row"));
+        const currentRow = rows[rows.length - 1];
+        const nameInput = currentRow.querySelector(".player-name");
+        nameInput.value = playerData.name;
+        const groupSelect = currentRow.querySelector(".group-select");
+        if (playerData.createdGroupId) {
+          groupSelect.dataset.createdGroupId = playerData.createdGroupId;
+        }
+        groupSelect.value = playerData.groupValue;
+      });
+      this.isRestoring = true;
+      const powerLevelRadio = document.getElementById("no-leniency-radio");
+      const bracketRadio = document.getElementById("bracket-radio");
+      if (powerLevelRadio && bracketRadio) {
+        const changeEvent = new Event("change", { bubbles: true });
+        if (settings.bracket) {
+          bracketRadio.dispatchEvent(changeEvent);
+        } else {
+          powerLevelRadio.dispatchEvent(changeEvent);
+        }
+      }
+      setTimeout(() => {
+        this.restorePlayerSelections();
+      }, 200);
+    }
+    restorePlayerSelections() {
+      if (!this.lastResetData) {
+        return;
+      }
+      this.lastResetData.players.forEach((playerData, index) => {
+        const rows = Array.from(this.playerRowsContainer.querySelectorAll(".player-row"));
+        const currentRow = rows[index];
+        if (!currentRow) {
+          return;
+        }
+        playerData.selectedPowers.forEach((power) => {
+          const checkbox = currentRow.querySelector(`.power-checkbox input[type="checkbox"][value="${power}"]`);
+          if (checkbox) {
+            checkbox.checked = true;
+          }
+        });
+        playerData.selectedBrackets.forEach((bracket) => {
+          const checkbox = currentRow.querySelector(`.bracket-checkbox input[type="checkbox"][value="${bracket}"]`);
+          if (checkbox) {
+            checkbox.checked = true;
+          }
+        });
+        const allCheckboxes = currentRow.querySelectorAll('input[type="checkbox"]');
+        allCheckboxes.forEach((cb) => {
+          if (cb.checked) {
+            cb.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        });
+        this.updateButtonTextsForRow(currentRow);
+        const groupSelect = currentRow.querySelector(".group-select");
+        if (playerData.groupValue && playerData.groupValue !== "no-group" && playerData.groupValue.startsWith("group-")) {
+          if (playerData.createdGroupId) {
+            groupSelect.dataset.createdGroupId = playerData.createdGroupId;
+          } else {
+            groupSelect.dataset.createdGroupId = playerData.groupValue;
+          }
+          groupSelect.value = "new-group";
+          groupSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+      this.lastResetData.players.forEach((playerData, index) => {
+        const rows = Array.from(this.playerRowsContainer.querySelectorAll(".player-row"));
+        const currentRow = rows[index];
+        const groupSelect = currentRow.querySelector(".group-select");
+        if (playerData.groupValue && playerData.groupValue !== "no-group" && playerData.groupValue.startsWith("group-")) {
+          groupSelect.value = playerData.groupValue;
+          groupSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+      this.currentPods = [...this.lastResetData.currentPods];
+      this.currentUnassigned = [...this.lastResetData.currentUnassigned];
+      if (this.currentPods.length > 0 || this.currentUnassigned.length > 0) {
+        this.renderPods(this.currentPods, this.currentUnassigned);
+      }
+      this.playerManager.handleGroupChange(this.playerRowsContainer);
+      this.isRestoring = false;
+      const undoBtn = document.getElementById("undo-reset-btn");
+      if (undoBtn) {
+        undoBtn.remove();
+      }
+      this.lastResetData = null;
+      alert("Reset has been undone successfully!");
+    }
     resetAll() {
       this.playerRowsContainer.innerHTML = "";
       this.outputSection.innerHTML = "";
@@ -1845,7 +2046,9 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
             powerLevels.style.display = "block";
             bracketLevels.style.display = "none";
           }
-          this.clearAllSelections(row);
+          if (!this.isRestoring) {
+            this.clearAllSelections(row);
+          }
         });
       };
       powerLevelRadio.addEventListener("change", toggleRankingMode);
@@ -1966,6 +2169,69 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
           }
         }
       });
+    }
+    // Helper method to manually update button texts for a row
+    updateButtonTextsForRow(row) {
+      const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]');
+      const powerSelectorBtn = row.querySelector(".power-selector-btn");
+      if (powerSelectorBtn) {
+        const selectedPowers = [];
+        powerCheckboxes.forEach((checkbox) => {
+          if (checkbox.checked) {
+            selectedPowers.push(parseFloat(checkbox.value));
+          }
+        });
+        if (selectedPowers.length === 0) {
+          powerSelectorBtn.textContent = "Select Power Levels";
+          powerSelectorBtn.classList.remove("has-selection");
+        } else {
+          selectedPowers.sort((a, b) => a - b);
+          let displayText;
+          if (selectedPowers.length === 1) {
+            displayText = `Power: ${selectedPowers[0]}`;
+          } else {
+            const min = selectedPowers[0];
+            const max = selectedPowers[selectedPowers.length - 1];
+            const isContiguous = selectedPowers.every((power, index) => {
+              if (index === 0) return true;
+              const diff = power - selectedPowers[index - 1];
+              return diff === 0.5 || diff === 1;
+            });
+            if (isContiguous && selectedPowers.length > 2) {
+              displayText = `Power: ${min}-${max}`;
+            } else if (selectedPowers.length <= 4) {
+              displayText = `Power: ${selectedPowers.join(", ")}`;
+            } else {
+              displayText = `Power: ${min}-${max} (${selectedPowers.length} levels)`;
+            }
+          }
+          powerSelectorBtn.textContent = displayText;
+          powerSelectorBtn.classList.add("has-selection");
+        }
+      }
+      const bracketCheckboxes = row.querySelectorAll('.bracket-checkbox input[type="checkbox"]');
+      const bracketSelectorBtn = row.querySelector(".bracket-selector-btn");
+      if (bracketSelectorBtn) {
+        const selectedBrackets = [];
+        bracketCheckboxes.forEach((checkbox) => {
+          if (checkbox.checked) {
+            selectedBrackets.push(checkbox.value);
+          }
+        });
+        if (selectedBrackets.length === 0) {
+          bracketSelectorBtn.textContent = "Select Brackets";
+          bracketSelectorBtn.classList.remove("has-selection");
+        } else {
+          let displayText;
+          if (selectedBrackets.length === 1) {
+            displayText = `Bracket: ${selectedBrackets[0]}`;
+          } else {
+            displayText = `Brackets: ${selectedBrackets.join(", ")}`;
+          }
+          bracketSelectorBtn.textContent = displayText;
+          bracketSelectorBtn.classList.add("has-selection");
+        }
+      }
     }
   };
 

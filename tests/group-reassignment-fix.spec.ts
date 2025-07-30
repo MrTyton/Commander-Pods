@@ -9,6 +9,7 @@ test.describe('Group Reassignment Bug Fix', () => {
             await page.click('#add-player-btn');
             await page.fill(`.player-row:nth-child(${i}) .player-name`, `Player ${i}`);
             await page.click(`.player-row:nth-child(${i}) .power-selector-btn`);
+            await page.waitForSelector(`.player-row:nth-child(${i}) .power-checkbox input[value="6"]`, { state: 'visible' });
             await page.check(`.player-row:nth-child(${i}) .power-checkbox input[value="6"]`);
             await page.click(`.player-row:nth-child(${i}) .power-selector-btn`);
         }

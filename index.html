@@ -6,8 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MTG Commander Pod Generator</title>
     <link rel="stylesheet" href="style.css">
-    <script data-goatcounter="https://mrtyton.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
+    <script data-goatcounter="https://mrtyton.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 
 <body>
@@ -275,7 +274,22 @@
                     <li><strong>Drag & Drop:</strong> Move players between pods after generation</li>
                     <li><strong>Create New Pod:</strong> Drag players to the "Create New Pod" area</li>
                     <li><strong>Display Mode:</strong> Clean view for showing results to players</li>
-                    <li><strong>Reset All:</strong> Clear everything and start over</li>
+                    <li><strong>Reset All:</strong> Clear everything and start over with confirmation dialog and undo
+                        option - you can safely reset and undo within 30 seconds if needed</li>
+                </ul>
+
+                <div class="help-section-title">🔄 Reset & Undo System</div>
+                <ul>
+                    <li><strong>Smart Reset:</strong> The Reset All button only shows a confirmation if you have data to
+                        lose</li>
+                    <li><strong>Safe Reset:</strong> After confirming a reset, an "Undo Reset" button appears for 30
+                        seconds</li>
+                    <li><strong>Complete Restoration:</strong> Undo restores all player data, power levels, groups,
+                        generated pods, and settings</li>
+                    <li><strong>Bracket Mode Support:</strong> Both power level and bracket mode data are fully restored
+                    </li>
+                    <li><strong>Auto-Hide:</strong> The undo button automatically disappears after 30 seconds or after
+                        being used</li>
                 </ul>
 
                 <div class="help-section-title">💡 Tips for Best Results</div>

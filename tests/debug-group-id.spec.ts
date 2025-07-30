@@ -2,13 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Debug Group ID Management', () => {
     test('debug simple group ID reuse scenario', async ({ page }) => {
-        // Capture console logs
-        const consoleLogs: string[] = [];
-        page.on('console', msg => {
-            if (msg.text().includes('DEBUG:')) {
-                consoleLogs.push(msg.text());
-            }
-        });
 
         await page.goto('http://localhost:8080/index.html');
 
@@ -28,18 +21,16 @@ test.describe('Debug Group ID Management', () => {
         await page.click('#add-player-btn');
         await page.fill('.player-row:nth-child(3) .player-name', 'Player 3');
         await page.click('.player-row:nth-child(3) .power-selector-btn');
+        await page.waitForSelector('.player-row:nth-child(3) .power-checkbox input[value="6"]', { state: 'visible' });
         await page.check('.player-row:nth-child(3) .power-checkbox input[value="6"]');
         await page.click('.player-row:nth-child(3) .power-selector-btn'); // Close dropdown
 
         // Create groups 1, 2, 3
         await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');
-        consoleLogs.length = 0; // Clear logs
 
         await page.selectOption('.player-row:nth-child(2) .group-select', 'new-group');
-        consoleLogs.length = 0; // Clear logs
 
         await page.selectOption('.player-row:nth-child(3) .group-select', 'new-group');
-        consoleLogs.length = 0; // Clear logs
 
         // Verify initial groups
         let groupOptions = await page.locator('.player-row:nth-child(1) .group-select option').allTextContents();

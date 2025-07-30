@@ -143,6 +143,26 @@ button {
     background-color: #e53935;
 }
 
+#undo-reset-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 10px;
+    transition: background-color 0.3s ease;
+}
+
+#undo-reset-btn:hover {
+    background-color: #218838;
+}
+
+#undo-reset-btn:active {
+    background-color: #1e7e34;
+}
+
 .remove-player-btn {
     background-color: #757575;
     color: white;

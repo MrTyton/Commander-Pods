@@ -5,6 +5,28 @@ import { PodGenerator } from './pod-generator.js';
 import { DragDropManager } from './drag-drop.js';
 import { DisplayModeManager } from './display-mode.js';
 
+interface PlayerResetData {
+    name: string;
+    groupValue: string;
+    createdGroupId?: string;
+    selectedPowers: string[];
+    selectedBrackets: string[];
+}
+
+interface LeniencyResetData {
+    noLeniency: boolean;
+    leniency: boolean;
+    superLeniency: boolean;
+    bracket: boolean;
+}
+
+interface ResetData {
+    players: PlayerResetData[];
+    leniencySettings: LeniencyResetData;
+    currentPods: Pod[];
+    currentUnassigned: (Player | Group)[];
+}
+
 export class UIManager {
     private playerRowsContainer: HTMLElement;
     private outputSection: HTMLElement;
@@ -16,6 +38,8 @@ export class UIManager {
     private displayModeManager: DisplayModeManager;
     private currentPods: Pod[] = [];
     private currentUnassigned: (Player | Group)[] = [];
+    private lastResetData: ResetData | null = null; // Store data before reset for undo functionality
+    private isRestoring: boolean = false; // Flag to prevent clearAllSelections during restoration
 
     constructor() {
         this.playerRowsContainer = document.getElementById('player-rows')!;
@@ -40,7 +64,7 @@ export class UIManager {
 
         addPlayerBtn.addEventListener('click', () => this.addPlayerRow());
         generatePodsBtn.addEventListener('click', () => this.generatePods());
-        resetAllBtn.addEventListener('click', () => this.resetAll());
+        resetAllBtn.addEventListener('click', () => this.resetAllWithConfirmation());
         this.displayModeBtn.addEventListener('click', () => this.displayModeManager.enterDisplayMode(this.currentPods));
         helpBtn.addEventListener('click', () => this.showHelpModal());
 
@@ -874,6 +898,279 @@ export class UIManager {
         this.outputSection.appendChild(podsContainer);
     }
 
+    // Capture current player data for potential undo
+    private captureCurrentPlayerData(): ResetData {
+        const playerRows = Array.from(this.playerRowsContainer.querySelectorAll('.player-row'));
+        const playersData: PlayerResetData[] = [];
+
+        playerRows.forEach((row) => {
+            const nameInput = row.querySelector('.player-name') as HTMLInputElement;
+            const groupSelect = row.querySelector('.group-select') as HTMLSelectElement;
+
+            // Capture power level selections
+            const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+            const selectedPowers: string[] = [];
+            powerCheckboxes.forEach((checkbox) => {
+                if (checkbox.checked) {
+                    selectedPowers.push(checkbox.value);
+                }
+            });
+
+            // Capture bracket selections
+            const bracketCheckboxes = row.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+            const selectedBrackets: string[] = [];
+            bracketCheckboxes.forEach((checkbox) => {
+                if (checkbox.checked) {
+                    selectedBrackets.push(checkbox.value);
+                }
+            });
+
+            playersData.push({
+                name: nameInput.value.trim(),
+                groupValue: groupSelect.value,
+                createdGroupId: groupSelect.dataset.createdGroupId,
+                selectedPowers,
+                selectedBrackets
+            });
+        });
+
+        // Also capture current leniency settings
+        const leniencySettings: LeniencyResetData = {
+            noLeniency: (document.getElementById('no-leniency-radio') as HTMLInputElement)?.checked || false,
+            leniency: (document.getElementById('leniency-radio') as HTMLInputElement)?.checked || false,
+            superLeniency: (document.getElementById('super-leniency-radio') as HTMLInputElement)?.checked || false,
+            bracket: (document.getElementById('bracket-radio') as HTMLInputElement)?.checked || false
+        };
+
+        return {
+            players: playersData,
+            leniencySettings,
+            currentPods: [...this.currentPods],
+            currentUnassigned: [...this.currentUnassigned]
+        };
+    }
+
+    // Show confirmation dialog before reset
+    private resetAllWithConfirmation(): void {
+        const playerRows = Array.from(this.playerRowsContainer.querySelectorAll('.player-row'));
+
+        // Check if there's any data to lose
+        const hasData = playerRows.some((row) => {
+            const nameInput = row.querySelector('.player-name') as HTMLInputElement;
+            if (nameInput.value.trim()) return true;
+
+            const checkboxes = row.querySelectorAll('input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+            return Array.from(checkboxes).some(cb => cb.checked);
+        });
+
+        if (!hasData) {
+            // No data to lose, just reset
+            this.resetAll();
+            return;
+        }
+
+        // Show confirmation dialog
+        const confirmed = confirm(
+            "Are you sure you want to reset all player data?\n\n" +
+            "This will clear all players, groups, and generated pods. " +
+            "You will be able to undo this action immediately after."
+        );
+
+        if (confirmed) {
+            // Capture data before reset for undo
+            this.lastResetData = this.captureCurrentPlayerData();
+            this.resetAll();
+            this.showUndoResetButton();
+        }
+    }
+
+    // Show the undo reset button
+    private showUndoResetButton(): void {
+        // Remove any existing undo button
+        const existingUndoBtn = document.getElementById('undo-reset-btn');
+        if (existingUndoBtn) {
+            existingUndoBtn.remove();
+        }
+
+        // Create and show undo button
+        const undoBtn = document.createElement('button');
+        undoBtn.id = 'undo-reset-btn';
+        undoBtn.textContent = 'Undo Reset';
+        undoBtn.style.marginLeft = '10px';
+        undoBtn.style.backgroundColor = '#28a745';
+        undoBtn.style.color = 'white';
+        undoBtn.style.border = 'none';
+        undoBtn.style.padding = '8px 16px';
+        undoBtn.style.borderRadius = '4px';
+        undoBtn.style.cursor = 'pointer';
+        undoBtn.style.fontSize = '14px';
+
+        undoBtn.addEventListener('click', () => this.undoReset());
+
+        // Add the button next to the reset button
+        const resetBtn = document.getElementById('reset-all-btn')!;
+        resetBtn.parentNode!.insertBefore(undoBtn, resetBtn.nextSibling);
+
+        // Auto-hide the undo button after 30 seconds
+        setTimeout(() => {
+            if (document.getElementById('undo-reset-btn')) {
+                undoBtn.remove();
+                this.lastResetData = null;
+            }
+        }, 30000);
+    }
+
+    // Restore data from before reset
+    private undoReset(): void {
+        if (!this.lastResetData) {
+            alert('No reset data available to restore.');
+            return;
+        }
+
+        // Clear current state
+        this.playerRowsContainer.innerHTML = '';
+        this.outputSection.innerHTML = '';
+        this.playerManager.clearGroups();
+        this.playerManager.resetPlayerIds();
+        this.playerManager.resetGroupIds();
+
+        // Restore leniency settings
+        const settings = this.lastResetData.leniencySettings;
+        if (settings.noLeniency) (document.getElementById('no-leniency-radio') as HTMLInputElement).checked = true;
+        if (settings.leniency) (document.getElementById('leniency-radio') as HTMLInputElement).checked = true;
+        if (settings.superLeniency) (document.getElementById('super-leniency-radio') as HTMLInputElement).checked = true;
+        if (settings.bracket) (document.getElementById('bracket-radio') as HTMLInputElement).checked = true;
+
+        // First, add all players with their names and group data (before mode change)
+        this.lastResetData.players.forEach((playerData) => {
+            this.addPlayerRow();
+            const rows = Array.from(this.playerRowsContainer.querySelectorAll('.player-row'));
+            const currentRow = rows[rows.length - 1];
+
+            // Restore name
+            const nameInput = currentRow.querySelector('.player-name') as HTMLInputElement;
+            nameInput.value = playerData.name;
+
+            // Set group data but don't trigger change yet
+            const groupSelect = currentRow.querySelector('.group-select') as HTMLSelectElement;
+            if (playerData.createdGroupId) {
+                groupSelect.dataset.createdGroupId = playerData.createdGroupId;
+            }
+            groupSelect.value = playerData.groupValue;
+        });
+
+        // Now trigger display mode change AFTER players are added (this will clear selections)
+        this.isRestoring = true; // Set flag to prevent clearAllSelections
+        const powerLevelRadio = document.getElementById('no-leniency-radio') as HTMLInputElement;
+        const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+        if (powerLevelRadio && bracketRadio) {
+            const changeEvent = new Event('change', { bubbles: true });
+            if (settings.bracket) {
+                bracketRadio.dispatchEvent(changeEvent);
+            } else {
+                powerLevelRadio.dispatchEvent(changeEvent);
+            }
+        }
+
+        // Wait for DOM to update after mode change, then restore selections
+        setTimeout(() => {
+            this.restorePlayerSelections();
+        }, 200);
+    }
+
+    private restorePlayerSelections(): void {
+        if (!this.lastResetData) {
+            return;
+        }
+
+        // Finally, restore all selections AFTER mode change
+        this.lastResetData.players.forEach((playerData, index) => {
+            const rows = Array.from(this.playerRowsContainer.querySelectorAll('.player-row'));
+            const currentRow = rows[index];
+
+            if (!currentRow) {
+                return;
+            }
+
+            // Re-set checkboxes since mode change cleared them
+            playerData.selectedPowers.forEach((power) => {
+                const checkbox = currentRow.querySelector(`.power-checkbox input[type="checkbox"][value="${power}"]`) as HTMLInputElement;
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+
+            playerData.selectedBrackets.forEach((bracket) => {
+                const checkbox = currentRow.querySelector(`.bracket-checkbox input[type="checkbox"][value="${bracket}"]`) as HTMLInputElement;
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+
+            // Trigger change events for checkboxes to update button text
+            const allCheckboxes = currentRow.querySelectorAll('input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+            allCheckboxes.forEach(cb => {
+                if (cb.checked) {
+                    cb.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+
+            // Manual button text update as fallback in case event listeners aren't working
+            this.updateButtonTextsForRow(currentRow);
+
+            // For group restoration, we need special handling:
+            // If the player was in a group, set them to "new-group" first to trigger group creation
+            const groupSelect = currentRow.querySelector('.group-select') as HTMLSelectElement;
+            if (playerData.groupValue && playerData.groupValue !== 'no-group' && playerData.groupValue.startsWith('group-')) {
+                // Set the created group ID data attribute
+                if (playerData.createdGroupId) {
+                    groupSelect.dataset.createdGroupId = playerData.createdGroupId;
+                } else {
+                    groupSelect.dataset.createdGroupId = playerData.groupValue;
+                }
+                // Set to "new-group" to trigger group creation logic
+                groupSelect.value = 'new-group';
+                groupSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+
+        // After all groups are created, perform a final update to correct group assignments
+        this.lastResetData.players.forEach((playerData, index) => {
+            const rows = Array.from(this.playerRowsContainer.querySelectorAll('.player-row'));
+            const currentRow = rows[index];
+            const groupSelect = currentRow.querySelector('.group-select') as HTMLSelectElement;
+
+            // Now set the correct group value (the dropdown should have the option now)
+            if (playerData.groupValue && playerData.groupValue !== 'no-group' && playerData.groupValue.startsWith('group-')) {
+                groupSelect.value = playerData.groupValue;
+                groupSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+
+        // Restore pods and unassigned if they existed
+        this.currentPods = [...this.lastResetData.currentPods];
+        this.currentUnassigned = [...this.lastResetData.currentUnassigned];
+
+        if (this.currentPods.length > 0 || this.currentUnassigned.length > 0) {
+            this.renderPods(this.currentPods, this.currentUnassigned);
+        }
+
+        // Final group state update
+        this.playerManager.handleGroupChange(this.playerRowsContainer);
+
+        // Clear restoration flag - restoration is now complete
+        this.isRestoring = false;
+
+        // Remove undo button and clear reset data
+        const undoBtn = document.getElementById('undo-reset-btn');
+        if (undoBtn) {
+            undoBtn.remove();
+        }
+        this.lastResetData = null;
+
+        alert('Reset has been undone successfully!');
+    }
+
     resetAll(): void {
         // Clear everything first
         this.playerRowsContainer.innerHTML = '';
@@ -962,8 +1259,10 @@ export class UIManager {
                     bracketLevels.style.display = 'none';
                 }
 
-                // Clear all selections when switching modes
-                this.clearAllSelections(row as HTMLElement);
+                // Clear all selections when switching modes (unless we're restoring)
+                if (!this.isRestoring) {
+                    this.clearAllSelections(row as HTMLElement);
+                }
             });
         };
 
@@ -1133,5 +1432,76 @@ export class UIManager {
                 }
             }
         });
+    }
+
+    // Helper method to manually update button texts for a row
+    private updateButtonTextsForRow(row: Element): void {
+        // Update power selector button text
+        const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+        const powerSelectorBtn = row.querySelector('.power-selector-btn') as HTMLButtonElement;
+
+        if (powerSelectorBtn) {
+            const selectedPowers: number[] = [];
+            powerCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selectedPowers.push(parseFloat(checkbox.value));
+                }
+            });
+
+            if (selectedPowers.length === 0) {
+                powerSelectorBtn.textContent = 'Select Power Levels';
+                powerSelectorBtn.classList.remove('has-selection');
+            } else {
+                selectedPowers.sort((a, b) => a - b);
+                let displayText: string;
+                if (selectedPowers.length === 1) {
+                    displayText = `Power: ${selectedPowers[0]}`;
+                } else {
+                    const min = selectedPowers[0];
+                    const max = selectedPowers[selectedPowers.length - 1];
+                    const isContiguous = selectedPowers.every((power, index) => {
+                        if (index === 0) return true;
+                        const diff = power - selectedPowers[index - 1];
+                        return diff === 0.5 || diff === 1;
+                    });
+                    if (isContiguous && selectedPowers.length > 2) {
+                        displayText = `Power: ${min}-${max}`;
+                    } else if (selectedPowers.length <= 4) {
+                        displayText = `Power: ${selectedPowers.join(', ')}`;
+                    } else {
+                        displayText = `Power: ${min}-${max} (${selectedPowers.length} levels)`;
+                    }
+                }
+                powerSelectorBtn.textContent = displayText;
+                powerSelectorBtn.classList.add('has-selection');
+            }
+        }
+
+        // Update bracket selector button text
+        const bracketCheckboxes = row.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+        const bracketSelectorBtn = row.querySelector('.bracket-selector-btn') as HTMLButtonElement;
+
+        if (bracketSelectorBtn) {
+            const selectedBrackets: string[] = [];
+            bracketCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selectedBrackets.push(checkbox.value);
+                }
+            });
+
+            if (selectedBrackets.length === 0) {
+                bracketSelectorBtn.textContent = 'Select Brackets';
+                bracketSelectorBtn.classList.remove('has-selection');
+            } else {
+                let displayText: string;
+                if (selectedBrackets.length === 1) {
+                    displayText = `Bracket: ${selectedBrackets[0]}`;
+                } else {
+                    displayText = `Brackets: ${selectedBrackets.join(', ')}`;
+                }
+                bracketSelectorBtn.textContent = displayText;
+                bracketSelectorBtn.classList.add('has-selection');
+            }
+        }
     }
 }
