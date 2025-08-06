@@ -69,11 +69,13 @@ test.describe('Display Mode Styling', () => {
         // Check text alignment
         await expect(firstPlayerItem).toHaveCSS('text-align', 'center');
 
-        // Check that width is approximately 80% by comparing to parent container
+        // Check that width is dynamically calculated based on content (should be much smaller than 80% now due to improvements)
         const playerItemWidth = await firstPlayerItem.evaluate(el => el.getBoundingClientRect().width);
         const containerWidth = await page.locator('.display-mode-container ul').first().evaluate(el => el.getBoundingClientRect().width);
         const widthRatio = playerItemWidth / containerWidth;
-        expect(widthRatio).toBeCloseTo(0.8, 1); // 80% with 1 decimal tolerance
+        // With the display mode improvements, width should be much more efficient (around 30-40% for short names like "Alice")
+        expect(widthRatio).toBeLessThan(0.5); // Should be less than 50% now due to dynamic sizing
+        expect(widthRatio).toBeGreaterThan(0.2); // But still reasonable minimum
 
         // Check that font-size uses clamp (should be larger than 1rem)
         const fontSize = await firstPlayerItem.evaluate(el => getComputedStyle(el).fontSize);

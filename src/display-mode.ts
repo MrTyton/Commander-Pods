@@ -108,6 +108,49 @@ export class DisplayModeManager {
         }
     }
 
+    private calculateOptimalWidthForText(text: string): number {
+        // Base calculation: estimate text width more accurately
+        // Different characters have different widths, but we'll use a simple heuristic
+        let weightedLength = 0;
+
+        for (const char of text) {
+            if (char === ' ') {
+                weightedLength += 0.3; // Spaces are narrower
+            } else if (/[iIl1]/.test(char)) {
+                weightedLength += 0.4; // Narrow characters
+            } else if (/[mwMW]/.test(char)) {
+                weightedLength += 0.8; // Wide characters
+            } else if (/[A-Z]/.test(char)) {
+                weightedLength += 0.7; // Capital letters are generally wider
+            } else {
+                weightedLength += 0.6; // Average character width
+            }
+        }
+
+        // Reduce padding - only add 10% on each side (20% total) instead of 15%
+        const widthWithPadding = weightedLength * 1.2;
+
+        // Convert to percentage with tighter scaling - reduce blank space significantly
+        // Base it on a reasonable character count assumption (about 25 chars = 85% width)
+        const percentage = Math.min(85, Math.max(25, (widthWithPadding / 25) * 85));
+
+        return Math.round(percentage);
+    }
+
+    private calculateFontSizeForPod(podWidth: number, podHeight: number, playerCount: number): string {
+        // Base font size calculation based on pod dimensions and player count
+        const podArea = podWidth * podHeight;
+        const baseSize = Math.sqrt(podArea) / 40; // Slightly adjusted scaling factor
+
+        // Adjust based on player count - more players = smaller font, but less dramatic
+        const playerCountFactor = Math.max(0.7, 1 - (playerCount - 3) * 0.06);
+
+        // Calculate final font size with tighter bounds for more consistent sizing
+        const finalSize = Math.max(14, Math.min(24, baseSize * playerCountFactor));
+
+        return `${Math.round(finalSize)}px`;
+    }
+
     private getCurrentLeniencyTolerance(): number {
         // Get current leniency setting from the DOM
         const leniencyRadio = document.querySelector('#leniency-radio') as HTMLInputElement;
@@ -279,6 +322,28 @@ export class DisplayModeManager {
                 }
             });
 
+            // Calculate longest text in this pod for dynamic width calculation
+            let longestText = '';
+            pod.players.forEach(item => {
+                if ('players' in item) { // It's a Group
+                    item.players.forEach(p => {
+                        const text = isBracketMode && p.bracketRange
+                            ? `${p.name} (B: ${p.bracketRange})`
+                            : `${p.name} (P: ${p.powerRange})`;
+                        if (text.length > longestText.length) {
+                            longestText = text;
+                        }
+                    });
+                } else { // It's a Player
+                    const text = isBracketMode && item.bracketRange
+                        ? `${item.name} (B: ${item.bracketRange})`
+                        : `${item.name} (P: ${item.powerRange})`;
+                    if (text.length > longestText.length) {
+                        longestText = text;
+                    }
+                }
+            });
+
             const list = document.createElement('ul');
             list.style.flexGrow = '1';
             list.style.display = 'flex';
@@ -291,6 +356,12 @@ export class DisplayModeManager {
             list.style.overflowY = 'auto';
             list.style.width = '100%'; // Take full width for centering
             list.style.gap = '8px'; // Use gap instead of margin for better spacing
+
+            // Calculate dynamic width based on longest text in this pod
+            const optimalWidth = this.calculateOptimalWidthForText(longestText);
+
+            // Store pod element reference for later font size calculation
+            const podElementRef = podElement;
 
             pod.players.forEach(item => {
                 if ('players' in item) { // It's a Group - flatten to show individual players
@@ -307,12 +378,11 @@ export class DisplayModeManager {
                             playerItem.textContent = `${p.name} (P: ${p.powerRange})`;
                         }
 
-                        // Make player names adaptive and centered with better proportions
+                        // Make player names adaptive and centered with dynamic width
                         playerItem.style.color = '#ffffff';
                         playerItem.style.textAlign = 'center';
-                        playerItem.style.width = '80%';
-                        playerItem.style.maxWidth = '80%';
-                        playerItem.style.fontSize = 'clamp(1rem, 2.5vw, 2rem)'; // Adaptive font size
+                        playerItem.style.width = `${optimalWidth}%`;
+                        playerItem.style.maxWidth = `${optimalWidth}%`;
                         playerItem.style.lineHeight = '1.2';
                         playerItem.style.fontWeight = '500';
                         playerItem.style.wordBreak = 'break-word';
@@ -322,12 +392,20 @@ export class DisplayModeManager {
                         playerItem.style.boxSizing = 'border-box';
 
                         // Dynamic height based on number of players - make boxes more square-like
-                        const baseHeight = Math.max(50, Math.min(120, (100 / Math.max(playerCount, 1)) + 30));
+                        const baseHeight = Math.max(45, Math.min(100, (100 / Math.max(playerCount, 1)) + 25));
                         playerItem.style.minHeight = `${baseHeight}px`;
-                        playerItem.style.padding = `${Math.max(8, baseHeight * 0.15)}px 12px`;
+                        playerItem.style.padding = `${Math.max(6, baseHeight * 0.12)}px 10px`; // Reduced padding
                         playerItem.style.display = 'flex';
                         playerItem.style.alignItems = 'center';
                         playerItem.style.justifyContent = 'center';
+
+                        // Store reference to apply font size after pod is sized
+                        playerItem.dataset.podRef = index.toString();
+                        playerItem.classList.add('dynamic-font-item');
+
+                        // Set initial font size to prevent flicker - use a reasonable default
+                        playerItem.style.fontSize = '18px';
+
                         list.appendChild(playerItem);
                     });
                 } else { // It's a Player
@@ -343,12 +421,11 @@ export class DisplayModeManager {
                         playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
                     }
 
-                    // Make player names adaptive and centered with better proportions
+                    // Make player names adaptive and centered with dynamic width
                     playerItem.style.color = '#ffffff';
                     playerItem.style.textAlign = 'center';
-                    playerItem.style.width = '80%';
-                    playerItem.style.maxWidth = '80%';
-                    playerItem.style.fontSize = 'clamp(1rem, 2.5vw, 2rem)'; // Adaptive font size
+                    playerItem.style.width = `${optimalWidth}%`;
+                    playerItem.style.maxWidth = `${optimalWidth}%`;
                     playerItem.style.lineHeight = '1.2';
                     playerItem.style.fontWeight = '500';
                     playerItem.style.wordBreak = 'break-word';
@@ -358,12 +435,20 @@ export class DisplayModeManager {
                     playerItem.style.boxSizing = 'border-box';
 
                     // Dynamic height based on number of players - make boxes more square-like
-                    const baseHeight = Math.max(50, Math.min(120, (100 / Math.max(playerCount, 1)) + 30));
+                    const baseHeight = Math.max(45, Math.min(100, (100 / Math.max(playerCount, 1)) + 25));
                     playerItem.style.minHeight = `${baseHeight}px`;
-                    playerItem.style.padding = `${Math.max(8, baseHeight * 0.15)}px 12px`;
+                    playerItem.style.padding = `${Math.max(6, baseHeight * 0.12)}px 10px`; // Reduced padding
                     playerItem.style.display = 'flex';
                     playerItem.style.alignItems = 'center';
                     playerItem.style.justifyContent = 'center';
+
+                    // Store reference to apply font size after pod is sized
+                    playerItem.dataset.podRef = index.toString();
+                    playerItem.classList.add('dynamic-font-item');
+
+                    // Set initial font size to prevent flicker - use a reasonable default
+                    playerItem.style.fontSize = '18px';
+
                     list.appendChild(playerItem);
                 }
             });
@@ -372,6 +457,35 @@ export class DisplayModeManager {
         });
 
         displayOutput.appendChild(podsGrid);
+
+        // Apply dynamic font sizing after DOM is rendered and pods are sized
+        // Use requestAnimationFrame for smoother rendering
+        requestAnimationFrame(() => {
+            const allPods = podsGrid.querySelectorAll('div');
+            allPods.forEach((podElement, podIndex) => {
+                const rect = podElement.getBoundingClientRect();
+                const podWidth = rect.width;
+                const podHeight = rect.height;
+
+                // Count players in this pod for font calculation
+                let podPlayerCount = 0;
+                currentPods[podIndex].players.forEach(item => {
+                    if ('players' in item) {
+                        podPlayerCount += item.players.length;
+                    } else {
+                        podPlayerCount += 1;
+                    }
+                });
+
+                const dynamicFontSize = this.calculateFontSizeForPod(podWidth, podHeight, podPlayerCount);
+
+                // Apply font size to all player items in this pod
+                const playerItems = podElement.querySelectorAll('.dynamic-font-item');
+                playerItems.forEach(item => {
+                    (item as HTMLElement).style.fontSize = dynamicFontSize;
+                });
+            });
+        });
 
         // Add exit button functionality
         const exitBtn = displayContainer.querySelector('#exit-display-btn')!;

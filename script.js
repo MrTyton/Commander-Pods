@@ -981,6 +981,32 @@
         }
       }
     }
+    calculateOptimalWidthForText(text) {
+      let weightedLength = 0;
+      for (const char of text) {
+        if (char === " ") {
+          weightedLength += 0.3;
+        } else if (/[iIl1]/.test(char)) {
+          weightedLength += 0.4;
+        } else if (/[mwMW]/.test(char)) {
+          weightedLength += 0.8;
+        } else if (/[A-Z]/.test(char)) {
+          weightedLength += 0.7;
+        } else {
+          weightedLength += 0.6;
+        }
+      }
+      const widthWithPadding = weightedLength * 1.2;
+      const percentage = Math.min(85, Math.max(25, widthWithPadding / 25 * 85));
+      return Math.round(percentage);
+    }
+    calculateFontSizeForPod(podWidth, podHeight, playerCount) {
+      const podArea = podWidth * podHeight;
+      const baseSize = Math.sqrt(podArea) / 40;
+      const playerCountFactor = Math.max(0.7, 1 - (playerCount - 3) * 0.06);
+      const finalSize = Math.max(14, Math.min(24, baseSize * playerCountFactor));
+      return `${Math.round(finalSize)}px`;
+    }
     getCurrentLeniencyTolerance() {
       const leniencyRadio = document.querySelector("#leniency-radio");
       const superLeniencyRadio = document.querySelector("#super-leniency-radio");
@@ -1108,6 +1134,22 @@
             playerCount += 1;
           }
         });
+        let longestText = "";
+        pod.players.forEach((item) => {
+          if ("players" in item) {
+            item.players.forEach((p) => {
+              const text = isBracketMode && p.bracketRange ? `${p.name} (B: ${p.bracketRange})` : `${p.name} (P: ${p.powerRange})`;
+              if (text.length > longestText.length) {
+                longestText = text;
+              }
+            });
+          } else {
+            const text = isBracketMode && item.bracketRange ? `${item.name} (B: ${item.bracketRange})` : `${item.name} (P: ${item.powerRange})`;
+            if (text.length > longestText.length) {
+              longestText = text;
+            }
+          }
+        });
         const list = document.createElement("ul");
         list.style.flexGrow = "1";
         list.style.display = "flex";
@@ -1120,6 +1162,8 @@
         list.style.overflowY = "auto";
         list.style.width = "100%";
         list.style.gap = "8px";
+        const optimalWidth = this.calculateOptimalWidthForText(longestText);
+        const podElementRef = podElement;
         pod.players.forEach((item) => {
           if ("players" in item) {
             item.players.forEach((p) => {
@@ -1133,9 +1177,8 @@
               }
               playerItem.style.color = "#ffffff";
               playerItem.style.textAlign = "center";
-              playerItem.style.width = "80%";
-              playerItem.style.maxWidth = "80%";
-              playerItem.style.fontSize = "clamp(1rem, 2.5vw, 2rem)";
+              playerItem.style.width = `${optimalWidth}%`;
+              playerItem.style.maxWidth = `${optimalWidth}%`;
               playerItem.style.lineHeight = "1.2";
               playerItem.style.fontWeight = "500";
               playerItem.style.wordBreak = "break-word";
@@ -1143,12 +1186,15 @@
               playerItem.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
               playerItem.style.borderRadius = "8px";
               playerItem.style.boxSizing = "border-box";
-              const baseHeight = Math.max(50, Math.min(120, 100 / Math.max(playerCount, 1) + 30));
+              const baseHeight = Math.max(45, Math.min(100, 100 / Math.max(playerCount, 1) + 25));
               playerItem.style.minHeight = `${baseHeight}px`;
-              playerItem.style.padding = `${Math.max(8, baseHeight * 0.15)}px 12px`;
+              playerItem.style.padding = `${Math.max(6, baseHeight * 0.12)}px 10px`;
               playerItem.style.display = "flex";
               playerItem.style.alignItems = "center";
               playerItem.style.justifyContent = "center";
+              playerItem.dataset.podRef = index.toString();
+              playerItem.classList.add("dynamic-font-item");
+              playerItem.style.fontSize = "18px";
               list.appendChild(playerItem);
             });
           } else {
@@ -1162,9 +1208,8 @@
             }
             playerItem.style.color = "#ffffff";
             playerItem.style.textAlign = "center";
-            playerItem.style.width = "80%";
-            playerItem.style.maxWidth = "80%";
-            playerItem.style.fontSize = "clamp(1rem, 2.5vw, 2rem)";
+            playerItem.style.width = `${optimalWidth}%`;
+            playerItem.style.maxWidth = `${optimalWidth}%`;
             playerItem.style.lineHeight = "1.2";
             playerItem.style.fontWeight = "500";
             playerItem.style.wordBreak = "break-word";
@@ -1172,12 +1217,15 @@
             playerItem.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
             playerItem.style.borderRadius = "8px";
             playerItem.style.boxSizing = "border-box";
-            const baseHeight = Math.max(50, Math.min(120, 100 / Math.max(playerCount, 1) + 30));
+            const baseHeight = Math.max(45, Math.min(100, 100 / Math.max(playerCount, 1) + 25));
             playerItem.style.minHeight = `${baseHeight}px`;
-            playerItem.style.padding = `${Math.max(8, baseHeight * 0.15)}px 12px`;
+            playerItem.style.padding = `${Math.max(6, baseHeight * 0.12)}px 10px`;
             playerItem.style.display = "flex";
             playerItem.style.alignItems = "center";
             playerItem.style.justifyContent = "center";
+            playerItem.dataset.podRef = index.toString();
+            playerItem.classList.add("dynamic-font-item");
+            playerItem.style.fontSize = "18px";
             list.appendChild(playerItem);
           }
         });
@@ -1185,6 +1233,27 @@
         podsGrid.appendChild(podElement);
       });
       displayOutput.appendChild(podsGrid);
+      requestAnimationFrame(() => {
+        const allPods = podsGrid.querySelectorAll("div");
+        allPods.forEach((podElement, podIndex) => {
+          const rect = podElement.getBoundingClientRect();
+          const podWidth = rect.width;
+          const podHeight = rect.height;
+          let podPlayerCount = 0;
+          currentPods[podIndex].players.forEach((item) => {
+            if ("players" in item) {
+              podPlayerCount += item.players.length;
+            } else {
+              podPlayerCount += 1;
+            }
+          });
+          const dynamicFontSize = this.calculateFontSizeForPod(podWidth, podHeight, podPlayerCount);
+          const playerItems = podElement.querySelectorAll(".dynamic-font-item");
+          playerItems.forEach((item) => {
+            item.style.fontSize = dynamicFontSize;
+          });
+        });
+      });
       const exitBtn = displayContainer.querySelector("#exit-display-btn");
       exitBtn.addEventListener("click", () => this.exitDisplayMode());
       this.handleKeyDown = (e) => {
