@@ -1061,17 +1061,26 @@
         title.style.flexShrink = "0";
         title.style.textShadow = "1px 1px 2px rgba(0,0,0,0.8)";
         podElement.appendChild(title);
+        let playerCount = 0;
+        pod.players.forEach((item) => {
+          if ("players" in item) {
+            playerCount += item.players.length;
+          } else {
+            playerCount += 1;
+          }
+        });
         const list = document.createElement("ul");
         list.style.flexGrow = "1";
         list.style.display = "flex";
         list.style.flexDirection = "column";
-        list.style.justifyContent = "flex-start";
-        list.style.fontSize = "1.1rem";
-        list.style.lineHeight = "1.4";
+        list.style.justifyContent = "center";
+        list.style.alignItems = "center";
         list.style.margin = "0";
         list.style.padding = "0";
         list.style.listStyle = "none";
         list.style.overflowY = "auto";
+        list.style.width = "100%";
+        list.style.gap = "8px";
         pod.players.forEach((item) => {
           if ("players" in item) {
             item.players.forEach((p) => {
@@ -1083,9 +1092,24 @@
               } else {
                 playerItem.textContent = `${p.name} (P: ${p.powerRange})`;
               }
-              playerItem.style.marginBottom = "6px";
               playerItem.style.color = "#ffffff";
-              playerItem.style.padding = "4px 0";
+              playerItem.style.textAlign = "center";
+              playerItem.style.width = "80%";
+              playerItem.style.maxWidth = "80%";
+              playerItem.style.fontSize = "clamp(1rem, 2.5vw, 2rem)";
+              playerItem.style.lineHeight = "1.2";
+              playerItem.style.fontWeight = "500";
+              playerItem.style.wordBreak = "break-word";
+              playerItem.style.hyphens = "auto";
+              playerItem.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+              playerItem.style.borderRadius = "8px";
+              playerItem.style.boxSizing = "border-box";
+              const baseHeight = Math.max(50, Math.min(120, 100 / Math.max(playerCount, 1) + 30));
+              playerItem.style.minHeight = `${baseHeight}px`;
+              playerItem.style.padding = `${Math.max(8, baseHeight * 0.15)}px 12px`;
+              playerItem.style.display = "flex";
+              playerItem.style.alignItems = "center";
+              playerItem.style.justifyContent = "center";
               list.appendChild(playerItem);
             });
           } else {
@@ -1097,9 +1121,24 @@
             } else {
               playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
             }
-            playerItem.style.marginBottom = "6px";
             playerItem.style.color = "#ffffff";
-            playerItem.style.padding = "4px 0";
+            playerItem.style.textAlign = "center";
+            playerItem.style.width = "80%";
+            playerItem.style.maxWidth = "80%";
+            playerItem.style.fontSize = "clamp(1rem, 2.5vw, 2rem)";
+            playerItem.style.lineHeight = "1.2";
+            playerItem.style.fontWeight = "500";
+            playerItem.style.wordBreak = "break-word";
+            playerItem.style.hyphens = "auto";
+            playerItem.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+            playerItem.style.borderRadius = "8px";
+            playerItem.style.boxSizing = "border-box";
+            const baseHeight = Math.max(50, Math.min(120, 100 / Math.max(playerCount, 1) + 30));
+            playerItem.style.minHeight = `${baseHeight}px`;
+            playerItem.style.padding = `${Math.max(8, baseHeight * 0.15)}px 12px`;
+            playerItem.style.display = "flex";
+            playerItem.style.alignItems = "center";
+            playerItem.style.justifyContent = "center";
             list.appendChild(playerItem);
           }
         });
