@@ -1940,6 +1940,10 @@ test.describe('MTG Commander Pod Generator', () => {
         const firstPlayer = await firstPod.locator('.pod-player').first();
         await expect(firstPlayer).toBeVisible(); // Ensure the player exists
 
+        // Get the name of the player we're about to drag so we can verify it later
+        const draggedPlayerName = await firstPlayer.textContent();
+        const playerName = draggedPlayerName?.split(' ')[0] || 'Unknown'; // Extract just the name part
+
         // Drag the player to the new pod target
         await firstPlayer.dragTo(newPodTarget);
         await page.waitForTimeout(100);
@@ -1952,7 +1956,7 @@ test.describe('MTG Commander Pod Generator', () => {
         // Verify the new pod was actually created and contains the dragged player
         const lastPod = finalActualPods.last();
         const lastPodContent = await lastPod.textContent();
-        expect(lastPodContent).toContain('Alice'); // The first player should now be in the new pod
+        expect(lastPodContent).toContain(playerName); // The dragged player should now be in the new pod
     });
 
     test('should recalculate pod power levels after drag and drop', async ({ page }) => {

@@ -320,7 +320,7 @@ export class DisplayModeManager {
                         playerItem.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
                         playerItem.style.borderRadius = '8px';
                         playerItem.style.boxSizing = 'border-box';
-                        
+
                         // Dynamic height based on number of players - make boxes more square-like
                         const baseHeight = Math.max(50, Math.min(120, (100 / Math.max(playerCount, 1)) + 30));
                         playerItem.style.minHeight = `${baseHeight}px`;
@@ -356,7 +356,7 @@ export class DisplayModeManager {
                     playerItem.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
                     playerItem.style.borderRadius = '8px';
                     playerItem.style.boxSizing = 'border-box';
-                    
+
                     // Dynamic height based on number of players - make boxes more square-like
                     const baseHeight = Math.max(50, Math.min(120, (100 / Math.max(playerCount, 1)) + 30));
                     playerItem.style.minHeight = `${baseHeight}px`;

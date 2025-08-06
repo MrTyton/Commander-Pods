@@ -1,18 +1,63 @@
 import { Player, Group, Pod, LeniencySettings, VirtualPlayer, BacktrackingSolution, GenerationResult } from './types.js';
 
 export class PodGenerator {
+    private shuffleSeed: number | null = null;
+
+    /**
+     * Set a seed for deterministic shuffling. Used primarily for testing.
+     * If null (default), uses random shuffling for production use.
+     */
+    setShuffleSeed(seed: number | null): void {
+        this.shuffleSeed = seed;
+    }
+
+    /**
+     * Seeded random number generator using Linear Congruential Generator
+     * This ensures reproducible results when a seed is set
+     */
+    private seededRandom(seed: number): () => number {
+        let current = seed;
+        return () => {
+            current = (current * 1103515245 + 12345) & 0x7fffffff;
+            return current / 0x7fffffff;
+        };
+    }
+
+    /**
+     * Fisher-Yates shuffle with optional seeding for deterministic results
+     */
+    private shuffleArray<T>(array: T[]): T[] {
+        const shuffled = [...array]; // Create a copy to avoid modifying original
+
+        let random: () => number;
+        if (this.shuffleSeed !== null) {
+            random = this.seededRandom(this.shuffleSeed);
+        } else {
+            random = Math.random;
+        }
+
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        return shuffled;
+    }
 
     generatePodsWithBacktracking(
         items: (Player | Group)[],
         targetSizes: number[],
         leniencySettings: LeniencySettings
     ): GenerationResult {
-        const totalPlayers = items.reduce((sum, item) => sum + ('size' in item ? item.size : 1), 0);
+        // Shuffle items to add randomness to pod generation while preserving determinism in tests
+        const shuffledItems = this.shuffleArray(items);
+
+        const totalPlayers = shuffledItems.reduce((sum, item) => sum + ('size' in item ? item.size : 1), 0);
 
         // For small groups (3-5 players), just put them all in one pod
         if (totalPlayers >= 3 && totalPlayers <= 5) {
             // Find the best common power level for all players in the pod
-            const allPlayersInPod = items.flatMap(item =>
+            const allPlayersInPod = shuffledItems.flatMap(item =>
                 'players' in item ? item.players : [item]
             );
             const bestPower = this.findBestCommonPowerLevel(allPlayersInPod);
@@ -20,17 +65,17 @@ export class PodGenerator {
             // Only create a pod if the players are actually compatible
             if (bestPower !== null) {
                 return {
-                    pods: [{ players: items, power: bestPower }],
+                    pods: [{ players: shuffledItems, power: bestPower }],
                     unassigned: []
                 };
             } else {
                 // If no compatible power level, mark as unassigned
-                return { pods: [], unassigned: items };
+                return { pods: [], unassigned: shuffledItems };
             }
         }
 
         // For everything else, use the virtual player optimization
-        const pods = this.findOptimalPodAssignment(items, targetSizes, leniencySettings);
+        const pods = this.findOptimalPodAssignment(shuffledItems, targetSizes, leniencySettings);
 
         // Create a set of assigned item IDs (both players and groups)
         const assignedItemIds = new Set<string>();
@@ -46,7 +91,7 @@ export class PodGenerator {
             }
         }
 
-        const unassigned = items.filter(item => {
+        const unassigned = shuffledItems.filter(item => {
             if ('players' in item) {
                 // Group - unassigned if the group ID is not in assigned set
                 return !assignedItemIds.has(item.id);

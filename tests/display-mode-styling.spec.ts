@@ -65,37 +65,37 @@ test.describe('Display Mode Styling', () => {
 
         // Verify player items have the new styling
         const firstPlayerItem = page.locator('.display-mode-container li').first();
-        
+
         // Check text alignment
         await expect(firstPlayerItem).toHaveCSS('text-align', 'center');
-        
+
         // Check that width is approximately 80% by comparing to parent container
         const playerItemWidth = await firstPlayerItem.evaluate(el => el.getBoundingClientRect().width);
         const containerWidth = await page.locator('.display-mode-container ul').first().evaluate(el => el.getBoundingClientRect().width);
         const widthRatio = playerItemWidth / containerWidth;
         expect(widthRatio).toBeCloseTo(0.8, 1); // 80% with 1 decimal tolerance
-        
+
         // Check that font-size uses clamp (should be larger than 1rem)
         const fontSize = await firstPlayerItem.evaluate(el => getComputedStyle(el).fontSize);
         const fontSizeValue = parseFloat(fontSize);
         expect(fontSizeValue).toBeGreaterThanOrEqual(16); // 1rem = 16px typically
-        
+
         // Check background color for better visibility
         await expect(firstPlayerItem).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.1)');
-        
+
         // Check border radius is now larger (8px instead of 4px)
         await expect(firstPlayerItem).toHaveCSS('border-radius', '8px');
-        
+
         // Check that player items now have flex display for better centering
         await expect(firstPlayerItem).toHaveCSS('display', 'flex');
         await expect(firstPlayerItem).toHaveCSS('align-items', 'center');
         await expect(firstPlayerItem).toHaveCSS('justify-content', 'center');
-        
+
         // Check that player items have dynamic minimum height
         const minHeight = await firstPlayerItem.evaluate(el => getComputedStyle(el).minHeight);
         const minHeightValue = parseFloat(minHeight);
         expect(minHeightValue).toBeGreaterThanOrEqual(50); // Should be at least 50px
-        
+
         // Verify the ul container centers items and uses gap
         const playersList = page.locator('.display-mode-container ul').first();
         await expect(playersList).toHaveCSS('justify-content', 'center');

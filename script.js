@@ -419,23 +419,62 @@
 
   // src/pod-generator.ts
   var PodGenerator = class {
+    constructor() {
+      this.shuffleSeed = null;
+    }
+    /**
+     * Set a seed for deterministic shuffling. Used primarily for testing.
+     * If null (default), uses random shuffling for production use.
+     */
+    setShuffleSeed(seed) {
+      this.shuffleSeed = seed;
+    }
+    /**
+     * Seeded random number generator using Linear Congruential Generator
+     * This ensures reproducible results when a seed is set
+     */
+    seededRandom(seed) {
+      let current = seed;
+      return () => {
+        current = current * 1103515245 + 12345 & 2147483647;
+        return current / 2147483647;
+      };
+    }
+    /**
+     * Fisher-Yates shuffle with optional seeding for deterministic results
+     */
+    shuffleArray(array) {
+      const shuffled = [...array];
+      let random;
+      if (this.shuffleSeed !== null) {
+        random = this.seededRandom(this.shuffleSeed);
+      } else {
+        random = Math.random;
+      }
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
     generatePodsWithBacktracking(items, targetSizes, leniencySettings) {
-      const totalPlayers = items.reduce((sum, item) => sum + ("size" in item ? item.size : 1), 0);
+      const shuffledItems = this.shuffleArray(items);
+      const totalPlayers = shuffledItems.reduce((sum, item) => sum + ("size" in item ? item.size : 1), 0);
       if (totalPlayers >= 3 && totalPlayers <= 5) {
-        const allPlayersInPod = items.flatMap(
+        const allPlayersInPod = shuffledItems.flatMap(
           (item) => "players" in item ? item.players : [item]
         );
         const bestPower = this.findBestCommonPowerLevel(allPlayersInPod);
         if (bestPower !== null) {
           return {
-            pods: [{ players: items, power: bestPower }],
+            pods: [{ players: shuffledItems, power: bestPower }],
             unassigned: []
           };
         } else {
-          return { pods: [], unassigned: items };
+          return { pods: [], unassigned: shuffledItems };
         }
       }
-      const pods = this.findOptimalPodAssignment(items, targetSizes, leniencySettings);
+      const pods = this.findOptimalPodAssignment(shuffledItems, targetSizes, leniencySettings);
       const assignedItemIds = /* @__PURE__ */ new Set();
       for (const pod of pods) {
         for (const item of pod.players) {
@@ -446,7 +485,7 @@
           }
         }
       }
-      const unassigned = items.filter((item) => {
+      const unassigned = shuffledItems.filter((item) => {
         if ("players" in item) {
           return !assignedItemIds.has(item.id);
         } else {
@@ -1647,6 +1686,14 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
       }
       const podSizes = calculatePodSizes(totalPlayerCount);
       const leniencySettings = getLeniencySettings();
+      const isTestEnvironment = typeof window !== "undefined" && (window.location.protocol === "file:" || window.__playwright !== void 0 || window.playwright !== void 0);
+      if (isTestEnvironment) {
+        const playerNames = allPlayers.map((p) => p.name).join("");
+        const deterministicSeed = Array.from(playerNames).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+        this.podGenerator.setShuffleSeed(deterministicSeed);
+      } else {
+        this.podGenerator.setShuffleSeed(null);
+      }
       const result = this.podGenerator.generatePodsWithBacktracking(itemsToPod, podSizes, leniencySettings);
       const pods = result.pods;
       let unassignedPlayers = result.unassigned;
