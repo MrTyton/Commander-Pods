@@ -40,6 +40,7 @@ export class UIManager {
     private currentUnassigned: (Player | Group)[] = [];
     private lastResetData: ResetData | null = null; // Store data before reset for undo functionality
     private isRestoring: boolean = false; // Flag to prevent clearAllSelections during restoration
+    private displayModeBtnBottom: HTMLButtonElement | null = null; // Bottom Display Mode button
 
     constructor() {
         this.playerRowsContainer = document.getElementById('player-rows')!;
@@ -549,10 +550,22 @@ export class UIManager {
         }
     }
 
+    private cleanupBottomDisplayButton(): void {
+        if (this.displayModeBtnBottom) {
+            // Remove the wrapper div if it exists
+            const wrapper = this.displayModeBtnBottom.parentNode;
+            if (wrapper && wrapper.parentNode) {
+                wrapper.parentNode.removeChild(wrapper);
+            }
+            this.displayModeBtnBottom = null;
+        }
+    }
+
     generatePods(): void {
         // Trigger validation for all fields before attempting pod generation
         this.triggerValidationForAllFields();
 
+        this.cleanupBottomDisplayButton();
         this.outputSection.innerHTML = '';
         this.playerManager.handleGroupChange(this.playerRowsContainer);
 
@@ -664,11 +677,13 @@ export class UIManager {
         this.currentPods = [...pods]; // Store current pods for drag-and-drop
         this.currentUnassigned = [...unassignedPlayers]; // Store current unassigned for drag-and-drop
         this.dragDropManager.setCurrentPods(this.currentPods, this.currentUnassigned);
+        this.cleanupBottomDisplayButton();
         this.outputSection.innerHTML = '';
 
         if (pods.length === 0) {
             this.outputSection.textContent = 'Could not form pods with the given players.';
             this.displayModeBtn.style.display = 'none';
+            // Bottom button doesn't exist when no pods, so no need to hide it
             return;
         }
 
@@ -896,6 +911,24 @@ export class UIManager {
         }
 
         this.outputSection.appendChild(podsContainer);
+
+        // Add a second Display Mode button right before the help section for better accessibility
+        const helpSection = document.querySelector('.help-section');
+        if (helpSection && helpSection.parentNode) {
+            // Create a wrapper div to center the button
+            const buttonWrapper = document.createElement('div');
+            buttonWrapper.style.textAlign = 'center';
+            buttonWrapper.style.marginTop = '20px';
+            buttonWrapper.style.marginBottom = '20px';
+
+            this.displayModeBtnBottom = this.displayModeBtn.cloneNode(true) as HTMLButtonElement;
+            this.displayModeBtnBottom.id = 'display-mode-btn-bottom';
+            this.displayModeBtnBottom.style.display = 'inline-block';
+            this.displayModeBtnBottom.addEventListener('click', () => this.displayModeManager.enterDisplayMode(this.currentPods));
+
+            buttonWrapper.appendChild(this.displayModeBtnBottom);
+            helpSection.parentNode.insertBefore(buttonWrapper, helpSection);
+        }
     }
 
     // Capture current player data for potential undo
@@ -1029,6 +1062,7 @@ export class UIManager {
 
         // Clear current state
         this.playerRowsContainer.innerHTML = '';
+        this.cleanupBottomDisplayButton();
         this.outputSection.innerHTML = '';
         this.playerManager.clearGroups();
         this.playerManager.resetPlayerIds();
@@ -1174,7 +1208,9 @@ export class UIManager {
     resetAll(): void {
         // Clear everything first
         this.playerRowsContainer.innerHTML = '';
+        this.cleanupBottomDisplayButton();
         this.outputSection.innerHTML = '';
+        this.displayModeBtn.style.display = 'none'; // Hide the top display mode button
         this.playerManager.clearGroups();
         this.playerManager.resetPlayerIds();
         this.playerManager.resetGroupIds();

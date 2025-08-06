@@ -1139,13 +1139,15 @@
 
   // src/ui-manager.ts
   var UIManager = class {
-    // Flag to prevent clearAllSelections during restoration
+    // Bottom Display Mode button
     constructor() {
       this.currentPods = [];
       this.currentUnassigned = [];
       this.lastResetData = null;
       // Store data before reset for undo functionality
       this.isRestoring = false;
+      // Flag to prevent clearAllSelections during restoration
+      this.displayModeBtnBottom = null;
       this.playerRowsContainer = document.getElementById("player-rows");
       this.outputSection = document.getElementById("output-section");
       this.displayModeBtn = document.getElementById("display-mode-btn");
@@ -1513,8 +1515,18 @@
         bracketLevels.style.display = "none";
       }
     }
+    cleanupBottomDisplayButton() {
+      if (this.displayModeBtnBottom) {
+        const wrapper = this.displayModeBtnBottom.parentNode;
+        if (wrapper && wrapper.parentNode) {
+          wrapper.parentNode.removeChild(wrapper);
+        }
+        this.displayModeBtnBottom = null;
+      }
+    }
     generatePods() {
       this.triggerValidationForAllFields();
+      this.cleanupBottomDisplayButton();
       this.outputSection.innerHTML = "";
       this.playerManager.handleGroupChange(this.playerRowsContainer);
       const allPlayers = [];
@@ -1607,6 +1619,7 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
       this.currentPods = [...pods];
       this.currentUnassigned = [...unassignedPlayers];
       this.dragDropManager.setCurrentPods(this.currentPods, this.currentUnassigned);
+      this.cleanupBottomDisplayButton();
       this.outputSection.innerHTML = "";
       if (pods.length === 0) {
         this.outputSection.textContent = "Could not form pods with the given players.";
@@ -1781,6 +1794,19 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
         podsContainer.appendChild(unassignedElement);
       }
       this.outputSection.appendChild(podsContainer);
+      const helpSection = document.querySelector(".help-section");
+      if (helpSection && helpSection.parentNode) {
+        const buttonWrapper = document.createElement("div");
+        buttonWrapper.style.textAlign = "center";
+        buttonWrapper.style.marginTop = "20px";
+        buttonWrapper.style.marginBottom = "20px";
+        this.displayModeBtnBottom = this.displayModeBtn.cloneNode(true);
+        this.displayModeBtnBottom.id = "display-mode-btn-bottom";
+        this.displayModeBtnBottom.style.display = "inline-block";
+        this.displayModeBtnBottom.addEventListener("click", () => this.displayModeManager.enterDisplayMode(this.currentPods));
+        buttonWrapper.appendChild(this.displayModeBtnBottom);
+        helpSection.parentNode.insertBefore(buttonWrapper, helpSection);
+      }
     }
     // Capture current player data for potential undo
     captureCurrentPlayerData() {
@@ -1880,6 +1906,7 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
         return;
       }
       this.playerRowsContainer.innerHTML = "";
+      this.cleanupBottomDisplayButton();
       this.outputSection.innerHTML = "";
       this.playerManager.clearGroups();
       this.playerManager.resetPlayerIds();
@@ -1981,7 +2008,9 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
     }
     resetAll() {
       this.playerRowsContainer.innerHTML = "";
+      this.cleanupBottomDisplayButton();
       this.outputSection.innerHTML = "";
+      this.displayModeBtn.style.display = "none";
       this.playerManager.clearGroups();
       this.playerManager.resetPlayerIds();
       this.playerManager.resetGroupIds();
