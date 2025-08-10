@@ -899,10 +899,10 @@ class PodManager {
     }
 
     /**
-     * Get specific pod by index
+     * Get specific pod by index (1-based for user API)
      */
     getPod(index: number): Locator {
-        return this.page.locator(`.pod:not(.unassigned-pod):not(.new-pod)`).nth(index);
+        return this.page.locator(`.pod:not(.unassigned-pod):not(.new-pod)`).nth(index - 1);
     }
 
     /**
@@ -1091,16 +1091,16 @@ class PodManager {
     }
 
     /**
-     * Get pod arrangement as a structured object
+     * Get pod arrangement as a structured object (returns 1-based podIndex for consistency)
      */
     async getPodArrangement(): Promise<{ podIndex: number; title: string; players: string[] }[]> {
         const arrangement: { podIndex: number; title: string; players: string[] }[] = [];
         const podCount = await this.getPodCount();
 
-        for (let podIndex = 0; podIndex < podCount; podIndex++) {
-            const title = await this.getPodTitle(podIndex).textContent() || '';
-            const players = await this.getPlayerNamesInPod(podIndex);
-            arrangement.push({ podIndex, title, players });
+        for (let i = 1; i <= podCount; i++) {
+            const title = await this.getPodTitle(i).textContent() || '';
+            const players = await this.getPlayerNamesInPod(i);
+            arrangement.push({ podIndex: i, title, players });
         }
 
         return arrangement;

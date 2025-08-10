@@ -668,10 +668,10 @@ export class UIManager {
 
         // Get pod optimization setting and use appropriate calculation function
         const podOptimization = getPodOptimizationSetting();
-        const podSizes = podOptimization === 'avoid-five' 
+        const podSizes = podOptimization === 'avoid-five'
             ? calculatePodSizesAvoidFive(totalPlayerCount)
             : calculatePodSizes(totalPlayerCount);
-            
+
         const leniencySettings = getLeniencySettings();
 
         // Set shuffle seed for deterministic results in tests, random in production

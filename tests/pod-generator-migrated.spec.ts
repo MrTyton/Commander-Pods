@@ -253,8 +253,8 @@ test.describe('MTG Commander Pod Generator', () => {
         ]);
 
         // Put Alice and Bob in the same group
-        await helper.groups.createNewGroup(1);
-        await helper.groups.addPlayerToGroup(2, 'group-1');
+        await helper.groups.createNewGroup(0); // Alice creates new group
+        await helper.groups.addPlayerToGroup(1, 'group-1'); // Bob joins group-1
 
         // Generate pods
         await helper.pods.generatePods();
@@ -264,10 +264,14 @@ test.describe('MTG Commander Pod Generator', () => {
         expect(podCount).toBeGreaterThan(0);
 
         // Look for group with average power of 7 (6+8)/2 = 7
-        const podArrangement = await helper.pods.getPodArrangement();
-        const hasGroupWithAverage = podArrangement.some(pod =>
-            pod.title.includes('Group 1') && pod.title.includes('Avg Power: 7')
-        );
+        let hasGroupWithAverage = false;
+        for (let podIndex = 1; podIndex <= podCount; podIndex++) {
+            const hasGroup = await helper.pods.podContainsGroupInfo(podIndex, 'Group 1', 7);
+            if (hasGroup) {
+                hasGroupWithAverage = true;
+                break;
+            }
+        }
         expect(hasGroupWithAverage).toBeTruthy();
     });
 
@@ -312,8 +316,8 @@ test.describe('MTG Commander Pod Generator', () => {
         ]);
 
         // Create a group with Alice and Bob
-        await helper.groups.createNewGroup(1);
-        await helper.groups.addPlayerToGroup(2, 'group-1');
+        await helper.groups.createNewGroup(0); // Alice creates new group  
+        await helper.groups.addPlayerToGroup(1, 'group-1'); // Bob joins group-1
 
         // Generate pods
         await helper.pods.generatePods();
@@ -321,16 +325,25 @@ test.describe('MTG Commander Pod Generator', () => {
         // Check that Alice and Bob are in the same pod (as a group)
         const podArrangement = await helper.pods.getPodArrangement();
         let groupFound = false;
+        let podWithGroup = -1;
 
-        for (const pod of podArrangement) {
+        // Find pod containing both Alice and Bob
+        for (let i = 0; i < podArrangement.length; i++) {
+            const pod = podArrangement[i];
             if (pod.players.includes('Alice') && pod.players.includes('Bob')) {
                 groupFound = true;
-                expect(pod.title).toContain('Group 1');
+                podWithGroup = i + 1; // Convert to 1-based for podContainsGroupInfo
                 break;
             }
         }
 
         expect(groupFound).toBeTruthy();
+
+        // Verify that the pod containing Alice and Bob has group information
+        if (groupFound) {
+            const hasGroupInfo = await helper.pods.podContainsGroupInfo(podWithGroup, 'Group 1');
+            expect(hasGroupInfo).toBeTruthy();
+        }
     });
 
     test('should handle players with multiple power levels', async ({ page }) => {

@@ -17,13 +17,13 @@ test.describe('Help Modal Pod Optimization Documentation', () => {
         await expect(page.locator('.help-content')).toContainText('Pod Size Preference');
         await expect(page.locator('.help-content')).toContainText('Balanced:');
         await expect(page.locator('.help-content')).toContainText('Avoid Large Pods:');
-        
+
         // Check for specific details about the feature
         await expect(page.locator('.help-content')).toContainText('may create pods of 3, 4, or 5 players');
         await expect(page.locator('.help-content')).toContainText('Prioritizes pods of 3 players');
         await expect(page.locator('.help-content')).toContainText('Mathematical Constraint');
         await expect(page.locator('.help-content')).toContainText('9+ players');
-        
+
         // Check for examples
         await expect(page.locator('.help-content')).toContainText('Examples:');
         await expect(page.locator('.help-content')).toContainText('10 players, creates [4,3,3] instead of [5,5]');

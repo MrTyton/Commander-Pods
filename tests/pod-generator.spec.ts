@@ -253,8 +253,8 @@ test.describe('MTG Commander Pod Generator', () => {
         ]);
 
         // Put Alice and Bob in the same group
-        await helper.groups.createNewGroup(1);
-        await helper.groups.addPlayerToGroup(2, 'group-1');
+        await helper.groups.createNewGroup(0); // Alice creates new group
+        await helper.groups.addPlayerToGroup(1, 'group-1'); // Bob joins group-1
 
         // Generate pods
         await helper.pods.generatePods();
@@ -265,7 +265,7 @@ test.describe('MTG Commander Pod Generator', () => {
 
         // Look for group with average power of 7 (6+8)/2 = 7
         let hasGroupWithAverage = false;
-        for (let podIndex = 0; podIndex < podCount; podIndex++) {
+        for (let podIndex = 1; podIndex <= podCount; podIndex++) {
             const hasGroup = await helper.pods.podContainsGroupInfo(podIndex, 'Group 1', 7);
             if (hasGroup) {
                 hasGroupWithAverage = true;
@@ -316,8 +316,8 @@ test.describe('MTG Commander Pod Generator', () => {
         ]);
 
         // Create a group with Alice and Bob
-        await helper.groups.createNewGroup(1);
-        await helper.groups.addPlayerToGroup(2, 'group-1');
+        await helper.groups.createNewGroup(0); // Alice creates new group
+        await helper.groups.addPlayerToGroup(1, 'group-1'); // Bob joins group-1
 
         // Generate pods
         await helper.pods.generatePods();

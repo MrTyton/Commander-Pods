@@ -30,13 +30,13 @@ export function calculatePodSizes(n: number): number[] {
 
 export function calculatePodSizesAvoidFive(n: number): number[] {
     if (n < 3) return [];
-    
+
     // For small numbers where avoiding 5s isn't possible or beneficial,
     // fall back to balanced algorithm
     if (n < 9) {
         return calculatePodSizes(n);
     }
-    
+
     // For 9+ players, implement avoid-five logic
     if (n === 9) return [3, 3, 3];  // 9 = 3+3+3 instead of 5+4
     if (n === 10) return [4, 3, 3]; // 10 = 4+3+3 instead of 5+5
@@ -45,17 +45,17 @@ export function calculatePodSizesAvoidFive(n: number): number[] {
     if (n === 13) return [4, 3, 3, 3]; // 13 = 4+3+3+3 instead of 5+4+4
     if (n === 14) return [4, 4, 3, 3]; // 14 = 4+4+3+3 instead of 5+5+4
     if (n === 15) return [4, 4, 4, 3]; // 15 = 4+4+4+3 instead of 5+5+5
-    
+
     // For larger numbers, use a general algorithm that prioritizes 4s and 3s
     const result: number[] = [];
     let remaining = n;
-    
+
     // Try to use as many 4s as possible, then fill with 3s
     while (remaining >= 7) {
         result.push(4);
         remaining -= 4;
     }
-    
+
     // Handle the remainder
     if (remaining === 6) {
         result.push(3, 3);
@@ -75,7 +75,7 @@ export function calculatePodSizesAvoidFive(n: number): number[] {
     } else if (remaining === 3) {
         result.push(3);
     }
-    
+
     return result.sort((a, b) => b - a); // Sort descending
 }
 
