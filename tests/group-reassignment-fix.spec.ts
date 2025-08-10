@@ -1,57 +1,26 @@
 import { test, expect } from '@playwright/test';
-
-// Helper function to set power levels using the new checkbox system
-async function setPowerLevels(page: any, playerIndex: number, powerLevels: string | number[]) {
-    // Convert string to number array if needed
-    const powers = typeof powerLevels === 'string' ? [parseFloat(powerLevels)] : powerLevels;
-
-    // Use a more efficient approach - execute everything in one go using JavaScript
-    await page.evaluate(({ playerIndex, powers }) => {
-        const playerRow = document.querySelector(`.player-row:nth-child(${playerIndex})`);
-        if (!playerRow) return;
-
-        // Scroll into view
-        playerRow.scrollIntoView({ behavior: 'instant', block: 'nearest' });
-
-        // Click the power selector button
-        const btn = playerRow.querySelector('.power-selector-btn') as HTMLElement;
-        if (btn) btn.click();
-
-        // Wait for dropdown to appear (synchronous check)
-        const dropdown = playerRow.querySelector('.power-selector-dropdown') as HTMLElement;
-        if (dropdown) {
-            dropdown.style.display = 'block';
-            dropdown.classList.add('show');
-
-            // Clear all checkboxes first
-            const clearBtn = dropdown.querySelector('.clear-btn') as HTMLElement;
-            if (clearBtn) clearBtn.click();
-
-            // Check the desired power level checkboxes
-            powers.forEach(power => {
-                const checkbox = dropdown.querySelector(`input[value="${power}"]`) as HTMLInputElement;
-                if (checkbox) checkbox.checked = true;
-            });
-
-            // Close the dropdown by clicking the button again
-            if (btn) btn.click();
-        }
-    }, { playerIndex, powers });
-}
+import TestHelper from './test-helpers';
+import { setupBasicTest, teardownBasicTest } from './test-setup';
 
 test.describe('Group Reassignment Bug Fix', () => {
-    test('should not reassign players who moved to different groups', async ({ page }) => {
-        await page.goto('./index.html');
+    let helper: TestHelper;
 
-        // Add 4 players with power levels
-        await page.fill('.player-row:nth-child(1) .player-name', 'Player 1');
-        await setPowerLevels(page, 1, [6]);
-        await page.fill('.player-row:nth-child(2) .player-name', 'Player 2');
-        await setPowerLevels(page, 2, [6]);
-        await page.fill('.player-row:nth-child(3) .player-name', 'Player 3');
-        await setPowerLevels(page, 3, [6]);
-        await page.fill('.player-row:nth-child(4) .player-name', 'Player 4');
-        await setPowerLevels(page, 4, [6]);
+    test.beforeEach(async ({ page }) => {
+        helper = await setupBasicTest(page);
+    });
+
+    test.afterEach(async ({ page }) => {
+        await teardownBasicTest(helper);
+    });
+
+    test('should not reassign players who moved to different groups', async ({ page }) => {
+        // Add 4 players with power levels using helper
+        await helper.players.createPlayers([
+            { name: 'Player 1', power: [6] },
+            { name: 'Player 2', power: [6] },
+            { name: 'Player 3', power: [6] },
+            { name: 'Player 4', power: [6] }
+        ]);
 
         // Create groups 1, 2, 3
         await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group'); // Player 1 creates Group 1

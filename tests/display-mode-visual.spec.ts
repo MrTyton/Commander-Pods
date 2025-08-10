@@ -1,63 +1,38 @@
 import { test, expect } from '@playwright/test';
-
-// Helper function to set power levels using the new checkbox system
-async function setPowerLevels(page: any, playerIndex: number, powerLevels: string | number[]) {
-    const powers = typeof powerLevels === 'string' ? [parseFloat(powerLevels)] : powerLevels;
-
-    await page.evaluate(({ playerIndex, powers }) => {
-        const playerRow = document.querySelector(`.player-row:nth-child(${playerIndex})`);
-        if (!playerRow) return;
-
-        playerRow.scrollIntoView({ behavior: 'instant', block: 'nearest' });
-
-        const btn = playerRow.querySelector('.power-selector-btn') as HTMLElement;
-        if (btn) btn.click();
-
-        const dropdown = playerRow.querySelector('.power-selector-dropdown') as HTMLElement;
-        if (dropdown) {
-            dropdown.style.display = 'block';
-            dropdown.classList.add('show');
-
-            const clearBtn = dropdown.querySelector('.clear-btn') as HTMLElement;
-            if (clearBtn) clearBtn.click();
-
-            powers.forEach(power => {
-                const checkbox = dropdown.querySelector(`input[value="${power}"]`) as HTMLInputElement;
-                if (checkbox) checkbox.checked = true;
-            });
-
-            if (btn) btn.click();
-        }
-    }, { playerIndex, powers });
-}
+import { setupBasicTest, teardownBasicTest } from './test-setup';
+import TestHelper from './test-helpers';
 
 test.describe('Display Mode Visual Test', () => {
-    test('visual demonstration of display mode improvements', async ({ page }) => {
-        await page.goto('./index.html');
+    let helper: TestHelper;
 
+    test.beforeEach(async ({ page }) => {
+        helper = await setupBasicTest(page);
+    });
+
+    test.afterEach(async ({ page }) => {
+        await teardownBasicTest(helper);
+    });
+
+    test('visual demonstration of display mode improvements', async ({ page }) => {
         // Create scenario with different name lengths but same power level to ensure success
         const players = [
-            { name: 'Jo', powers: [6] },                    // Very short name
-            { name: 'Sue', powers: [6] },                   // Short name
-            { name: 'Bartholomew', powers: [6] },           // Very long name
-            { name: 'Alexander', powers: [6] }              // Long name  
+            { name: 'Jo', power: [6] },                    // Very short name
+            { name: 'Sue', power: [6] },                   // Short name
+            { name: 'Bartholomew', power: [6] },           // Very long name
+            { name: 'Alexander', power: [6] }              // Long name  
         ];
 
-        // Fill in players
-        for (let i = 0; i < players.length; i++) {
-            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await setPowerLevels(page, i + 1, players[i].powers);
-        }
+        // Create players using helper
+        await helper.players.createPlayers(players);
 
         // Generate pods
-        await page.click('#generate-pods-btn');
-        await page.waitForTimeout(500);
+        await helper.pods.generatePods();
 
         // Wait for display mode button
         await expect(page.locator('#display-mode-btn')).toHaveCSS('display', 'inline-block');
 
         // Enter display mode for visual inspection
-        await page.click('#display-mode-btn');
+        await helper.displayMode.enterDisplayMode();
         await page.waitForTimeout(1000); // Wait for display mode and font sizing
 
         // Check that display mode is active
@@ -109,8 +84,8 @@ test.describe('Display Mode Visual Test', () => {
             expect(m.width).toBeGreaterThan(100);
         });
 
-        // Exit display mode
-        await page.press('body', 'Escape');
+        // Exit display mode properly before teardown
+        await helper.displayMode.exitDisplayMode();
         await page.waitForTimeout(200);
     });
 });

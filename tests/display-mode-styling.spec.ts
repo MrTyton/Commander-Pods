@@ -1,64 +1,32 @@
 import { test, expect } from '@playwright/test';
-
-// Helper function to set power levels using the new checkbox system
-async function setPowerLevels(page: any, playerIndex: number, powerLevels: string | number[]) {
-    // Convert string to number array if needed
-    const powers = typeof powerLevels === 'string' ? [parseFloat(powerLevels)] : powerLevels;
-
-    // Use a more efficient approach - execute everything in one go using JavaScript
-    await page.evaluate(({ playerIndex, powers }) => {
-        const playerRow = document.querySelector(`.player-row:nth-child(${playerIndex})`);
-        if (!playerRow) return;
-
-        // Scroll into view
-        playerRow.scrollIntoView({ behavior: 'instant', block: 'nearest' });
-
-        // Click the power selector button
-        const btn = playerRow.querySelector('.power-selector-btn') as HTMLElement;
-        if (btn) btn.click();
-
-        // Wait for dropdown to appear (synchronous check)
-        const dropdown = playerRow.querySelector('.power-selector-dropdown') as HTMLElement;
-        if (dropdown) {
-            dropdown.style.display = 'block';
-            dropdown.classList.add('show');
-
-            // Clear all checkboxes first
-            const clearBtn = dropdown.querySelector('.clear-btn') as HTMLElement;
-            if (clearBtn) clearBtn.click();
-
-            // Check the desired power level checkboxes
-            powers.forEach(power => {
-                const checkbox = dropdown.querySelector(`input[value="${power}"]`) as HTMLInputElement;
-                if (checkbox) checkbox.checked = true;
-            });
-
-            // Close the dropdown by clicking the button again
-            if (btn) btn.click();
-        }
-    }, { playerIndex, powers });
-}
+import TestHelper from './test-helpers';
+import { setupBasicTest, teardownBasicTest } from './test-setup';
 
 test.describe('Display Mode Styling', () => {
-    test('should have centered, adaptive player names in display mode', async ({ page }) => {
-        await page.goto('./index.html');
+    let helper: TestHelper;
 
-        // Add 4 players with power levels
-        await page.fill('.player-row:nth-child(1) .player-name', 'Alice');
-        await setPowerLevels(page, 1, [6]);
-        await page.fill('.player-row:nth-child(2) .player-name', 'Bob');
-        await setPowerLevels(page, 2, [6]);
-        await page.fill('.player-row:nth-child(3) .player-name', 'Charlie');
-        await setPowerLevels(page, 3, [6]);
-        await page.fill('.player-row:nth-child(4) .player-name', 'David');
-        await setPowerLevels(page, 4, [6]);
+    test.beforeEach(async ({ page }) => {
+        helper = await setupBasicTest(page);
+    });
+
+    test.afterEach(async ({ page }) => {
+        await teardownBasicTest(helper);
+    });
+
+    test('should have centered, adaptive player names in display mode', async ({ page }) => {
+        // Add 4 players with power levels using helper
+        await helper.players.createPlayers([
+            { name: 'Alice', power: [6] },
+            { name: 'Bob', power: [6] },
+            { name: 'Charlie', power: [6] },
+            { name: 'David', power: [6] }
+        ]);
 
         // Generate pods
-        await page.click('#generate-pods-btn');
-        await page.waitForTimeout(100);
+        await helper.pods.generatePods();
 
         // Enter display mode
-        await page.click('#display-mode-btn');
+        await helper.displayMode.enterDisplayMode();
 
         // Check that we entered display mode
         await expect(page.locator('.display-mode-container')).toBeVisible();

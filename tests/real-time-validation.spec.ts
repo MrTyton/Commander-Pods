@@ -1,82 +1,85 @@
 import { test, expect } from '@playwright/test';
+import { setupValidationTest, setupBracketModeTest, teardownBasicTest } from './test-setup';
+import TestHelper from './test-helpers';
 
-test('User-friendly validation for player fields', async ({ page }) => {
-    await page.goto('./index.html');
+test.describe('Real-time Validation Behavior', () => {
+    let helper: TestHelper;
 
-    // Wait for page to be fully loaded
-    await page.waitForLoadState('networkidle');
+    test.describe('Power Mode Validation', () => {
+        test.beforeEach(async ({ page }) => {
+            helper = await setupValidationTest(page);
+        });
 
-    // Test that new rows don't show validation errors initially
-    const nameInput = page.locator('.player-row:nth-child(1) .player-name');
-    const powerBtn = page.locator('.player-row:nth-child(1) .power-selector-btn');
+        test.afterEach(async () => {
+            await teardownBasicTest(helper);
+        });
 
-    // New rows should NOT start with errors
-    await expect(nameInput).not.toHaveClass(/input-error/);
-    await expect(powerBtn).not.toHaveClass(/error/);
+        test('user-friendly validation for player fields', async () => {
+            // New rows should NOT start with errors
+            await helper.validation.expectNameInputValid(1);
+            await helper.validation.expectPowerButtonValid(1);
 
-    // Name validation should only trigger after the user interacts with the field
-    await nameInput.click();
-    await nameInput.fill('Test');
-    await nameInput.fill(''); // Clear it
+            // Name validation should only trigger after the user interacts with the field
+            const nameInput = helper.players.getNameInput(1);
+            await nameInput.click();
+            await nameInput.fill('Test');
+            await nameInput.fill(''); // Clear it
 
-    // Now that the field has been touched, it should show error for empty value
-    await expect(nameInput).toHaveClass(/input-error/);
+            // Now that the field has been touched, it should show error for empty value
+            await helper.validation.expectNameInputError(1);
 
-    // Fill name properly
-    await nameInput.fill('Test Player');
-    await expect(nameInput).not.toHaveClass(/input-error/);
+            // Fill name properly
+            await helper.players.setPlayerName(1, 'Test Player');
+            await helper.validation.expectNameInputValid(1);
 
-    // Power/bracket validation should only trigger when pods are generated
-    await expect(powerBtn).not.toHaveClass(/error/);
+            // Power/bracket validation should only trigger when pods are generated
+            await helper.validation.expectPowerButtonValid(1);
 
-    // Try to generate pods - this should trigger validation
-    await page.click('#generate-pods-btn');
+            // Try to generate pods - this should trigger validation
+            await helper.validation.triggerValidation();
 
-    // Now power button should show error since no power levels selected
-    await expect(powerBtn).toHaveClass(/error/);
+            // Now power button should show error since no power levels selected
+            await helper.validation.expectPowerButtonError(1);
 
-    // Select a power level - error should clear immediately
-    await powerBtn.click();
-    await page.waitForSelector('.player-row:nth-child(1) .power-checkbox input[value="7"]', { state: 'visible' });
-    await page.check('.player-row:nth-child(1) .power-checkbox input[value="7"]');
-    await powerBtn.click(); // Close dropdown
+            // Select a power level - error should clear immediately
+            await helper.players.setPowerLevels(1, [7]);
 
-    // Error should be removed
-    await expect(powerBtn).not.toHaveClass(/error/);
-});
+            // Error should be removed
+            await helper.validation.expectPowerButtonValid(1);
+        });
+    });
 
-test('Bracket mode validation behavior', async ({ page }) => {
-    await page.goto('./index.html');
+    test.describe('Bracket Mode Validation', () => {
+        test.beforeEach(async ({ page }) => {
+            helper = await setupBracketModeTest(page);
+        });
 
-    // Wait for page to be fully loaded
-    await page.waitForLoadState('networkidle');
+        test.afterEach(async () => {
+            await teardownBasicTest(helper);
+        });
 
-    // Switch to bracket mode
-    await page.click('#bracket-radio');
+        test('bracket mode validation behavior', async () => {
+            const nameInput = helper.players.getNameInput(1);
 
-    const nameInput = page.locator('.player-row:nth-child(1) .player-name');
-    const bracketBtn = page.locator('.player-row:nth-child(1) .bracket-selector-btn');
+            // Fill name
+            await helper.players.setPlayerName(1, 'Player 1');
 
-    // Fill name
-    await nameInput.fill('Player 1');
+            // Bracket button should not show error initially
+            await helper.validation.expectBracketButtonValid(1);
 
-    // Bracket button should not show error initially
-    await expect(bracketBtn).not.toHaveClass(/error/);
+            // Try to generate pods - should trigger validation
+            await helper.validation.triggerValidation();
 
-    // Try to generate pods - should trigger validation
-    await page.click('#generate-pods-btn');
+            // Now bracket button should show error
+            await helper.validation.expectBracketButtonError(1);
 
-    // Now bracket button should show error
-    await expect(bracketBtn).toHaveClass(/error/);
+            // Select a bracket - error should clear
+            await helper.players.setBracketLevels(1, [3]);
 
-    // Select a bracket - error should clear
-    await bracketBtn.click();
-    await page.waitForSelector('.player-row:nth-child(1) .bracket-checkbox input[value="3"]', { state: 'visible' });
-    await page.check('.player-row:nth-child(1) .bracket-checkbox input[value="3"]');
-    await bracketBtn.click(); // Close dropdown
-
-    // Error should be removed
-    await expect(bracketBtn).not.toHaveClass(/error/);
+            // Error should be removed
+            await helper.validation.expectBracketButtonValid(1);
+        });
+    });
 });
 
 test('Multiple players validation flow', async ({ page }) => {

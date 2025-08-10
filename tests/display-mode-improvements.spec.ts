@@ -1,64 +1,38 @@
 import { test, expect } from '@playwright/test';
-
-// Helper function to set power levels using the new checkbox system
-async function setPowerLevels(page: any, playerIndex: number, powerLevels: string | number[]) {
-    const powers = typeof powerLevels === 'string' ? [parseFloat(powerLevels)] : powerLevels;
-
-    await page.evaluate(({ playerIndex, powers }) => {
-        const playerRow = document.querySelector(`.player-row:nth-child(${playerIndex})`);
-        if (!playerRow) return;
-
-        playerRow.scrollIntoView({ behavior: 'instant', block: 'nearest' });
-
-        const btn = playerRow.querySelector('.power-selector-btn') as HTMLElement;
-        if (btn) btn.click();
-
-        const dropdown = playerRow.querySelector('.power-selector-dropdown') as HTMLElement;
-        if (dropdown) {
-            dropdown.style.display = 'block';
-            dropdown.classList.add('show');
-
-            const clearBtn = dropdown.querySelector('.clear-btn') as HTMLElement;
-            if (clearBtn) clearBtn.click();
-
-            powers.forEach(power => {
-                const checkbox = dropdown.querySelector(`input[value="${power}"]`) as HTMLInputElement;
-                if (checkbox) checkbox.checked = true;
-            });
-
-            if (btn) btn.click();
-        }
-    }, { playerIndex, powers });
-}
+import TestHelper from './test-helpers';
+import { setupBasicTest, teardownBasicTest } from './test-setup';
 
 test.describe('Display Mode Improvements', () => {
-    test('should have dynamic box width based on longest text in each pod', async ({ page }) => {
-        await page.goto('./index.html');
+    let helper: TestHelper;
 
+    test.beforeEach(async ({ page }) => {
+        helper = await setupBasicTest(page);
+    });
+
+    test.afterEach(async ({ page }) => {
+        await teardownBasicTest(helper);
+    });
+
+    test('should have dynamic box width based on longest text in each pod', async ({ page }) => {
         // Create pods with different name lengths to test dynamic width
         const players = [
-            { name: 'Jo', powers: [6] },           // Very short name
-            { name: 'Alice', powers: [6] },        // Medium name
-            { name: 'Bartholomew', powers: [7] },  // Very long name - will be in different pod
-            { name: 'Eve', powers: [7] }           // Short name - will be with Bartholomew
+            { name: 'Jo', power: [6] },           // Very short name
+            { name: 'Alice', power: [6] },        // Medium name
+            { name: 'Bartholomew', power: [7] },  // Very long name - will be in different pod
+            { name: 'Eve', power: [7] }           // Short name - will be with Bartholomew
         ];
 
-        // Fill in players
-        for (let i = 0; i < players.length; i++) {
-            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await setPowerLevels(page, i + 1, players[i].powers);
-        }
+        // Create players using the helper
+        await helper.players.createPlayers(players);
 
         // Generate pods
-        await page.click('#generate-pods-btn');
-        await page.waitForTimeout(300);
+        await helper.pods.generatePods();
 
         // Wait for display mode button to be visible 
         await expect(page.locator('#display-mode-btn')).toHaveCSS('display', 'inline-block');
 
         // Enter display mode
-        await page.click('#display-mode-btn');
-        await page.waitForTimeout(500); // Wait for display mode to render
+        await helper.displayMode.enterDisplayMode();
 
         // Check that display mode is active
         const displayContainer = page.locator('.display-mode-container');
@@ -103,25 +77,19 @@ test.describe('Display Mode Improvements', () => {
     });
 
     test('should scale font size based on pod dimensions', async ({ page }) => {
-        await page.goto('./index.html');
-
         // Simple test with 4 players all same power level to ensure pod generation works
         const players = [
-            { name: 'Alice', powers: [6] },
-            { name: 'Bob', powers: [6] },
-            { name: 'Charlie', powers: [6] },
-            { name: 'David', powers: [6] }
+            { name: 'Alice', power: [6] },
+            { name: 'Bob', power: [6] },
+            { name: 'Charlie', power: [6] },
+            { name: 'David', power: [6] }
         ];
 
-        // Fill in players
-        for (let i = 0; i < players.length; i++) {
-            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await setPowerLevels(page, i + 1, players[i].powers);
-        }
+        // Create players using helper
+        await helper.players.createPlayers(players);
 
         // Generate pods
-        await page.click('#generate-pods-btn');
-        await page.waitForTimeout(300);
+        await helper.pods.generatePods();
 
         // Wait for display mode button to be visible 
         await expect(page.locator('#display-mode-btn')).toHaveCSS('display', 'inline-block');
@@ -164,33 +132,26 @@ test.describe('Display Mode Improvements', () => {
     });
 
     test('should adapt to different text lengths within same pod', async ({ page }) => {
-        await page.goto('./index.html');
-
         // Create a scenario where one pod has very different text lengths
         // Use same power levels to ensure they end up in the same pod
         const players = [
-            { name: 'Alexander', powers: [6] },     // Long name
-            { name: 'Bartholomew', powers: [6] },   // Very long name  
-            { name: 'Jo', powers: [6] },            // Very short name
-            { name: 'Sue', powers: [6] }            // Short name
+            { name: 'Alexander', power: [6] },     // Long name
+            { name: 'Bartholomew', power: [6] },   // Very long name  
+            { name: 'Jo', power: [6] },            // Very short name
+            { name: 'Sue', power: [6] }            // Short name
         ];
 
-        // Fill in players - they should all end up in the same pod due to same power level
-        for (let i = 0; i < players.length; i++) {
-            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i].name);
-            await setPowerLevels(page, i + 1, players[i].powers);
-        }
+        // Create players using helper - they should all end up in the same pod due to same power level
+        await helper.players.createPlayers(players);
 
         // Generate pods
-        await page.click('#generate-pods-btn');
-        await page.waitForTimeout(300);
+        await helper.pods.generatePods();
 
         // Wait for display mode button to be visible (if pods were created)
         await expect(page.locator('#display-mode-btn')).toHaveCSS('display', 'inline-block');
 
         // Enter display mode
-        await page.click('#display-mode-btn');
-        await page.waitForTimeout(500);
+        await helper.displayMode.enterDisplayMode();
 
         // Check that all player items in the pod have the same width (based on longest text)
         const playerItems = page.locator('.dynamic-font-item');

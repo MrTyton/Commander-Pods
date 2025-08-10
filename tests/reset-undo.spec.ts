@@ -1,55 +1,16 @@
 import { test, expect } from '@playwright/test';
-
-// Helper function to set power levels efficiently using JavaScript execution
-async function setPowerLevels(page: any, playerIndex: number, powerLevels: number[]) {
-    await page.evaluate(({ playerIndex, powerLevels }) => {
-        const playerRow = document.querySelector(`.player-row:nth-child(${playerIndex})`);
-        if (!playerRow) return;
-
-        // Clear all checkboxes first
-        const powerCheckboxes = playerRow.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
-        powerCheckboxes.forEach(cb => cb.checked = false);
-
-        // Check desired power levels
-        powerLevels.forEach(power => {
-            const checkbox = playerRow.querySelector(`.power-checkbox input[value="${power}"]`) as HTMLInputElement;
-            if (checkbox) {
-                checkbox.checked = true;
-                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-        });
-    }, { playerIndex, powerLevels });
-
-    await page.waitForTimeout(50);
-}
-
-// Helper function to set bracket levels efficiently
-async function setBracketLevels(page: any, playerIndex: number, bracketLevels: string[]) {
-    await page.evaluate(({ playerIndex, bracketLevels }) => {
-        const playerRow = document.querySelector(`.player-row:nth-child(${playerIndex})`);
-        if (!playerRow) return;
-
-        // Clear all bracket checkboxes first
-        const bracketCheckboxes = playerRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
-        bracketCheckboxes.forEach(cb => cb.checked = false);
-
-        // Check desired bracket levels
-        bracketLevels.forEach(bracket => {
-            const checkbox = playerRow.querySelector(`.bracket-checkbox input[value="${bracket}"]`) as HTMLInputElement;
-            if (checkbox) {
-                checkbox.checked = true;
-                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-        });
-    }, { playerIndex, bracketLevels });
-
-    await page.waitForTimeout(50);
-}
+import TestHelper from './test-helpers';
+import { setupBasicTest, teardownBasicTest } from './test-setup';
 
 test.describe('Reset All with Confirmation and Undo', () => {
+    let helper: TestHelper;
+
     test.beforeEach(async ({ page }) => {
-        await page.goto('./index.html');
-        await page.waitForLoadState('networkidle');
+        helper = await setupBasicTest(page);
+    });
+
+    test.afterEach(async ({ page }) => {
+        await teardownBasicTest(helper);
     });
 
     test('Reset All with no data should not show confirmation', async ({ page }) => {
@@ -80,9 +41,8 @@ test.describe('Reset All with Confirmation and Undo', () => {
     });
 
     test('Reset All confirmation accepted should clear data and show undo button', async ({ page }) => {
-        // Add some data
-        await page.fill('.player-row:nth-child(1) .player-name', 'Test Player');
-        await setPowerLevels(page, 1, [5, 6]);
+        // Add some data using the helper
+        await helper.players.createPlayers([{ name: 'Test Player', power: [5, 6] }]);
 
         // Verify power button shows selection
         await expect(page.locator('.player-row:nth-child(1) .power-selector-btn')).toContainText('Power: 5, 6');
@@ -111,13 +71,11 @@ test.describe('Reset All with Confirmation and Undo', () => {
     });
 
     test('Undo Reset should restore all player data', async ({ page }) => {
-        // Add comprehensive data
-        await page.fill('.player-row:nth-child(1) .player-name', 'Player One');
-        await page.fill('.player-row:nth-child(2) .player-name', 'Player Two');
-
-        // Set power levels using helper function
-        await setPowerLevels(page, 1, [4, 5]);
-        await setPowerLevels(page, 2, [7]);
+        // Add comprehensive data using the helper
+        await helper.players.createPlayers([
+            { name: 'Player One', power: [4, 5] },
+            { name: 'Player Two', power: [7] }
+        ]);
 
         // Change leniency setting
         await page.check('#leniency-radio');
@@ -160,12 +118,10 @@ test.describe('Reset All with Confirmation and Undo', () => {
 
     test('Undo Reset should restore bracket mode data', async ({ page }) => {
         // Switch to bracket mode
-        await page.check('#bracket-radio');
-        await page.waitForTimeout(200); // Wait for mode switch
+        await helper.setup.setMode('bracket');
 
-        // Add player with bracket selections
-        await page.fill('.player-row:nth-child(1) .player-name', 'Bracket Player');
-        await setBracketLevels(page, 1, ['3', '4']);
+        // Add player with bracket selections using helper
+        await helper.players.createPlayers([{ name: 'Bracket Player', bracket: [3, 4] }]);
 
         // Verify bracket button shows selection
         await expect(page.locator('.player-row:nth-child(1) .bracket-selector-btn')).toContainText('Brackets: 3, 4');
@@ -205,8 +161,8 @@ test.describe('Reset All with Confirmation and Undo', () => {
         await page.fill('.player-row:nth-child(2) .player-name', 'Group Player 2');
 
         // Set power levels so validation passes
-        await setPowerLevels(page, 1, [5]);
-        await setPowerLevels(page, 2, [5]);
+        await helper.players.setPowerLevels(0, [5]);
+        await helper.players.setPowerLevels(1, [5]);
 
         // Assign first player to new group
         await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');
@@ -244,9 +200,9 @@ test.describe('Reset All with Confirmation and Undo', () => {
 
     test('Undo Reset should restore generated pods', async ({ page }) => {
         // Add enough players for pod generation
-        for (let i = 1; i <= 4; i++) {
-            await page.fill(`.player-row:nth-child(${i}) .player-name`, `Player ${i}`);
-            await setPowerLevels(page, i, [5]);
+        for (let i = 0; i < 4; i++) {
+            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, `Player ${i + 1}`);
+            await helper.players.setPowerLevels(i, [5]);
         }
 
         // Generate pods
@@ -308,15 +264,15 @@ test.describe('Reset All with Confirmation and Undo', () => {
 
         // Player 1: Multiple power levels
         await page.fill('.player-row:nth-child(1) .player-name', 'Multi Power Player');
-        await setPowerLevels(page, 1, [4, 5, 6]);
+        await helper.players.setPowerLevels(0, [4, 5, 6]);
 
         // Player 2: Single power level
         await page.fill('.player-row:nth-child(2) .player-name', 'Single Power Player');
-        await setPowerLevels(page, 2, [8]);
+        await helper.players.setPowerLevels(1, [8]);
 
         // Player 3: Range selection using helper
         await page.fill('.player-row:nth-child(3) .player-name', 'Range Player');
-        await setPowerLevels(page, 3, [6, 7]);
+        await helper.players.setPowerLevels(2, [6, 7]);
 
         // Set leniency
         await page.check('#super-leniency-radio');

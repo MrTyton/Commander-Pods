@@ -1,41 +1,46 @@
 import { test, expect } from '@playwright/test';
+import { setupValidationTest, teardownBasicTest } from './test-setup';
+import TestHelper from './test-helpers';
 
-test('Basic validation behavior - name field only', async ({ page }) => {
-    await page.goto('./index.html');
+test.describe('Basic Validation Behavior', () => {
+    let helper: TestHelper;
 
-    // Test that new rows don't show validation errors initially
-    const nameInput = page.locator('.player-row:nth-child(1) .player-name');
+    test.beforeEach(async ({ page }) => {
+        helper = await setupValidationTest(page);
+    });
 
-    // New rows should NOT start with errors
-    await expect(nameInput).not.toHaveClass(/input-error/);
+    test.afterEach(async () => {
+        await teardownBasicTest(helper);
+    });
 
-    // Name validation should only trigger after the user interacts with the field
-    await nameInput.click();
-    await nameInput.fill('Test');
-    await nameInput.fill(''); // Clear it
+    test('name field validation - only triggers after interaction', async () => {
+        // New rows should NOT start with errors
+        await helper.validation.expectNameInputValid(1);
 
-    // Now that the field has been touched, it should show error for empty value
-    await expect(nameInput).toHaveClass(/input-error/);
+        // Name validation should only trigger after the user interacts with the field
+        const nameInput = helper.players.getNameInput(1);
+        await nameInput.click();
+        await nameInput.fill('Test');
+        await nameInput.fill(''); // Clear it
 
-    // Fill name properly
-    await nameInput.fill('Test Player');
-    await expect(nameInput).not.toHaveClass(/input-error/);
-});
+        // Now that the field has been touched, it should show error for empty value
+        await helper.validation.expectNameInputError(1);
 
-test('Pod generation triggers validation', async ({ page }) => {
-    await page.goto('./index.html');
+        // Fill name properly
+        await helper.players.setPlayerName(1, 'Test Player');
+        await helper.validation.expectNameInputValid(1);
+    });
 
-    const nameInput = page.locator('.player-row:nth-child(1) .player-name');
-    const powerBtn = page.locator('.player-row:nth-child(1) .power-selector-btn');
+    test('pod generation triggers validation for empty fields', async () => {
+        // Initially no errors
+        await helper.validation.expectNameInputValid(1);
+        await helper.validation.expectPowerButtonValid(1);
 
-    // Initially no errors
-    await expect(nameInput).not.toHaveClass(/input-error/);
-    await expect(powerBtn).not.toHaveClass(/error/);
+        // Try to generate pods with empty fields
+        await helper.validation.triggerValidation();
 
-    // Try to generate pods with empty fields
-    await page.click('#generate-pods-btn');
-
-    // Now both should show errors
-    await expect(nameInput).toHaveClass(/input-error/);
-    await expect(powerBtn).toHaveClass(/error/);
+        // Now both should show errors
+        await helper.validation.expectNameInputError(1);
+        await helper.validation.expectPowerButtonError(1);
+    });
 });

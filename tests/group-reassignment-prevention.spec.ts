@@ -1,35 +1,26 @@
 import { test, expect } from '@playwright/test';
+import TestHelper from './test-helpers';
+import { setupBasicTest, teardownBasicTest } from './test-setup';
 
 test.describe('Group Reassignment Prevention', () => {
+    let helper: TestHelper;
+
     test.beforeEach(async ({ page }) => {
-        await page.goto('http://localhost:8080/index.html');
+        helper = await setupBasicTest(page);
+    });
+
+    test.afterEach(async ({ page }) => {
+        await teardownBasicTest(helper);
     });
 
     test('should not reassign players who moved from their created group to another group', async ({ page }) => {
-        // Add 4 players
-        await page.click('#add-player-btn');
-        await page.fill('.player-row:nth-child(1) .player-name', 'Player 1');
-        await page.click('.player-row:nth-child(1) .power-selector-btn');
-        await page.check('.player-row:nth-child(1) .power-checkbox input[value="6"]');
-        await page.click('.player-row:nth-child(1) .power-selector-btn');
-
-        await page.click('#add-player-btn');
-        await page.fill('.player-row:nth-child(2) .player-name', 'Player 2');
-        await page.click('.player-row:nth-child(2) .power-selector-btn');
-        await page.check('.player-row:nth-child(2) .power-checkbox input[value="6"]');
-        await page.click('.player-row:nth-child(2) .power-selector-btn');
-
-        await page.click('#add-player-btn');
-        await page.fill('.player-row:nth-child(3) .player-name', 'Player 3');
-        await page.click('.player-row:nth-child(3) .power-selector-btn');
-        await page.check('.player-row:nth-child(3) .power-checkbox input[value="6"]');
-        await page.click('.player-row:nth-child(3) .power-selector-btn');
-
-        await page.click('#add-player-btn');
-        await page.fill('.player-row:nth-child(4) .player-name', 'Player 4');
-        await page.click('.player-row:nth-child(4) .power-selector-btn');
-        await page.check('.player-row:nth-child(4) .power-checkbox input[value="6"]');
-        await page.click('.player-row:nth-child(4) .power-selector-btn');
+        // Add 4 players using helper
+        await helper.players.createPlayers([
+            { name: 'Player 1', power: [6] },
+            { name: 'Player 2', power: [6] },
+            { name: 'Player 3', power: [6] },
+            { name: 'Player 4', power: [6] }
+        ]);
 
         // Create groups 1, 2, 3
         await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group'); // Player 1 creates Group 1
@@ -83,25 +74,12 @@ test.describe('Group Reassignment Prevention', () => {
     });
 
     test('should preserve user group assignments during group ID reuse', async ({ page }) => {
-        // Add 3 players
-        await page.click('#add-player-btn');
-        await page.fill('.player-row:nth-child(1) .player-name', 'Alice');
-        await page.click('.player-row:nth-child(1) .power-selector-btn');
-        await page.waitForSelector('.player-row:nth-child(1) .power-checkbox input[value="5"]', { state: 'visible' });
-        await page.check('.player-row:nth-child(1) .power-checkbox input[value="5"]');
-        await page.click('.player-row:nth-child(1) .power-selector-btn');
-
-        await page.click('#add-player-btn');
-        await page.fill('.player-row:nth-child(2) .player-name', 'Bob');
-        await page.click('.player-row:nth-child(2) .power-selector-btn');
-        await page.waitForSelector('.player-row:nth-child(2) .power-checkbox input[value="5"]', { state: 'visible' });
-        await page.check('.player-row:nth-child(2) .power-checkbox input[value="5"]');
-        await page.click('.player-row:nth-child(2) .power-selector-btn');
-
-        await page.click('#add-player-btn');
-        await page.fill('.player-row:nth-child(3) .player-name', 'Carol');
-        await page.click('.player-row:nth-child(3) .power-selector-btn');
-        await page.waitForSelector('.player-row:nth-child(3) .power-checkbox input[value="5"]', { state: 'visible' });
+        // Add 3 players using helper
+        await helper.players.createPlayers([
+            { name: 'Alice', power: [5] },
+            { name: 'Bob', power: [5] },
+            { name: 'Carol', power: [5] }
+        ]);
         await page.check('.player-row:nth-child(3) .power-checkbox input[value="5"]');
         await page.click('.player-row:nth-child(3) .power-selector-btn');
 
@@ -126,20 +104,11 @@ test.describe('Group Reassignment Prevention', () => {
     });
 
     test('should NOT reassign players who manually left their created group', async ({ page }) => {
-        // Add 2 players
-        await page.click('#add-player-btn');
-        await page.fill('.player-row:nth-child(1) .player-name', 'Player 1');
-        await page.click('.player-row:nth-child(1) .power-selector-btn');
-        await page.waitForSelector('.player-row:nth-child(1) .power-checkbox input[value="7"]', { state: 'visible' });
-        await page.check('.player-row:nth-child(1) .power-checkbox input[value="7"]');
-        await page.click('.player-row:nth-child(1) .power-selector-btn');
-
-        await page.click('#add-player-btn');
-        await page.fill('.player-row:nth-child(2) .player-name', 'Player 2');
-        await page.click('.player-row:nth-child(2) .power-selector-btn');
-        await page.waitForSelector('.player-row:nth-child(2) .power-checkbox input[value="7"]', { state: 'visible' });
-        await page.check('.player-row:nth-child(2) .power-checkbox input[value="7"]');
-        await page.click('.player-row:nth-child(2) .power-selector-btn');
+        // Add 2 players using helper
+        await helper.players.createPlayers([
+            { name: 'Player 1', power: [7] },
+            { name: 'Player 2', power: [7] }
+        ]);
 
         // Player 1 creates Group 1
         await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');

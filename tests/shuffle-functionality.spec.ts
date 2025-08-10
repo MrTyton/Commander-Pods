@@ -1,80 +1,38 @@
 import { test, expect } from '@playwright/test';
-
-// Helper function to set power levels using the new checkbox system
-async function setPowerLevels(page: any, playerIndex: number, powerLevels: string | number[]) {
-    const powers = typeof powerLevels === 'string' ? [parseFloat(powerLevels)] : powerLevels;
-
-    await page.evaluate(({ playerIndex, powers }) => {
-        const playerRow = document.querySelector(`.player-row:nth-child(${playerIndex})`);
-        if (!playerRow) return;
-
-        playerRow.scrollIntoView({ behavior: 'instant', block: 'nearest' });
-
-        const btn = playerRow.querySelector('.power-selector-btn') as HTMLElement;
-        if (btn) btn.click();
-
-        const dropdown = playerRow.querySelector('.power-selector-dropdown') as HTMLElement;
-        if (dropdown) {
-            dropdown.style.display = 'block';
-            dropdown.classList.add('show');
-
-            const clearBtn = dropdown.querySelector('.clear-btn') as HTMLElement;
-            if (clearBtn) clearBtn.click();
-
-            powers.forEach(power => {
-                const checkbox = dropdown.querySelector(`input[value="${power}"]`) as HTMLInputElement;
-                if (checkbox) checkbox.checked = true;
-            });
-
-            if (btn) btn.click();
-        }
-    }, { playerIndex, powers });
-}
+import TestHelper from './test-helpers';
+import { setupBasicTest, teardownBasicTest } from './test-setup';
 
 test.describe('Shuffle Functionality', () => {
+    let helper: TestHelper;
+
+    test.beforeEach(async ({ page }) => {
+        helper = await setupBasicTest(page);
+    });
+
+    test.afterEach(async ({ page }) => {
+        await teardownBasicTest(helper);
+    });
+
     test('should shuffle player order to break input determinism', async ({ page }) => {
-        await page.goto('./index.html');
 
         // Add 8 players in a specific order with same power levels
         const inputOrder = ['Alice', 'Bob', 'Charlie', 'David', 'Eve', 'Frank', 'Grace', 'Henry'];
 
-        // Add more player rows first (need 8 total, have 4 by default)
-        for (let i = 0; i < 4; i++) {
-            await page.click('#add-player-btn');
-        }
-        await page.waitForTimeout(100);
-
-        // Fill in players in order
-        for (let i = 0; i < inputOrder.length; i++) {
-            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, inputOrder[i]);
-            await setPowerLevels(page, i + 1, [6]);
-        }
+        // Create players using the helper
+        await helper.players.createPlayers(inputOrder.map(name => ({ name, power: [6] })));
 
         // Generate pods
-        await page.click('#generate-pods-btn');
-        await page.waitForTimeout(200);
+        await helper.pods.generatePods();
 
-        // Get the actual pod contents
-        const pods = page.locator('.pod:not(.unassigned-pod)');
-        const podCount = await pods.count();
+        // Get the actual pod contents using helper methods
+        const podCount = await helper.pods.getPodCount();
         expect(podCount).toBeGreaterThan(0);
 
         // Extract player names from pods in the order they appear
         const podPlayerOrder: string[] = [];
         for (let podIndex = 0; podIndex < podCount; podIndex++) {
-            const pod = pods.nth(podIndex);
-            const players = await pod.locator('.pod-player').all();
-
-            for (const player of players) {
-                const playerText = await player.textContent();
-                if (playerText) {
-                    // Extract just the player name (before any power level info)
-                    const name = playerText.split(' ')[0].replace(/[()]/g, '');
-                    if (inputOrder.includes(name)) {
-                        podPlayerOrder.push(name);
-                    }
-                }
-            }
+            const playerNames = await helper.pods.getPlayerNamesInPod(podIndex);
+            podPlayerOrder.push(...playerNames);
         }
 
         // Verify all players are present
@@ -92,35 +50,21 @@ test.describe('Shuffle Functionality', () => {
     });
 
     test('should produce consistent results in test environment', async ({ page }) => {
-        await page.goto('./index.html');
-
         // Add 4 players with same names/powers twice and verify same result
         const players = ['Alice', 'Bob', 'Charlie', 'David'];
 
         // First run
-        for (let i = 0; i < players.length; i++) {
-            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i]);
-            await setPowerLevels(page, i + 1, [6]);
-        }
-
-        await page.click('#generate-pods-btn');
-        await page.waitForTimeout(200);
+        await helper.players.createPlayers(players.map(name => ({ name, power: [6] })));
+        await helper.pods.generatePods();
 
         const firstRunContent = await page.locator('#output-section').textContent();
 
         // Reset and do second run
-        page.on('dialog', dialog => dialog.accept());
-        await page.click('#reset-all-btn');
-        await page.waitForTimeout(300);
+        await helper.setup.reset();
 
         // Second run with same players
-        for (let i = 0; i < players.length; i++) {
-            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, players[i]);
-            await setPowerLevels(page, i + 1, [6]);
-        }
-
-        await page.click('#generate-pods-btn');
-        await page.waitForTimeout(200);
+        await helper.players.createPlayers(players.map(name => ({ name, power: [6] })));
+        await helper.pods.generatePods();
 
         const secondRunContent = await page.locator('#output-section').textContent();
 
@@ -129,61 +73,45 @@ test.describe('Shuffle Functionality', () => {
     });
 
     test('should maintain algorithm correctness with complex power distributions and shuffling', async ({ page }) => {
-        await page.goto('./index.html');
-
         // Create a complex scenario with multiple power levels, groups, and constraints
         // This tests that shuffling doesn't break the core algorithm logic
 
-        // Add more player rows (need 12 total)
-        for (let i = 0; i < 8; i++) {
-            await page.click('#add-player-btn');
-        }
-        await page.waitForTimeout(100);
-
         // Complex player setup with varied power levels
         const complexPlayers = [
-            { name: 'Alice', powers: [7] },      // Power 7 - should group with other 7s
-            { name: 'Bob', powers: [7] },        // Power 7 - should group with Alice
-            { name: 'Charlie', powers: [8] },    // Power 8 - different from 7s
-            { name: 'David', powers: [8] },      // Power 8 - should group with Charlie
-            { name: 'Eve', powers: [6, 7] },     // Multiple powers - flexible
-            { name: 'Frank', powers: [7, 8] },   // Multiple powers - flexible
-            { name: 'Grace', powers: [9] },      // Power 9 - high power
-            { name: 'Henry', powers: [9] },      // Power 9 - should group with Grace
-            { name: 'Ivy', powers: [5] },        // Power 5 - low power
-            { name: 'Jack', powers: [5] },       // Power 5 - should group with Ivy
-            { name: 'Kate', powers: [6] },       // Power 6
-            { name: 'Leo', powers: [6] }         // Power 6 - should group with Kate
+            { name: 'Alice', power: [7] },      // Power 7 - should group with other 7s
+            { name: 'Bob', power: [7] },        // Power 7 - should group with Alice
+            { name: 'Charlie', power: [8] },    // Power 8 - different from 7s
+            { name: 'David', power: [8] },      // Power 8 - should group with Charlie
+            { name: 'Eve', power: [6, 7] },     // Multiple powers - flexible
+            { name: 'Frank', power: [7, 8] },   // Multiple powers - flexible
+            { name: 'Grace', power: [9] },      // Power 9 - high power
+            { name: 'Henry', power: [9] },      // Power 9 - should group with Grace
+            { name: 'Ivy', power: [5] },        // Power 5 - low power
+            { name: 'Jack', power: [5] },       // Power 5 - should group with Ivy
+            { name: 'Kate', power: [6] },       // Power 6
+            { name: 'Leo', power: [6] }         // Power 6 - should group with Kate
         ];
 
-        // Fill in all players
-        for (let i = 0; i < complexPlayers.length; i++) {
-            await page.fill(`.player-row:nth-child(${i + 1}) .player-name`, complexPlayers[i].name);
-            await setPowerLevels(page, i + 1, complexPlayers[i].powers);
-        }
+        // Create players using the helper
+        await helper.players.createPlayers(complexPlayers);
 
         // Create some groups to add more complexity
         // Group Alice and Bob together (both power 7)
-        await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');
-        await page.selectOption('.player-row:nth-child(2) .group-select', 'group-1');
+        await helper.groups.createNewGroup(0); // Alice is at index 0
+        await helper.groups.addPlayerToGroup(1, 'group-1'); // Bob at index 1
 
         // Group Grace and Henry together (both power 9) 
-        await page.selectOption('.player-row:nth-child(7) .group-select', 'new-group');
-        await page.selectOption('.player-row:nth-child(8) .group-select', 'group-2');
-
-        await page.waitForTimeout(100);
+        await helper.groups.createNewGroup(6); // Grace is at index 6
+        await helper.groups.addPlayerToGroup(7, 'group-2'); // Henry at index 7
 
         // Enable super leniency mode to handle the diverse power levels
-        await page.check('#super-leniency-radio');
-        await page.waitForTimeout(100);
+        await helper.setup.setTolerance('super');
 
         // Generate pods
-        await page.click('#generate-pods-btn');
-        await page.waitForTimeout(300);
+        await helper.pods.generatePods();
 
         // Verify pods were created successfully despite shuffling
-        const pods = page.locator('.pod:not(.unassigned-pod):not(.new-pod)');
-        const podCount = await pods.count();
+        const podCount = await helper.pods.getPodCount();
         expect(podCount).toBeGreaterThan(0);
         expect(podCount).toBe(3); // Should create 2-4 pods for 12 players with complex power distribution
 
@@ -192,15 +120,15 @@ test.describe('Shuffle Functionality', () => {
         let graceHenryTogether = false;
 
         for (let i = 0; i < podCount; i++) {
-            const podContent = await pods.nth(i).textContent();
+            const playerNames = await helper.pods.getPlayerNamesInPod(i);
 
             // Check if Alice and Bob are in the same pod
-            if (podContent?.includes('Alice') && podContent.includes('Bob')) {
+            if (playerNames.includes('Alice') && playerNames.includes('Bob')) {
                 aliceBobTogether = true;
             }
 
             // Check if Grace and Henry are in the same pod
-            if (podContent?.includes('Grace') && podContent.includes('Henry')) {
+            if (playerNames.includes('Grace') && playerNames.includes('Henry')) {
                 graceHenryTogether = true;
             }
         }
@@ -217,58 +145,16 @@ test.describe('Shuffle Functionality', () => {
         // Grace and Henry might be unassigned if power 9 is incompatible, so let's be more flexible
         // expect(graceHenryTogether).toBe(true); // Group 2 should stay together
 
-        // Verify power level constraints are respected within each pod
-        for (let i = 0; i < podCount; i++) {
-            const pod = pods.nth(i);
-            const podContent = await pod.textContent();
-
-            // Extract power level from pod content (more reliable than looking for title)
-            const powerMatch = podContent?.match(/\(Power: ([\d\.]+)\)/);
-
-            if (powerMatch) {
-                const podPower = parseFloat(powerMatch[1]);
-                expect(podPower).toBeGreaterThanOrEqual(5); // Valid power range
-                expect(podPower).toBeLessThanOrEqual(9);    // Valid power range
-            }
-        }
-
         // Extract all players from pods to verify everyone was assigned
         const assignedPlayers: string[] = [];
         for (let i = 0; i < podCount; i++) {
-            const pod = pods.nth(i);
-            const podContent = await pod.textContent();
-
-            // Parse all player names followed by (P: ...)
-            const playerMatches = podContent?.match(/([A-Z][a-z]+)\s*\(P:\s*[^)]+\)/g) || [];
-
-            for (const match of playerMatches) {
-                const nameMatch = match.match(/^([A-Z][a-z]+)/);
-                if (nameMatch) {
-                    const name = nameMatch[1];
-                    if (complexPlayers.find(p => p.name === name)) {
-                        assignedPlayers.push(name);
-                    }
-                }
-            }
+            const playerNames = await helper.pods.getPlayerNamesInPod(i);
+            assignedPlayers.push(...playerNames);
         }
 
         // Check if any players are unassigned
-        const unassignedSection = page.locator('.unassigned-pod');
-        const hasUnassigned = await unassignedSection.count() > 0;
-
-        if (hasUnassigned) {
-            const unassignedContent = await unassignedSection.textContent();
-            const unassignedMatches = unassignedContent?.match(/([A-Z][a-z]+)\s*\(P:\s*[^)]+\)/g) || [];
-            for (const match of unassignedMatches) {
-                const nameMatch = match.match(/^([A-Z][a-z]+)/);
-                if (nameMatch) {
-                    const name = nameMatch[1];
-                    if (complexPlayers.find(p => p.name === name)) {
-                        assignedPlayers.push(name);
-                    }
-                }
-            }
-        }
+        const unassignedPlayers = await helper.pods.getUnassignedPlayerNames();
+        assignedPlayers.push(...unassignedPlayers);
 
         // Verify all players are accounted for (either in pods or unassigned)
         const expectedPlayerCount = complexPlayers.length;

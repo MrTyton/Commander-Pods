@@ -91,10 +91,10 @@ test.describe('MTG Commander Pod Generator', () => {
         await helper.pods.expectPodCount(1);
 
         // Check that all players are listed
-        await helper.pods.expectPodHasPlayers(0, ['Alice', 'Bob', 'Charlie', 'Dave']);
+        await helper.pods.expectPodHasPlayers(1, ['Alice', 'Bob', 'Charlie', 'Dave']);
 
         // Check that the pod has the correct power level by checking its title
-        const podTitle = await helper.pods.getPodTitle(0).textContent();
+        const podTitle = await helper.pods.getPodTitle(1).textContent();
         expect(podTitle).toContain('(Power: 7)');
     });
 
@@ -264,14 +264,10 @@ test.describe('MTG Commander Pod Generator', () => {
         expect(podCount).toBeGreaterThan(0);
 
         // Look for group with average power of 7 (6+8)/2 = 7
-        let hasGroupWithAverage = false;
-        for (let podIndex = 0; podIndex < podCount; podIndex++) {
-            const hasGroup = await helper.pods.podContainsGroupInfo(podIndex, 'Group 1', 7);
-            if (hasGroup) {
-                hasGroupWithAverage = true;
-                break;
-            }
-        }
+        const podArrangement = await helper.pods.getPodArrangement();
+        const hasGroupWithAverage = podArrangement.some(pod =>
+            pod.title.includes('Group 1') && pod.title.includes('Avg Power: 7')
+        );
         expect(hasGroupWithAverage).toBeTruthy();
     });
 
@@ -325,21 +321,16 @@ test.describe('MTG Commander Pod Generator', () => {
         // Check that Alice and Bob are in the same pod (as a group)
         const podArrangement = await helper.pods.getPodArrangement();
         let groupFound = false;
-        let podWithGroup = -1;
 
         for (const pod of podArrangement) {
             if (pod.players.includes('Alice') && pod.players.includes('Bob')) {
                 groupFound = true;
-                podWithGroup = pod.podIndex;
+                expect(pod.title).toContain('Group 1');
                 break;
             }
         }
 
         expect(groupFound).toBeTruthy();
-
-        // Verify the pod contains the group information
-        const hasGroupInfo = await helper.pods.podContainsGroupInfo(podWithGroup, 'Group 1');
-        expect(hasGroupInfo).toBeTruthy();
     });
 
     test('should handle players with multiple power levels', async ({ page }) => {

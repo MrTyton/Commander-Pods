@@ -1,28 +1,25 @@
 import { test, expect } from '@playwright/test';
+import TestHelper from './test-helpers';
+import { setupBasicTest, teardownBasicTest } from './test-setup';
 
 test.describe('Exact User Scenario Debug', () => {
+    let helper: TestHelper;
+
+    test.beforeEach(async ({ page }) => {
+        helper = await setupBasicTest(page);
+    });
+
+    test.afterEach(async ({ page }) => {
+        await teardownBasicTest(helper);
+    });
+
     test('reproduce user scenario: 1,2,3 -> move 2 to 1 -> create new', async ({ page }) => {
-
-        await page.goto('http://localhost:8080/index.html');
-
-        // Add 3 players
-        await page.click('#add-player-btn');
-        await page.fill('.player-row:nth-child(1) .player-name', 'Player 1');
-        await page.click('.player-row:nth-child(1) .power-selector-btn');
-        await page.check('.player-row:nth-child(1) .power-checkbox input[value="6"]');
-        await page.click('.player-row:nth-child(1) .power-selector-btn');
-
-        await page.click('#add-player-btn');
-        await page.fill('.player-row:nth-child(2) .player-name', 'Player 2');
-        await page.click('.player-row:nth-child(2) .power-selector-btn');
-        await page.check('.player-row:nth-child(2) .power-checkbox input[value="6"]');
-        await page.click('.player-row:nth-child(2) .power-selector-btn');
-
-        await page.click('#add-player-btn');
-        await page.fill('.player-row:nth-child(3) .player-name', 'Player 3');
-        await page.click('.player-row:nth-child(3) .power-selector-btn');
-        await page.check('.player-row:nth-child(3) .power-checkbox input[value="6"]');
-        await page.click('.player-row:nth-child(3) .power-selector-btn');
+        // Add 3 players using helper
+        await helper.players.createPlayers([
+            { name: 'Player 1', power: [6] },
+            { name: 'Player 2', power: [6] },
+            { name: 'Player 3', power: [6] }
+        ]);
 
         await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');
         await page.waitForTimeout(100);
