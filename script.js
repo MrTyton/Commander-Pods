@@ -1632,6 +1632,7 @@
       removeBtn.addEventListener("click", () => {
         this.playerRowsContainer.removeChild(newRow);
         this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
+        this.updatePlayerNumbers();
       });
       const nameInput = newRow.querySelector(".player-name");
       nameInput.addEventListener("input", () => {
@@ -1650,6 +1651,7 @@
       });
       this.playerRowsContainer.appendChild(newRow);
       this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
+      this.updatePlayerNumbers();
       const bracketRadio = document.getElementById("bracket-radio");
       const isBracketMode = bracketRadio.checked;
       const powerLevels = newRow.querySelector(".power-levels");
@@ -2416,6 +2418,18 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
           bracketSelectorBtn.classList.add("has-selection");
         }
       }
+    }
+    /**
+     * Update player numbers for all rows to maintain contiguous numbering
+     */
+    updatePlayerNumbers() {
+      const playerRows = this.playerRowsContainer.querySelectorAll(".player-row");
+      playerRows.forEach((row, index) => {
+        const numberElement = row.querySelector(".player-number");
+        if (numberElement) {
+          numberElement.textContent = (index + 1).toString();
+        }
+      });
     }
   };
 

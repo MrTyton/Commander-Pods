@@ -504,6 +504,9 @@ export class UIManager {
         removeBtn.addEventListener('click', () => {
             this.playerRowsContainer.removeChild(newRow);
             this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
+
+            // Update player numbers after removal
+            this.updatePlayerNumbers();
         });
 
         // Add real-time validation for player name
@@ -534,6 +537,9 @@ export class UIManager {
 
         this.playerRowsContainer.appendChild(newRow);
         this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
+
+        // Update player numbers for all rows
+        this.updatePlayerNumbers();
 
         // Apply current ranking mode to the new row
         const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
@@ -1556,5 +1562,18 @@ export class UIManager {
                 bracketSelectorBtn.classList.add('has-selection');
             }
         }
+    }
+
+    /**
+     * Update player numbers for all rows to maintain contiguous numbering
+     */
+    private updatePlayerNumbers(): void {
+        const playerRows = this.playerRowsContainer.querySelectorAll('.player-row');
+        playerRows.forEach((row, index) => {
+            const numberElement = row.querySelector('.player-number') as HTMLElement;
+            if (numberElement) {
+                numberElement.textContent = (index + 1).toString();
+            }
+        });
     }
 }

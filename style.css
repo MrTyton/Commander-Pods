@@ -41,6 +41,18 @@ h2 {
     align-items: center;
 }
 
+.player-number {
+    background-color: var(--accent-color);
+    color: var(--button-text-color);
+    border-radius: var(--border-radius);
+    padding: 8px 12px;
+    font-weight: bold;
+    min-width: 35px;
+    text-align: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
 .player-row input,
 .player-row select {
     padding: 8px;

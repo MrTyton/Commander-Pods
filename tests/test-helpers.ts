@@ -205,6 +205,55 @@ class PlayerManager {
     }
 
     /**
+     * Get player number element locator
+     */
+    getPlayerNumber(playerIndex: number): Locator {
+        return this.getPlayerRow(playerIndex).locator('.player-number');
+    }
+
+    /**
+     * Get the displayed number for a player row
+     */
+    async getPlayerNumberText(playerIndex: number): Promise<string> {
+        const numberElement = this.getPlayerNumber(playerIndex);
+        return await numberElement.textContent() || '';
+    }
+
+    /**
+     * Verify player numbers are contiguous starting from 1
+     */
+    async verifyPlayerNumberSequence(): Promise<boolean> {
+        const playerRows = await this.page.locator('.player-row').count();
+
+        for (let i = 0; i < playerRows; i++) {
+            const numberText = await this.getPlayerNumberText(i);
+            const expectedNumber = (i + 1).toString();
+
+            if (numberText !== expectedNumber) {
+                console.log(`Expected player ${i} to have number ${expectedNumber}, but got ${numberText}`);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Get all player numbers as an array
+     */
+    async getAllPlayerNumbers(): Promise<string[]> {
+        const playerRows = await this.page.locator('.player-row').count();
+        const numbers: string[] = [];
+
+        for (let i = 0; i < playerRows; i++) {
+            const numberText = await this.getPlayerNumberText(i);
+            numbers.push(numberText);
+        }
+
+        return numbers;
+    }
+
+    /**
      * Ensure exact number of player rows (add or remove as needed)
      */
     async ensurePlayerRows(count: number) {
