@@ -5,6 +5,7 @@ A web tool for creating balanced Magic: The Gathering Commander pods based on pl
 ## Features
 
 - **Power Level Matching**: Group players by deck power levels (1-10 scale)
+- **Pod Size Optimization**: Choose between balanced pods or optimized pods that avoid groups of 5 players
 - **Flexible Grouping**: Allow friends to stay together
 - **Keyboard Shortcuts**: Quick power level selection with keyboard input
 - **Range Support**: Select power level ranges (e.g., "7-9")
@@ -75,8 +76,28 @@ The site will be available at `https://[your-username].github.io/[repository-nam
 1. **Add Players**: Enter player names and select their deck power levels
 2. **Set Groups**: Use dropdowns to group players who want to stay together
 3. **Choose Leniency**: Adjust power level matching tolerance
-4. **Generate Pods**: Create balanced groups of 3-4 players
-5. **Manage Results**: Drag and drop to adjust, or use Display Mode for presentation
+4. **Select Pod Optimization**: Choose between "Balanced" (default) or "Avoid Pods of 5"
+5. **Generate Pods**: Create balanced groups of 3-4 players
+6. **Manage Results**: Drag and drop to adjust, or use Display Mode for presentation
+
+## Pod Size Optimization
+
+The tool offers two pod generation strategies:
+
+### Balanced Pods (Default)
+- Creates the most balanced distribution possible
+- May create pods of 5 players when mathematically optimal
+- Works well for all player counts
+
+### Avoid Pods of 5
+- Prioritizes pods of 3 players over pods of 5
+- Only activates when you have 9+ players (mathematical requirement)
+- Examples:
+  - 10 players: Creates [4,3,3] instead of [5,5]
+  - 11 players: Creates [4,4,3] instead of [5,3,3]
+  - 13 players: Creates [4,3,3,3] instead of [5,4,4]
+
+**Note**: For fewer than 9 players, the tool automatically uses balanced optimization since avoiding pods of 5 isn't mathematically possible.
 
 ## Feedback & Bug Reports
 

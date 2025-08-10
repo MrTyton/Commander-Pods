@@ -28,6 +28,65 @@ export function calculatePodSizes(n: number): number[] {
     return []; // Fallback
 }
 
+export function calculatePodSizesAvoidFive(n: number): number[] {
+    if (n < 3) return [];
+    
+    // For small numbers where avoiding 5s isn't possible or beneficial,
+    // fall back to balanced algorithm
+    if (n < 9) {
+        return calculatePodSizes(n);
+    }
+    
+    // For 9+ players, implement avoid-five logic
+    if (n === 9) return [3, 3, 3];  // 9 = 3+3+3 instead of 5+4
+    if (n === 10) return [4, 3, 3]; // 10 = 4+3+3 instead of 5+5
+    if (n === 11) return [4, 4, 3]; // 11 = 4+4+3 instead of 5+4+2 (2 is invalid)
+    if (n === 12) return [4, 4, 4]; // 12 = 4+4+4 instead of 5+5+2 (2 is invalid)
+    if (n === 13) return [4, 3, 3, 3]; // 13 = 4+3+3+3 instead of 5+4+4
+    if (n === 14) return [4, 4, 3, 3]; // 14 = 4+4+3+3 instead of 5+5+4
+    if (n === 15) return [4, 4, 4, 3]; // 15 = 4+4+4+3 instead of 5+5+5
+    
+    // For larger numbers, use a general algorithm that prioritizes 4s and 3s
+    const result: number[] = [];
+    let remaining = n;
+    
+    // Try to use as many 4s as possible, then fill with 3s
+    while (remaining >= 7) {
+        result.push(4);
+        remaining -= 4;
+    }
+    
+    // Handle the remainder
+    if (remaining === 6) {
+        result.push(3, 3);
+    } else if (remaining === 5) {
+        // For remainder 5, we need to backtrack and use 3s instead
+        if (result.length > 0) {
+            // Remove one 4, add back to remaining, then split differently
+            result.pop();
+            remaining += 4; // remaining is now 9
+            result.push(3, 3, 3); // 9 = 3+3+3
+        } else {
+            // This shouldn't happen with n>=9, but fallback to balanced
+            return calculatePodSizes(n);
+        }
+    } else if (remaining === 4) {
+        result.push(4);
+    } else if (remaining === 3) {
+        result.push(3);
+    }
+    
+    return result.sort((a, b) => b - a); // Sort descending
+}
+
+export function getPodOptimizationSetting(): 'balanced' | 'avoid-five' {
+    const avoidFiveRadio = document.getElementById('avoid-five-pods-radio') as HTMLInputElement;
+    if (avoidFiveRadio && avoidFiveRadio.checked) {
+        return 'avoid-five';
+    }
+    return 'balanced'; // Default to balanced
+}
+
 export function getLeniencySettings(): LeniencySettings {
     // Check if we're in bracket mode - if so, disable leniency
     const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;

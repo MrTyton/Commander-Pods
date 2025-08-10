@@ -49,6 +49,17 @@
                     Super Leniency (±1.0)
                 </label>
             </fieldset>
+            <fieldset>
+                <legend>Pod Size Preference</legend>
+                <label>
+                    <input type="radio" name="pod-optimization" value="balanced" id="balanced-pods-radio" checked>
+                    Balanced (Allows pods of 3, 4, and 5)
+                </label>
+                <label>
+                    <input type="radio" name="pod-optimization" value="avoid-five" id="avoid-five-pods-radio">
+                    Avoid Large Pods (Never pods of 5, prefer pods of 3)
+                </label>
+            </fieldset>
         </div>
 
         <div class="main-actions">
@@ -232,6 +243,16 @@
                     <li><strong>Super Leniency:</strong> Allows ±1.0 power level difference</li>
                 </ul>
                 <p><em>Note: Bracket mode always uses exact matching with no leniency.</em></p>
+                
+                <div class="feature-highlight">
+                    <strong>🎯 Pod Size Preference:</strong>
+                    <ul>
+                        <li><strong>Balanced:</strong> Uses the most mathematically balanced distribution possible, may create pods of 3, 4, or 5 players</li>
+                        <li><strong>Avoid Large Pods:</strong> Prioritizes pods of 3 players and avoids creating pods of 5 when possible</li>
+                        <li><strong>Mathematical Constraint:</strong> "Avoid Large Pods" only applies with 9+ players (otherwise balanced mode is used automatically)</li>
+                        <li><strong>Examples:</strong> With 10 players, creates [4,3,3] instead of [5,5]; with 13 players, creates [4,3,3,3] instead of [5,4,4]</li>
+                    </ul>
+                </div>
 
                 <div class="help-section-title">🎲 Generating Pods</div>
                 <p>Click "Generate Pods" to create balanced groups. The tool will:</p>

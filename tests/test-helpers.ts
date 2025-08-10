@@ -1076,6 +1076,21 @@ class PodManager {
     }
 
     /**
+     * Get player counts for all pods
+     */
+    async getAllPodPlayerCounts(): Promise<number[]> {
+        const podCount = await this.getPodCount();
+        const counts: number[] = [];
+
+        for (let podIndex = 0; podIndex < podCount; podIndex++) {
+            const playerNames = await this.getPlayerNamesInPod(podIndex);
+            counts.push(playerNames.length);
+        }
+
+        return counts;
+    }
+
+    /**
      * Get pod arrangement as a structured object
      */
     async getPodArrangement(): Promise<{ podIndex: number; title: string; players: string[] }[]> {

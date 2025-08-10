@@ -25,6 +25,48 @@
     if (remainder === 3) return [...Array(fours).fill(4), 3];
     return [];
   }
+  function calculatePodSizesAvoidFive(n) {
+    if (n < 3) return [];
+    if (n < 9) {
+      return calculatePodSizes(n);
+    }
+    if (n === 9) return [3, 3, 3];
+    if (n === 10) return [4, 3, 3];
+    if (n === 11) return [4, 4, 3];
+    if (n === 12) return [4, 4, 4];
+    if (n === 13) return [4, 3, 3, 3];
+    if (n === 14) return [4, 4, 3, 3];
+    if (n === 15) return [4, 4, 4, 3];
+    const result = [];
+    let remaining = n;
+    while (remaining >= 7) {
+      result.push(4);
+      remaining -= 4;
+    }
+    if (remaining === 6) {
+      result.push(3, 3);
+    } else if (remaining === 5) {
+      if (result.length > 0) {
+        result.pop();
+        remaining += 4;
+        result.push(3, 3, 3);
+      } else {
+        return calculatePodSizes(n);
+      }
+    } else if (remaining === 4) {
+      result.push(4);
+    } else if (remaining === 3) {
+      result.push(3);
+    }
+    return result.sort((a, b) => b - a);
+  }
+  function getPodOptimizationSetting() {
+    const avoidFiveRadio = document.getElementById("avoid-five-pods-radio");
+    if (avoidFiveRadio && avoidFiveRadio.checked) {
+      return "avoid-five";
+    }
+    return "balanced";
+  }
   function getLeniencySettings() {
     const bracketRadio = document.getElementById("bracket-radio");
     if (bracketRadio && bracketRadio.checked) {
@@ -1755,7 +1797,8 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
         alert("You need at least 3 players to form a pod.");
         return;
       }
-      const podSizes = calculatePodSizes(totalPlayerCount);
+      const podOptimization = getPodOptimizationSetting();
+      const podSizes = podOptimization === "avoid-five" ? calculatePodSizesAvoidFive(totalPlayerCount) : calculatePodSizes(totalPlayerCount);
       const leniencySettings = getLeniencySettings();
       const isTestEnvironment = typeof window !== "undefined" && (window.location.protocol === "file:" || window.__playwright !== void 0 || window.playwright !== void 0);
       if (isTestEnvironment) {

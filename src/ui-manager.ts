@@ -1,5 +1,5 @@
 import { Player, Group, Pod } from './types.js';
-import { calculatePodSizes, getLeniencySettings } from './utils.js';
+import { calculatePodSizes, calculatePodSizesAvoidFive, getPodOptimizationSetting, getLeniencySettings } from './utils.js';
 import { PlayerManager } from './player-manager.js';
 import { PodGenerator } from './pod-generator.js';
 import { DragDropManager } from './drag-drop.js';
@@ -666,7 +666,12 @@ export class UIManager {
             return;
         }
 
-        const podSizes = calculatePodSizes(totalPlayerCount);
+        // Get pod optimization setting and use appropriate calculation function
+        const podOptimization = getPodOptimizationSetting();
+        const podSizes = podOptimization === 'avoid-five' 
+            ? calculatePodSizesAvoidFive(totalPlayerCount)
+            : calculatePodSizes(totalPlayerCount);
+            
         const leniencySettings = getLeniencySettings();
 
         // Set shuffle seed for deterministic results in tests, random in production
