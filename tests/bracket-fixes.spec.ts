@@ -72,11 +72,14 @@ test.describe('Bracket Mode Fixes', () => {
             expect(displayTitleText).toContain('Bracket: 1');
             expect(displayTitleText).not.toContain('Power: 1');
 
-            // Check display mode player text
+            // Check display mode player text - now uses separated name/power structure
             const displayPlayerElement = page.locator('.display-mode-container li').first();
             const displayPlayerText = await displayPlayerElement.textContent();
-            expect(displayPlayerText).toContain('(B: 1)');
-            expect(displayPlayerText).not.toContain('(P:');
+
+            // Player text should contain the name and bracket info
+            expect(displayPlayerText).toContain('Player4');  // Player name
+            expect(displayPlayerText).toContain('B: 1');     // Bracket info
+            expect(displayPlayerText).not.toContain('P:');   // Should not show power
 
             // Exit display mode
             await page.keyboard.press('Escape');
@@ -196,14 +199,15 @@ test.describe('Bracket Mode Fixes', () => {
         expect(displayTitleText).toContain('Bracket: 3');
         expect(displayTitleText).not.toContain('Bracket: 2, 4'); // Should not show all possible brackets
 
-        // Check individual players in display mode
+        // Check individual players in display mode - now uses separated name/power structure
         const displayPlayerElements = page.locator('.display-mode-container li');
         const displayPlayerCount = await displayPlayerElements.count();
 
         for (let i = 0; i < displayPlayerCount; i++) {
             const playerText = await displayPlayerElements.nth(i).textContent();
-            // Each individual player should show their own bracket range
-            expect(playerText).toMatch(/\(B: (3|2, 3|3, 4)\)/); // Should be B: 3, B: 2,3, or B: 3,4
+            // Each individual player should show their bracket range
+            // New format: name on one line, "B: X" on another line
+            expect(playerText).toMatch(/B: (3|2, 3|3, 4)/); // Should be B: 3, B: 2,3, or B: 3,4
         }
 
         // Exit display mode

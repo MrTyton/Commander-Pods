@@ -50,27 +50,26 @@ test.describe('Display Mode Styling', () => {
         const fontSizeValue = parseFloat(fontSize);
         expect(fontSizeValue).toBeGreaterThanOrEqual(16); // 1rem = 16px typically
 
-        // Check background color for better visibility
-        await expect(firstPlayerItem).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.1)');
+        // Check background color for better visibility (updated value)
+        await expect(firstPlayerItem).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.12)');
 
-        // Check border radius is now larger (8px instead of 4px)
-        await expect(firstPlayerItem).toHaveCSS('border-radius', '8px');
+        // Check border radius is now larger (12px instead of 8px based on our updates)
+        await expect(firstPlayerItem).toHaveCSS('border-radius', '12px');
 
         // Check that player items now have flex display for better centering
         await expect(firstPlayerItem).toHaveCSS('display', 'flex');
         await expect(firstPlayerItem).toHaveCSS('align-items', 'center');
         await expect(firstPlayerItem).toHaveCSS('justify-content', 'center');
 
-        // Check that player items have dynamic minimum height
+        // Check that player items have dynamic minimum height (80px from our CSS)
         const minHeight = await firstPlayerItem.evaluate(el => getComputedStyle(el).minHeight);
         const minHeightValue = parseFloat(minHeight);
-        expect(minHeightValue).toBeGreaterThanOrEqual(50); // Should be at least 50px
+        expect(minHeightValue).toBeGreaterThanOrEqual(70); // Should be at least 70px (allowing some variance)
 
-        // Verify the ul container centers items and uses gap
+        // Verify the ul container uses grid display and gap
         const playersList = page.locator('.display-mode-container ul').first();
-        await expect(playersList).toHaveCSS('justify-content', 'center');
-        await expect(playersList).toHaveCSS('align-items', 'center');
-        await expect(playersList).toHaveCSS('gap', '8px');
+        await expect(playersList).toHaveCSS('display', 'grid');
+        await expect(playersList).toHaveCSS('gap', '12px');
 
         // Exit display mode to clean up
         await page.click('#exit-display-btn');

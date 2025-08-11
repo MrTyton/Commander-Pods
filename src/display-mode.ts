@@ -138,15 +138,29 @@ export class DisplayModeManager {
     }
 
     private calculateFontSizeForPod(podWidth: number, podHeight: number, playerCount: number): string {
-        // Base font size calculation based on pod dimensions and player count
+        // More aggressive font size calculation for grid layout
         const podArea = podWidth * podHeight;
-        const baseSize = Math.sqrt(podArea) / 40; // Slightly adjusted scaling factor
 
-        // Adjust based on player count - more players = smaller font, but less dramatic
-        const playerCountFactor = Math.max(0.7, 1 - (playerCount - 3) * 0.06);
+        // Calculate grid dimensions to determine cell size
+        const gridCols = Math.ceil(Math.sqrt(playerCount));
+        const gridRows = Math.ceil(playerCount / gridCols);
 
-        // Calculate final font size with tighter bounds for more consistent sizing
-        const finalSize = Math.max(14, Math.min(24, baseSize * playerCountFactor));
+        // Approximate cell dimensions (accounting for gap)
+        const cellWidth = (podWidth - (gridCols - 1) * 10) / gridCols; // 10px gap
+        const cellHeight = (podHeight - (gridRows - 1) * 10) / gridRows; // 10px gap
+
+        // Much more aggressive scaling - use cell dimensions directly
+        const cellMinDimension = Math.min(cellWidth, cellHeight);
+
+        // Base size should fill a significant portion of the cell
+        // For a 2-line layout, we want each line to be roughly 1/3 of cell height
+        const baseSize = Math.min(cellMinDimension * 0.25, cellHeight * 0.35);
+
+        // Minimal player count penalty since grid handles density well
+        const playerCountFactor = Math.max(0.9, 1 - (playerCount - 3) * 0.02);
+
+        // Much higher minimum and maximum for better space utilization
+        const finalSize = Math.max(24, Math.min(72, baseSize * playerCountFactor));
 
         return `${Math.round(finalSize)}px`;
     }
@@ -286,15 +300,15 @@ export class DisplayModeManager {
             podElement.style.boxSizing = 'border-box';
             podElement.style.minHeight = '0';
             podElement.style.boxShadow = `0 0 10px ${podColors[index]}40`; // Add subtle glow effect
-            podElement.classList.add(`pod-color-${index % 10}`);
+            podElement.classList.add('pod', `pod-color-${index % 10}`);
 
             const title = document.createElement('h3');
 
             // Check if we're in bracket mode (same logic as ui-manager.ts)
-            const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
-            const isBracketMode = bracketRadio && bracketRadio.checked;
+            const titleBracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+            const titleIsBracketMode = titleBracketRadio && titleBracketRadio.checked;
 
-            if (isBracketMode) {
+            if (titleIsBracketMode) {
                 // In bracket mode, calculate the valid bracket range like power level mode does
                 const validBracketRange = this.calculateValidBracketRange(pod);
                 title.textContent = `Pod ${index + 1} (Bracket: ${validBracketRange})`;
@@ -327,7 +341,7 @@ export class DisplayModeManager {
             pod.players.forEach(item => {
                 if ('players' in item) { // It's a Group
                     item.players.forEach(p => {
-                        const text = isBracketMode && p.bracketRange
+                        const text = titleIsBracketMode && p.bracketRange
                             ? `${p.name} (B: ${p.bracketRange})`
                             : `${p.name} (P: ${p.powerRange})`;
                         if (text.length > longestText.length) {
@@ -335,7 +349,7 @@ export class DisplayModeManager {
                         }
                     });
                 } else { // It's a Player
-                    const text = isBracketMode && item.bracketRange
+                    const text = titleIsBracketMode && item.bracketRange
                         ? `${item.name} (B: ${item.bracketRange})`
                         : `${item.name} (P: ${item.powerRange})`;
                     if (text.length > longestText.length) {
@@ -347,111 +361,95 @@ export class DisplayModeManager {
             const list = document.createElement('ul');
             list.style.flexGrow = '1';
             list.style.display = 'flex';
-            list.style.flexDirection = 'column';
-            list.style.justifyContent = 'center'; // Center players vertically in the box
-            list.style.alignItems = 'center'; // Center players horizontally
+            // Calculate grid dimensions based on player count
+            const gridCols = Math.ceil(Math.sqrt(playerCount));
+            const gridRows = Math.ceil(playerCount / gridCols);
+
+            // Set up grid layout for better space utilization
+            list.style.display = 'grid';
+            list.style.gridTemplateColumns = `repeat(${gridCols}, 1fr)`;
+            list.style.gridTemplateRows = `repeat(${gridRows}, 1fr)`;
+            list.style.gap = '12px';
             list.style.margin = '0';
             list.style.padding = '0';
             list.style.listStyle = 'none';
-            list.style.overflowY = 'auto';
-            list.style.width = '100%'; // Take full width for centering
-            list.style.gap = '8px'; // Use gap instead of margin for better spacing
+            list.style.width = '100%';
+            list.style.height = '100%';
+            list.style.alignItems = 'stretch';
+            list.style.justifyItems = 'stretch';
 
-            // Calculate dynamic width based on longest text in this pod
-            const optimalWidth = this.calculateOptimalWidthForText(longestText);
-
-            // Store pod element reference for later font size calculation
-            const podElementRef = podElement;
+            // Collect all players (flattening groups)
+            const allPlayers: Array<{ name: string, powerRange?: string, bracketRange?: string }> = [];
 
             pod.players.forEach(item => {
                 if ('players' in item) { // It's a Group - flatten to show individual players
-                    item.players.forEach(p => {
-                        const playerItem = document.createElement('li');
-
-                        // Check if we're in bracket mode for player display
-                        const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
-                        const isBracketMode = bracketRadio && bracketRadio.checked;
-
-                        if (isBracketMode && p.bracketRange) {
-                            playerItem.textContent = `${p.name} (B: ${p.bracketRange})`;
-                        } else {
-                            playerItem.textContent = `${p.name} (P: ${p.powerRange})`;
-                        }
-
-                        // Make player names adaptive and centered with dynamic width
-                        playerItem.style.color = '#ffffff';
-                        playerItem.style.textAlign = 'center';
-                        playerItem.style.width = `${optimalWidth}%`;
-                        playerItem.style.maxWidth = `${optimalWidth}%`;
-                        playerItem.style.lineHeight = '1.2';
-                        playerItem.style.fontWeight = '500';
-                        playerItem.style.wordBreak = 'break-word';
-                        playerItem.style.hyphens = 'auto';
-                        playerItem.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                        playerItem.style.borderRadius = '8px';
-                        playerItem.style.boxSizing = 'border-box';
-
-                        // Dynamic height based on number of players - make boxes more square-like
-                        const baseHeight = Math.max(45, Math.min(100, (100 / Math.max(playerCount, 1)) + 25));
-                        playerItem.style.minHeight = `${baseHeight}px`;
-                        playerItem.style.padding = `${Math.max(6, baseHeight * 0.12)}px 10px`; // Reduced padding
-                        playerItem.style.display = 'flex';
-                        playerItem.style.alignItems = 'center';
-                        playerItem.style.justifyContent = 'center';
-
-                        // Store reference to apply font size after pod is sized
-                        playerItem.dataset.podRef = index.toString();
-                        playerItem.classList.add('dynamic-font-item');
-
-                        // Set initial font size to prevent flicker - use a reasonable default
-                        playerItem.style.fontSize = '18px';
-
-                        list.appendChild(playerItem);
-                    });
+                    item.players.forEach(p => allPlayers.push(p));
                 } else { // It's a Player
-                    const playerItem = document.createElement('li');
-
-                    // Check if we're in bracket mode for player display
-                    const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
-                    const isBracketMode = bracketRadio && bracketRadio.checked;
-
-                    if (isBracketMode && item.bracketRange) {
-                        playerItem.textContent = `${item.name} (B: ${item.bracketRange})`;
-                    } else {
-                        playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
-                    }
-
-                    // Make player names adaptive and centered with dynamic width
-                    playerItem.style.color = '#ffffff';
-                    playerItem.style.textAlign = 'center';
-                    playerItem.style.width = `${optimalWidth}%`;
-                    playerItem.style.maxWidth = `${optimalWidth}%`;
-                    playerItem.style.lineHeight = '1.2';
-                    playerItem.style.fontWeight = '500';
-                    playerItem.style.wordBreak = 'break-word';
-                    playerItem.style.hyphens = 'auto';
-                    playerItem.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                    playerItem.style.borderRadius = '8px';
-                    playerItem.style.boxSizing = 'border-box';
-
-                    // Dynamic height based on number of players - make boxes more square-like
-                    const baseHeight = Math.max(45, Math.min(100, (100 / Math.max(playerCount, 1)) + 25));
-                    playerItem.style.minHeight = `${baseHeight}px`;
-                    playerItem.style.padding = `${Math.max(6, baseHeight * 0.12)}px 10px`; // Reduced padding
-                    playerItem.style.display = 'flex';
-                    playerItem.style.alignItems = 'center';
-                    playerItem.style.justifyContent = 'center';
-
-                    // Store reference to apply font size after pod is sized
-                    playerItem.dataset.podRef = index.toString();
-                    playerItem.classList.add('dynamic-font-item');
-
-                    // Set initial font size to prevent flicker - use a reasonable default
-                    playerItem.style.fontSize = '18px';
-
-                    list.appendChild(playerItem);
+                    allPlayers.push(item);
                 }
             });
+
+            // Check if we're in bracket mode for player display
+            const playerBracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+            const playerIsBracketMode = playerBracketRadio && playerBracketRadio.checked;
+
+            allPlayers.forEach((player, playerIndex) => {
+                const playerItem = document.createElement('li');
+
+                // Create structured layout with name and power/bracket on separate lines
+                const nameDiv = document.createElement('div');
+                nameDiv.textContent = player.name;
+                nameDiv.className = 'player-name';
+
+                const powerDiv = document.createElement('div');
+                if (playerIsBracketMode && player.bracketRange) {
+                    powerDiv.textContent = `B: ${player.bracketRange}`;
+                } else {
+                    powerDiv.textContent = `P: ${player.powerRange}`;
+                }
+                powerDiv.className = 'player-power';
+
+                playerItem.appendChild(nameDiv);
+                playerItem.appendChild(powerDiv);
+
+                // Style the player item container
+                playerItem.style.display = 'flex';
+                playerItem.style.flexDirection = 'column';
+                playerItem.style.justifyContent = 'center';
+                playerItem.style.alignItems = 'center';
+                playerItem.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+                playerItem.style.border = '2px solid rgba(255, 255, 255, 0.2)';
+                playerItem.style.borderRadius = '12px';
+                playerItem.style.padding = '8px';
+                playerItem.style.boxSizing = 'border-box';
+                playerItem.style.textAlign = 'center';
+                playerItem.style.height = '100%';
+
+                // Style the name
+                nameDiv.style.color = '#ffffff';
+                nameDiv.style.fontWeight = 'bold';
+                nameDiv.style.lineHeight = '1.1';
+                nameDiv.style.marginBottom = '4px';
+                nameDiv.style.wordBreak = 'break-word';
+                nameDiv.style.hyphens = 'auto';
+                nameDiv.style.flexGrow = '1';
+                nameDiv.style.display = 'flex';
+                nameDiv.style.alignItems = 'center';
+                nameDiv.style.justifyContent = 'center';
+
+                // Style the power/bracket
+                powerDiv.style.color = '#b0b0b0';
+                powerDiv.style.fontWeight = '500';
+                powerDiv.style.lineHeight = '1';
+                powerDiv.style.opacity = '0.9';
+
+                // Store reference for dynamic font sizing
+                playerItem.dataset.podRef = index.toString();
+                playerItem.classList.add('dynamic-font-item');
+
+                list.appendChild(playerItem);
+            });
+
             podElement.appendChild(list);
             podsGrid.appendChild(podElement);
         });
@@ -461,7 +459,7 @@ export class DisplayModeManager {
         // Apply dynamic font sizing after DOM is rendered and pods are sized
         // Use requestAnimationFrame for smoother rendering
         requestAnimationFrame(() => {
-            const allPods = podsGrid.querySelectorAll('div');
+            const allPods = podsGrid.querySelectorAll('.pod');
             allPods.forEach((podElement, podIndex) => {
                 const rect = podElement.getBoundingClientRect();
                 const podWidth = rect.width;
@@ -482,7 +480,18 @@ export class DisplayModeManager {
                 // Apply font size to all player items in this pod
                 const playerItems = podElement.querySelectorAll('.dynamic-font-item');
                 playerItems.forEach(item => {
-                    (item as HTMLElement).style.fontSize = dynamicFontSize;
+                    const nameDiv = item.querySelector('.player-name') as HTMLElement;
+                    const powerDiv = item.querySelector('.player-power') as HTMLElement;
+
+                    if (nameDiv) {
+                        // Name gets the full calculated font size
+                        nameDiv.style.fontSize = dynamicFontSize;
+                    }
+                    if (powerDiv) {
+                        // Power gets 75% of the calculated size for better proportion
+                        const powerFontSize = Math.round(parseInt(dynamicFontSize) * 0.75);
+                        powerDiv.style.fontSize = `${powerFontSize}px`;
+                    }
                 });
             });
         });

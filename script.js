@@ -1044,9 +1044,14 @@
     }
     calculateFontSizeForPod(podWidth, podHeight, playerCount) {
       const podArea = podWidth * podHeight;
-      const baseSize = Math.sqrt(podArea) / 40;
-      const playerCountFactor = Math.max(0.7, 1 - (playerCount - 3) * 0.06);
-      const finalSize = Math.max(14, Math.min(24, baseSize * playerCountFactor));
+      const gridCols = Math.ceil(Math.sqrt(playerCount));
+      const gridRows = Math.ceil(playerCount / gridCols);
+      const cellWidth = (podWidth - (gridCols - 1) * 10) / gridCols;
+      const cellHeight = (podHeight - (gridRows - 1) * 10) / gridRows;
+      const cellMinDimension = Math.min(cellWidth, cellHeight);
+      const baseSize = Math.min(cellMinDimension * 0.25, cellHeight * 0.35);
+      const playerCountFactor = Math.max(0.9, 1 - (playerCount - 3) * 0.02);
+      const finalSize = Math.max(24, Math.min(72, baseSize * playerCountFactor));
       return `${Math.round(finalSize)}px`;
     }
     getCurrentLeniencyTolerance() {
@@ -1149,11 +1154,11 @@
         podElement.style.boxSizing = "border-box";
         podElement.style.minHeight = "0";
         podElement.style.boxShadow = `0 0 10px ${podColors[index]}40`;
-        podElement.classList.add(`pod-color-${index % 10}`);
+        podElement.classList.add("pod", `pod-color-${index % 10}`);
         const title = document.createElement("h3");
-        const bracketRadio = document.getElementById("bracket-radio");
-        const isBracketMode = bracketRadio && bracketRadio.checked;
-        if (isBracketMode) {
+        const titleBracketRadio = document.getElementById("bracket-radio");
+        const titleIsBracketMode = titleBracketRadio && titleBracketRadio.checked;
+        if (titleIsBracketMode) {
           const validBracketRange = this.calculateValidBracketRange(pod);
           title.textContent = `Pod ${index + 1} (Bracket: ${validBracketRange})`;
         } else {
@@ -1180,13 +1185,13 @@
         pod.players.forEach((item) => {
           if ("players" in item) {
             item.players.forEach((p) => {
-              const text = isBracketMode && p.bracketRange ? `${p.name} (B: ${p.bracketRange})` : `${p.name} (P: ${p.powerRange})`;
+              const text = titleIsBracketMode && p.bracketRange ? `${p.name} (B: ${p.bracketRange})` : `${p.name} (P: ${p.powerRange})`;
               if (text.length > longestText.length) {
                 longestText = text;
               }
             });
           } else {
-            const text = isBracketMode && item.bracketRange ? `${item.name} (B: ${item.bracketRange})` : `${item.name} (P: ${item.powerRange})`;
+            const text = titleIsBracketMode && item.bracketRange ? `${item.name} (B: ${item.bracketRange})` : `${item.name} (P: ${item.powerRange})`;
             if (text.length > longestText.length) {
               longestText = text;
             }
@@ -1195,88 +1200,78 @@
         const list = document.createElement("ul");
         list.style.flexGrow = "1";
         list.style.display = "flex";
-        list.style.flexDirection = "column";
-        list.style.justifyContent = "center";
-        list.style.alignItems = "center";
+        const gridCols = Math.ceil(Math.sqrt(playerCount));
+        const gridRows = Math.ceil(playerCount / gridCols);
+        list.style.display = "grid";
+        list.style.gridTemplateColumns = `repeat(${gridCols}, 1fr)`;
+        list.style.gridTemplateRows = `repeat(${gridRows}, 1fr)`;
+        list.style.gap = "12px";
         list.style.margin = "0";
         list.style.padding = "0";
         list.style.listStyle = "none";
-        list.style.overflowY = "auto";
         list.style.width = "100%";
-        list.style.gap = "8px";
-        const optimalWidth = this.calculateOptimalWidthForText(longestText);
-        const podElementRef = podElement;
+        list.style.height = "100%";
+        list.style.alignItems = "stretch";
+        list.style.justifyItems = "stretch";
+        const allPlayers = [];
         pod.players.forEach((item) => {
           if ("players" in item) {
-            item.players.forEach((p) => {
-              const playerItem = document.createElement("li");
-              const bracketRadio2 = document.getElementById("bracket-radio");
-              const isBracketMode2 = bracketRadio2 && bracketRadio2.checked;
-              if (isBracketMode2 && p.bracketRange) {
-                playerItem.textContent = `${p.name} (B: ${p.bracketRange})`;
-              } else {
-                playerItem.textContent = `${p.name} (P: ${p.powerRange})`;
-              }
-              playerItem.style.color = "#ffffff";
-              playerItem.style.textAlign = "center";
-              playerItem.style.width = `${optimalWidth}%`;
-              playerItem.style.maxWidth = `${optimalWidth}%`;
-              playerItem.style.lineHeight = "1.2";
-              playerItem.style.fontWeight = "500";
-              playerItem.style.wordBreak = "break-word";
-              playerItem.style.hyphens = "auto";
-              playerItem.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
-              playerItem.style.borderRadius = "8px";
-              playerItem.style.boxSizing = "border-box";
-              const baseHeight = Math.max(45, Math.min(100, 100 / Math.max(playerCount, 1) + 25));
-              playerItem.style.minHeight = `${baseHeight}px`;
-              playerItem.style.padding = `${Math.max(6, baseHeight * 0.12)}px 10px`;
-              playerItem.style.display = "flex";
-              playerItem.style.alignItems = "center";
-              playerItem.style.justifyContent = "center";
-              playerItem.dataset.podRef = index.toString();
-              playerItem.classList.add("dynamic-font-item");
-              playerItem.style.fontSize = "18px";
-              list.appendChild(playerItem);
-            });
+            item.players.forEach((p) => allPlayers.push(p));
           } else {
-            const playerItem = document.createElement("li");
-            const bracketRadio2 = document.getElementById("bracket-radio");
-            const isBracketMode2 = bracketRadio2 && bracketRadio2.checked;
-            if (isBracketMode2 && item.bracketRange) {
-              playerItem.textContent = `${item.name} (B: ${item.bracketRange})`;
-            } else {
-              playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
-            }
-            playerItem.style.color = "#ffffff";
-            playerItem.style.textAlign = "center";
-            playerItem.style.width = `${optimalWidth}%`;
-            playerItem.style.maxWidth = `${optimalWidth}%`;
-            playerItem.style.lineHeight = "1.2";
-            playerItem.style.fontWeight = "500";
-            playerItem.style.wordBreak = "break-word";
-            playerItem.style.hyphens = "auto";
-            playerItem.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
-            playerItem.style.borderRadius = "8px";
-            playerItem.style.boxSizing = "border-box";
-            const baseHeight = Math.max(45, Math.min(100, 100 / Math.max(playerCount, 1) + 25));
-            playerItem.style.minHeight = `${baseHeight}px`;
-            playerItem.style.padding = `${Math.max(6, baseHeight * 0.12)}px 10px`;
-            playerItem.style.display = "flex";
-            playerItem.style.alignItems = "center";
-            playerItem.style.justifyContent = "center";
-            playerItem.dataset.podRef = index.toString();
-            playerItem.classList.add("dynamic-font-item");
-            playerItem.style.fontSize = "18px";
-            list.appendChild(playerItem);
+            allPlayers.push(item);
           }
+        });
+        const playerBracketRadio = document.getElementById("bracket-radio");
+        const playerIsBracketMode = playerBracketRadio && playerBracketRadio.checked;
+        allPlayers.forEach((player, playerIndex) => {
+          const playerItem = document.createElement("li");
+          const nameDiv = document.createElement("div");
+          nameDiv.textContent = player.name;
+          nameDiv.className = "player-name";
+          const powerDiv = document.createElement("div");
+          if (playerIsBracketMode && player.bracketRange) {
+            powerDiv.textContent = `B: ${player.bracketRange}`;
+          } else {
+            powerDiv.textContent = `P: ${player.powerRange}`;
+          }
+          powerDiv.className = "player-power";
+          playerItem.appendChild(nameDiv);
+          playerItem.appendChild(powerDiv);
+          playerItem.style.display = "flex";
+          playerItem.style.flexDirection = "column";
+          playerItem.style.justifyContent = "center";
+          playerItem.style.alignItems = "center";
+          playerItem.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+          playerItem.style.border = "2px solid rgba(255, 255, 255, 0.2)";
+          playerItem.style.borderRadius = "12px";
+          playerItem.style.padding = "8px";
+          playerItem.style.boxSizing = "border-box";
+          playerItem.style.textAlign = "center";
+          playerItem.style.height = "100%";
+          nameDiv.style.color = "#ffffff";
+          nameDiv.style.fontWeight = "bold";
+          nameDiv.style.lineHeight = "1.1";
+          nameDiv.style.marginBottom = "4px";
+          nameDiv.style.wordBreak = "break-word";
+          nameDiv.style.hyphens = "auto";
+          nameDiv.style.flexGrow = "1";
+          nameDiv.style.display = "flex";
+          nameDiv.style.alignItems = "center";
+          nameDiv.style.justifyContent = "center";
+          powerDiv.style.color = "#b0b0b0";
+          powerDiv.style.fontWeight = "500";
+          powerDiv.style.lineHeight = "1";
+          powerDiv.style.opacity = "0.9";
+          playerItem.dataset.podRef = index.toString();
+          playerItem.classList.add("dynamic-font-item");
+          list.appendChild(playerItem);
         });
         podElement.appendChild(list);
         podsGrid.appendChild(podElement);
       });
       displayOutput.appendChild(podsGrid);
       requestAnimationFrame(() => {
-        const allPods = podsGrid.querySelectorAll("div");
+        const allPods = podsGrid.querySelectorAll(".pod");
         allPods.forEach((podElement, podIndex) => {
           const rect = podElement.getBoundingClientRect();
           const podWidth = rect.width;
@@ -1292,7 +1287,15 @@
           const dynamicFontSize = this.calculateFontSizeForPod(podWidth, podHeight, podPlayerCount);
           const playerItems = podElement.querySelectorAll(".dynamic-font-item");
           playerItems.forEach((item) => {
-            item.style.fontSize = dynamicFontSize;
+            const nameDiv = item.querySelector(".player-name");
+            const powerDiv = item.querySelector(".player-power");
+            if (nameDiv) {
+              nameDiv.style.fontSize = dynamicFontSize;
+            }
+            if (powerDiv) {
+              const powerFontSize = Math.round(parseInt(dynamicFontSize) * 0.75);
+              powerDiv.style.fontSize = `${powerFontSize}px`;
+            }
           });
         });
       });

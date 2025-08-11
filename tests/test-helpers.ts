@@ -53,7 +53,7 @@ class TestSetup {
      * Set the ranking system mode
      */
     async setMode(mode: 'power' | 'bracket') {
-        const radioSelector = mode === 'power' ? '#power-radio' : '#bracket-radio';
+        const radioSelector = mode === 'power' ? '#power-level-radio' : '#bracket-radio';
         await this.page.check(radioSelector);
         await this.page.waitForTimeout(100);
     }
@@ -230,7 +230,6 @@ class PlayerManager {
             const expectedNumber = (i + 1).toString();
 
             if (numberText !== expectedNumber) {
-                console.log(`Expected player ${i} to have number ${expectedNumber}, but got ${numberText}`);
                 return false;
             }
         }
@@ -1280,6 +1279,105 @@ class DisplayModeHelper {
     }
 
     /**
+     * Get grid layout information for a pod
+     */
+    async getGridLayoutInfo(podIndex: number = 0): Promise<{
+        columns: number;
+        rows: number;
+        gap: string;
+        display: string;
+    }> {
+        const podList = this.getDisplayPods().nth(podIndex).locator('ul');
+        return await podList.evaluate(el => {
+            const style = getComputedStyle(el);
+            return {
+                columns: style.gridTemplateColumns.split(' ').length,
+                rows: style.gridTemplateRows.split(' ').length,
+                gap: style.gap,
+                display: style.display
+            };
+        });
+    }
+
+    /**
+     * Get player name and power text from display mode
+     */
+    async getPlayerDisplayText(podIndex: number = 0, playerIndex: number = 0): Promise<{
+        name: string;
+        power: string;
+        combined: string;
+    }> {
+        const playerItem = this.getDisplayPodPlayers(podIndex + 1).nth(playerIndex);
+        const nameDiv = playerItem.locator('.player-name');
+        const powerDiv = playerItem.locator('.player-power');
+
+        const name = await nameDiv.textContent() || '';
+        const power = await powerDiv.textContent() || '';
+        const combined = await playerItem.textContent() || '';
+
+        return { name, power, combined };
+    }
+
+    /**
+     * Get all player display texts for a pod
+     */
+    async getAllPlayerDisplayTexts(podIndex: number = 0): Promise<Array<{
+        name: string;
+        power: string;
+        combined: string;
+    }>> {
+        const playerItems = this.getDisplayPodPlayers(podIndex + 1);
+        const count = await playerItems.count();
+        const results: Array<{ name: string; power: string; combined: string; }> = [];
+
+        for (let i = 0; i < count; i++) {
+            const playerItem = playerItems.nth(i);
+            const nameDiv = playerItem.locator('.player-name');
+            const powerDiv = playerItem.locator('.player-power');
+
+            const name = await nameDiv.textContent() || '';
+            const power = await powerDiv.textContent() || '';
+            const combined = await playerItem.textContent() || '';
+
+            results.push({ name, power, combined });
+        }
+
+        return results;
+    }
+
+    /**
+     * Check if display mode uses grid layout
+     */
+    async isUsingGridLayout(podIndex: number = 0): Promise<boolean> {
+        const info = await this.getGridLayoutInfo(podIndex);
+        return info.display === 'grid';
+    }
+
+    /**
+     * Verify font sizes are in expected range
+     */
+    async expectFontSizeInRange(element: Locator, minSize: number, maxSize: number) {
+        const fontSize = await this.getDisplayElementFontSize(element);
+        expect(fontSize).toBeGreaterThanOrEqual(minSize);
+        expect(fontSize).toBeLessThanOrEqual(maxSize);
+    }
+
+    /**
+     * Check proportional font sizing between name and power
+     */
+    async expectProportionalFontSizing(podIndex: number = 0, playerIndex: number = 0, ratio: number = 0.75) {
+        const playerItem = this.getDisplayPodPlayers(podIndex + 1).nth(playerIndex);
+        const nameDiv = playerItem.locator('.player-name');
+        const powerDiv = playerItem.locator('.player-power');
+
+        const nameFontSize = await this.getDisplayElementFontSize(nameDiv);
+        const powerFontSize = await this.getDisplayElementFontSize(powerDiv);
+
+        const expectedPowerSize = Math.round(nameFontSize * ratio);
+        expect(powerFontSize).toBeCloseTo(expectedPowerSize, 0);
+    }
+
+    /**
      * Get all font sizes in display mode
      */
     async getAllDisplayFontSizes(): Promise<number[]> {
@@ -1432,7 +1530,9 @@ class TestUtils {
      * Log page console for debugging
      */
     async logConsole() {
-        this.page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+        this.page.on('console', msg => {
+            // Console logging disabled for cleaner test output
+        });
     }
 
     /**
