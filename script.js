@@ -130,6 +130,98 @@
       averagePower: Math.round(averagePower * 2) / 2
     };
   }
+  function getCurrentLeniencyTolerance() {
+    const leniencyRadio = document.querySelector("#leniency-radio");
+    const superLeniencyRadio = document.querySelector("#super-leniency-radio");
+    if (superLeniencyRadio?.checked) {
+      return 1;
+    } else if (leniencyRadio?.checked) {
+      return 0.5;
+    } else {
+      return 0;
+    }
+  }
+  function calculateValidPowerRange(pod) {
+    const allPlayers = pod.players.flatMap(
+      (item) => "players" in item ? item.players : [item]
+    );
+    if (allPlayers.length === 0) return pod.power.toString();
+    const tolerance = getCurrentLeniencyTolerance();
+    const validPowers = [];
+    const allPossiblePowers = /* @__PURE__ */ new Set();
+    allPlayers.forEach((player) => {
+      player.availablePowers.forEach((power) => allPossiblePowers.add(power));
+    });
+    for (const testPower of allPossiblePowers) {
+      const canAllPlayersParticipate = allPlayers.every(
+        (player) => player.availablePowers.some(
+          (playerPower) => Math.abs(testPower - playerPower) <= tolerance
+        )
+      );
+      if (canAllPlayersParticipate) {
+        validPowers.push(testPower);
+      }
+    }
+    validPowers.sort((a, b) => a - b);
+    if (validPowers.length === 0) {
+      return pod.power.toString();
+    } else if (validPowers.length === 1) {
+      return validPowers[0].toString();
+    } else {
+      const isConsecutive = validPowers.every(
+        (power, index) => index === 0 || power - validPowers[index - 1] <= 0.5
+      );
+      if (isConsecutive && validPowers.length > 2) {
+        return `${validPowers[0]}-${validPowers[validPowers.length - 1]}`;
+      } else {
+        return validPowers.join(", ");
+      }
+    }
+  }
+  function formatPlayerPowerRangeWithBolding(player, validPowersForPod) {
+    let playerPowers = [];
+    if (Array.isArray(player.availablePowers)) {
+      playerPowers = player.availablePowers;
+    } else if (typeof player.powerRange === "string") {
+      if (player.powerRange.includes("-")) {
+        const [start, end] = player.powerRange.split("-").map((x) => parseFloat(x.trim()));
+        for (let i = start; i <= end; i += 0.5) {
+          playerPowers.push(i);
+        }
+      } else {
+        playerPowers = player.powerRange.split(",").map((x) => parseFloat(x.trim()));
+      }
+    }
+    const formattedPowers = playerPowers.map((power) => {
+      const isValidForPod = validPowersForPod.includes(power);
+      return isValidForPod ? `<b>${power}</b>` : power.toString();
+    });
+    return formattedPowers.join(", ");
+  }
+  function getValidPowersArrayForPod(pod) {
+    const allPlayers = pod.players.flatMap(
+      (item) => "players" in item ? item.players : [item]
+    );
+    if (allPlayers.length === 0) return [];
+    const tolerance = getCurrentLeniencyTolerance();
+    const validPowers = [];
+    const allPossiblePowers = /* @__PURE__ */ new Set();
+    allPlayers.forEach((player) => {
+      player.availablePowers.forEach((power) => allPossiblePowers.add(power));
+    });
+    for (const testPower of allPossiblePowers) {
+      const canAllPlayersParticipate = allPlayers.every(
+        (player) => player.availablePowers.some(
+          (playerPower) => Math.abs(testPower - playerPower) <= tolerance
+        )
+      );
+      if (canAllPlayersParticipate) {
+        validPowers.push(testPower);
+      }
+    }
+    validPowers.sort((a, b) => a - b);
+    return validPowers;
+  }
 
   // src/player-manager.ts
   var PlayerManager = class {
@@ -986,43 +1078,6 @@
       }
       return shuffled.slice(0, count);
     }
-    calculateValidPowerRange(pod) {
-      const allPlayers = pod.players.flatMap(
-        (item) => "players" in item ? item.players : [item]
-      );
-      if (allPlayers.length === 0) return pod.power.toString();
-      const tolerance = this.getCurrentLeniencyTolerance();
-      const validPowers = [];
-      const allPossiblePowers = /* @__PURE__ */ new Set();
-      allPlayers.forEach((player) => {
-        player.availablePowers.forEach((power) => allPossiblePowers.add(power));
-      });
-      for (const testPower of allPossiblePowers) {
-        const canAllPlayersParticipate = allPlayers.every(
-          (player) => player.availablePowers.some(
-            (playerPower) => Math.abs(testPower - playerPower) <= tolerance
-          )
-        );
-        if (canAllPlayersParticipate) {
-          validPowers.push(testPower);
-        }
-      }
-      validPowers.sort((a, b) => a - b);
-      if (validPowers.length === 0) {
-        return pod.power.toString();
-      } else if (validPowers.length === 1) {
-        return validPowers[0].toString();
-      } else {
-        const isConsecutive = validPowers.every(
-          (power, index) => index === 0 || power - validPowers[index - 1] <= 0.5
-        );
-        if (isConsecutive && validPowers.length > 2) {
-          return `${validPowers[0]}-${validPowers[validPowers.length - 1]}`;
-        } else {
-          return validPowers.join(", ");
-        }
-      }
-    }
     calculateOptimalWidthForText(text) {
       let weightedLength = 0;
       for (const char of text) {
@@ -1053,17 +1108,6 @@
       const playerCountFactor = Math.max(0.9, 1 - (playerCount - 3) * 0.02);
       const finalSize = Math.max(24, Math.min(72, baseSize * playerCountFactor));
       return `${Math.round(finalSize)}px`;
-    }
-    getCurrentLeniencyTolerance() {
-      const leniencyRadio = document.querySelector("#leniency-radio");
-      const superLeniencyRadio = document.querySelector("#super-leniency-radio");
-      if (superLeniencyRadio?.checked) {
-        return 1;
-      } else if (leniencyRadio?.checked) {
-        return 0.5;
-      } else {
-        return 0;
-      }
     }
     calculateValidBracketRange(pod) {
       const allPlayers = pod.players.flatMap(
@@ -1162,7 +1206,7 @@
           const validBracketRange = this.calculateValidBracketRange(pod);
           title.textContent = `Pod ${index + 1} (Bracket: ${validBracketRange})`;
         } else {
-          const validPowerRange = this.calculateValidPowerRange(pod);
+          const validPowerRange = calculateValidPowerRange(pod);
           title.textContent = `Pod ${index + 1} (Power: ${validPowerRange})`;
         }
         title.style.fontSize = "1.6rem";
@@ -1849,7 +1893,8 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
           const validBracketRange = this.calculateValidBracketRange(pod);
           title.textContent = `Pod ${index + 1} (Bracket: ${validBracketRange})`;
         } else {
-          title.textContent = `Pod ${index + 1} (Power: ${pod.power})`;
+          const validPowerRange = calculateValidPowerRange(pod);
+          title.textContent = `Pod ${index + 1} (Power: ${validPowerRange})`;
         }
         podElement.appendChild(title);
         const list = document.createElement("ul");
@@ -1898,7 +1943,9 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
             if (isBracketMode2 && item.bracketRange) {
               playerItem.textContent = `${item.name} (B: ${item.bracketRange})`;
             } else {
-              playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+              const validPowersForPod = getValidPowersArrayForPod(pod);
+              const formattedPowerRange = formatPlayerPowerRangeWithBolding(item, validPowersForPod);
+              playerItem.innerHTML = `${item.name} (P: ${formattedPowerRange})`;
             }
             list.appendChild(playerItem);
           }

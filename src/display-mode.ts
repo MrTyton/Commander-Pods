@@ -1,4 +1,5 @@
 import { Pod } from './types.js';
+import { calculateValidPowerRange, getCurrentLeniencyTolerance } from './utils.js';
 
 export class DisplayModeManager {
     private isDisplayMode = false;
@@ -51,61 +52,6 @@ export class DisplayModeManager {
         }
 
         return shuffled.slice(0, count);
-    }
-
-    private calculateValidPowerRange(pod: Pod): string {
-        // Get all individual players from the pod (flatten groups)
-        const allPlayers = pod.players.flatMap(item =>
-            'players' in item ? item.players : [item]
-        );
-
-        if (allPlayers.length === 0) return pod.power.toString();
-
-        const tolerance = this.getCurrentLeniencyTolerance();
-
-        // Find all powers that every player can participate in (considering leniency)
-        const validPowers: number[] = [];
-
-        // Get all unique power levels that any player can play
-        const allPossiblePowers = new Set<number>();
-        allPlayers.forEach(player => {
-            player.availablePowers.forEach(power => allPossiblePowers.add(power));
-        });
-
-        // Check each possible power level to see if all players can participate
-        for (const testPower of allPossiblePowers) {
-            const canAllPlayersParticipate = allPlayers.every(player =>
-                player.availablePowers.some(playerPower =>
-                    Math.abs(testPower - playerPower) <= tolerance
-                )
-            );
-
-            if (canAllPlayersParticipate) {
-                validPowers.push(testPower);
-            }
-        }
-
-        // Sort the valid powers
-        validPowers.sort((a, b) => a - b);
-
-        if (validPowers.length === 0) {
-            return pod.power.toString(); // Fallback to current power
-        } else if (validPowers.length === 1) {
-            return validPowers[0].toString();
-        } else {
-            // Check if it's a continuous range or discrete values
-            const isConsecutive = validPowers.every((power, index) =>
-                index === 0 || power - validPowers[index - 1] <= 0.5
-            );
-
-            if (isConsecutive && validPowers.length > 2) {
-                // Show as range for 3+ consecutive values
-                return `${validPowers[0]}-${validPowers[validPowers.length - 1]}`;
-            } else {
-                // Show as comma-separated list for discrete values or small ranges
-                return validPowers.join(', ');
-            }
-        }
     }
 
     private calculateOptimalWidthForText(text: string): number {
@@ -163,20 +109,6 @@ export class DisplayModeManager {
         const finalSize = Math.max(24, Math.min(72, baseSize * playerCountFactor));
 
         return `${Math.round(finalSize)}px`;
-    }
-
-    private getCurrentLeniencyTolerance(): number {
-        // Get current leniency setting from the DOM
-        const leniencyRadio = document.querySelector('#leniency-radio') as HTMLInputElement;
-        const superLeniencyRadio = document.querySelector('#super-leniency-radio') as HTMLInputElement;
-
-        if (superLeniencyRadio?.checked) {
-            return 1.0; // Super leniency
-        } else if (leniencyRadio?.checked) {
-            return 0.5; // Regular leniency
-        } else {
-            return 0.0; // No leniency
-        }
     }
 
     private calculateValidBracketRange(pod: Pod): string {
@@ -313,7 +245,7 @@ export class DisplayModeManager {
                 const validBracketRange = this.calculateValidBracketRange(pod);
                 title.textContent = `Pod ${index + 1} (Bracket: ${validBracketRange})`;
             } else {
-                const validPowerRange = this.calculateValidPowerRange(pod);
+                const validPowerRange = calculateValidPowerRange(pod);
                 title.textContent = `Pod ${index + 1} (Power: ${validPowerRange})`;
             }
 

@@ -1,4 +1,4 @@
-import { LeniencySettings } from './types.js';
+import { LeniencySettings, Pod } from './types.js';
 
 export function calculatePodSizes(n: number): number[] {
     if (n < 3) return [];
@@ -164,4 +164,136 @@ export function parsePowerLevels(powerCheckboxes: NodeListOf<HTMLInputElement>):
         powerRange,
         averagePower: Math.round(averagePower * 2) / 2
     };
+}
+
+export function getCurrentLeniencyTolerance(): number {
+    // Get current leniency setting from the DOM
+    const leniencyRadio = document.querySelector('#leniency-radio') as HTMLInputElement;
+    const superLeniencyRadio = document.querySelector('#super-leniency-radio') as HTMLInputElement;
+
+    if (superLeniencyRadio?.checked) {
+        return 1.0; // Super leniency
+    } else if (leniencyRadio?.checked) {
+        return 0.5; // Regular leniency
+    } else {
+        return 0.0; // No leniency
+    }
+}
+
+export function calculateValidPowerRange(pod: Pod): string {
+    // Get all individual players from the pod (flatten groups)
+    const allPlayers = pod.players.flatMap(item =>
+        'players' in item ? item.players : [item]
+    );
+
+    if (allPlayers.length === 0) return pod.power.toString();
+
+    const tolerance = getCurrentLeniencyTolerance();
+
+    // Find all powers that every player can participate in (considering leniency)
+    const validPowers: number[] = [];
+
+    // Get all unique power levels that any player can play
+    const allPossiblePowers = new Set<number>();
+    allPlayers.forEach(player => {
+        player.availablePowers.forEach(power => allPossiblePowers.add(power));
+    });
+
+    // Check each possible power level to see if all players can participate
+    for (const testPower of allPossiblePowers) {
+        const canAllPlayersParticipate = allPlayers.every(player =>
+            player.availablePowers.some(playerPower =>
+                Math.abs(testPower - playerPower) <= tolerance
+            )
+        );
+
+        if (canAllPlayersParticipate) {
+            validPowers.push(testPower);
+        }
+    }
+
+    // Sort the valid powers
+    validPowers.sort((a, b) => a - b);
+
+    if (validPowers.length === 0) {
+        return pod.power.toString(); // Fallback to current power
+    } else if (validPowers.length === 1) {
+        return validPowers[0].toString();
+    } else {
+        // Check if it's a continuous range or discrete values
+        const isConsecutive = validPowers.every((power, index) =>
+            index === 0 || power - validPowers[index - 1] <= 0.5
+        );
+
+        if (isConsecutive && validPowers.length > 2) {
+            // Show as range for 3+ consecutive values
+            return `${validPowers[0]}-${validPowers[validPowers.length - 1]}`;
+        } else {
+            // Show as comma-separated list for discrete values or small ranges
+            return validPowers.join(', ');
+        }
+    }
+}
+
+export function formatPlayerPowerRangeWithBolding(player: any, validPowersForPod: number[]): string {
+    // Parse the player's available powers
+    let playerPowers: number[] = [];
+    if (Array.isArray(player.availablePowers)) {
+        playerPowers = player.availablePowers;
+    } else if (typeof player.powerRange === 'string') {
+        // Parse from powerRange string like "5, 6, 7" or "7-9"
+        if (player.powerRange.includes('-')) {
+            const [start, end] = player.powerRange.split('-').map((x: string) => parseFloat(x.trim()));
+            for (let i = start; i <= end; i += 0.5) {
+                playerPowers.push(i);
+            }
+        } else {
+            playerPowers = player.powerRange.split(',').map((x: string) => parseFloat(x.trim()));
+        }
+    }
+
+    // Create formatted string with bolded valid powers
+    const formattedPowers = playerPowers.map(power => {
+        const isValidForPod = validPowersForPod.includes(power);
+        return isValidForPod ? `<b>${power}</b>` : power.toString();
+    });
+
+    return formattedPowers.join(', ');
+}
+
+export function getValidPowersArrayForPod(pod: Pod): number[] {
+    // Get all individual players from the pod (flatten groups)
+    const allPlayers = pod.players.flatMap(item =>
+        'players' in item ? item.players : [item]
+    );
+
+    if (allPlayers.length === 0) return [];
+
+    const tolerance = getCurrentLeniencyTolerance();
+
+    // Find all powers that every player can participate in (considering leniency)
+    const validPowers: number[] = [];
+
+    // Get all unique power levels that any player can play
+    const allPossiblePowers = new Set<number>();
+    allPlayers.forEach(player => {
+        player.availablePowers.forEach(power => allPossiblePowers.add(power));
+    });
+
+    // Check each possible power level to see if all players can participate
+    for (const testPower of allPossiblePowers) {
+        const canAllPlayersParticipate = allPlayers.every(player =>
+            player.availablePowers.some(playerPower =>
+                Math.abs(testPower - playerPower) <= tolerance
+            )
+        );
+
+        if (canAllPlayersParticipate) {
+            validPowers.push(testPower);
+        }
+    }
+
+    // Sort the valid powers and return the array
+    validPowers.sort((a, b) => a - b);
+    return validPowers;
 }

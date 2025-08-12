@@ -1,5 +1,5 @@
 import { Player, Group, Pod } from './types.js';
-import { calculatePodSizes, calculatePodSizesAvoidFive, getPodOptimizationSetting, getLeniencySettings } from './utils.js';
+import { calculatePodSizes, calculatePodSizesAvoidFive, getPodOptimizationSetting, getLeniencySettings, calculateValidPowerRange, formatPlayerPowerRangeWithBolding, getValidPowersArrayForPod } from './utils.js';
 import { PlayerManager } from './player-manager.js';
 import { PodGenerator } from './pod-generator.js';
 import { DragDropManager } from './drag-drop.js';
@@ -747,7 +747,9 @@ export class UIManager {
                 const validBracketRange = this.calculateValidBracketRange(pod);
                 title.textContent = `Pod ${index + 1} (Bracket: ${validBracketRange})`;
             } else {
-                title.textContent = `Pod ${index + 1} (Power: ${pod.power})`;
+                // Use the same intersection logic as display mode
+                const validPowerRange = calculateValidPowerRange(pod);
+                title.textContent = `Pod ${index + 1} (Power: ${validPowerRange})`;
             }
 
             podElement.appendChild(title);
@@ -811,7 +813,10 @@ export class UIManager {
                     if (isBracketMode && item.bracketRange) {
                         playerItem.textContent = `${item.name} (B: ${item.bracketRange})`;
                     } else {
-                        playerItem.textContent = `${item.name} (P: ${item.powerRange})`;
+                        // Get valid powers for this pod and format with bolding
+                        const validPowersForPod = getValidPowersArrayForPod(pod);
+                        const formattedPowerRange = formatPlayerPowerRangeWithBolding(item, validPowersForPod);
+                        playerItem.innerHTML = `${item.name} (P: ${formattedPowerRange})`;
                     }
 
                     list.appendChild(playerItem);
