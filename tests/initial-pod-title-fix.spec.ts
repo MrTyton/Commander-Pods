@@ -22,7 +22,7 @@ test.describe('Initial Pod Title Power Range Fix', () => {
 
         // Check that the initial pod title shows the intersection
         const podTitle = await helper.page.locator('.pod h3').first().textContent();
-        
+
         // Should show "Pod 1 (Power: 7, 8)" not "Pod 1 (Power: 7.5)"
         expect(podTitle).toMatch(/Pod 1 \(Power: (7, 8|7-8)\)/);
         expect(podTitle).not.toMatch(/Pod 1 \(Power: 7\.5\)/);
@@ -62,7 +62,7 @@ test.describe('Initial Pod Title Power Range Fix', () => {
 
         // Check pod title
         const podTitle = await helper.page.locator('.pod h3').first().textContent();
-        
+
         // Should show only power 8 since that's the only intersection
         expect(podTitle).toBe('Pod 1 (Power: 8)');
     });
@@ -80,7 +80,7 @@ test.describe('Initial Pod Title Power Range Fix', () => {
 
         // Check pod title - intersection should be only 7
         const podTitle = await helper.page.locator('.pod h3').first().textContent();
-        
+
         // Should show only power 7 since Dave can't play power 6
         expect(podTitle).toBe('Pod 1 (Power: 7)');
     });
@@ -96,7 +96,7 @@ test.describe('Initial Pod Title Power Range Fix', () => {
 
         // Check pod title - intersection should be 6, 7
         const podTitle = await helper.page.locator('.pod h3').first().textContent();
-        
+
         // Should show powers 6 and 7 since all players can play both
         expect(podTitle).toMatch(/Pod 1 \(Power: (6, 7|6-7)\)/);
     });
@@ -112,7 +112,7 @@ test.describe('Initial Pod Title Power Range Fix', () => {
 
         // Check pod title shows bracket intersection
         const podTitle = await helper.page.locator('.pod h3').first().textContent();
-        
+
         // Should show bracket intersection
         expect(podTitle).toMatch(/Pod 1 \(Bracket: (1, 2|1-2)\)/);
     });

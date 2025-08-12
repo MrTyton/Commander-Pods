@@ -55,7 +55,11 @@ class TestSetup {
     async setMode(mode: 'power' | 'bracket') {
         const radioSelector = mode === 'power' ? '#power-level-radio' : '#bracket-radio';
         await this.page.check(radioSelector);
-        await this.page.waitForTimeout(100);
+        // Wait for the mode to actually change by checking if the radio is checked
+        await this.page.waitForFunction((selector) => {
+            const radio = document.querySelector(selector) as HTMLInputElement;
+            return radio && radio.checked;
+        }, radioSelector);
     }
 
     /**
@@ -67,8 +71,13 @@ class TestSetup {
             'regular': '#leniency-radio',
             'super': '#super-leniency-radio'
         };
-        await this.page.check(radioMap[level]);
-        await this.page.waitForTimeout(100);
+        const selector = radioMap[level];
+        await this.page.check(selector);
+        // Wait for the tolerance to actually change
+        await this.page.waitForFunction((selector) => {
+            const radio = document.querySelector(selector) as HTMLInputElement;
+            return radio && radio.checked;
+        }, selector);
     }
 
     /**
@@ -89,7 +98,7 @@ class TestSetup {
         this.page.on('dialog', dialogHandler);
 
         await resetBtn.click();
-        await this.page.waitForTimeout(300);
+        await this.page.waitForTimeout(100); // Simple timeout for teardown reliability
 
         // Remove the dialog handler
         this.page.off('dialog', dialogHandler);
@@ -100,20 +109,27 @@ class TestSetup {
      */
     async gotoWithWait(url: string = './index.html') {
         await this.page.goto(url);
-        await this.page.waitForLoadState('networkidle');
         await this.page.waitForLoadState('domcontentloaded');
-        await this.page.waitForTimeout(100); // Small additional wait for any JS initialization
+        // Wait for the app to be interactive by checking for key elements
+        await this.page.waitForSelector('#add-player-btn', { state: 'visible' });
     }
 
     /**
      * Wait for page to be fully loaded and interactive
      */
     async waitForPageReady() {
-        // Wait for main elements to be present
-        await this.page.waitForSelector('#add-player-btn', { state: 'visible' });
-        await this.page.waitForSelector('#generate-pods-btn', { state: 'visible' });
-        await this.page.waitForSelector('.player-row', { state: 'visible' });
-        await this.page.waitForTimeout(100);
+        // Wait for all main elements to be present and visible
+        await Promise.all([
+            this.page.waitForSelector('#add-player-btn', { state: 'visible' }),
+            this.page.waitForSelector('#generate-pods-btn', { state: 'visible' }),
+            this.page.waitForSelector('.player-row', { state: 'visible' })
+        ]);
+
+        // Ensure the page is fully interactive
+        await this.page.waitForFunction(() => {
+            const addBtn = document.querySelector('#add-player-btn') as HTMLButtonElement;
+            return addBtn && !addBtn.disabled;
+        });
     }
 
     /**
@@ -367,7 +383,11 @@ class PlayerManager {
             }
         }, { playerIndex, brackets });
 
-        await this.page.waitForTimeout(50);
+        // Wait for the dropdown to actually close and brackets to be set
+        await this.page.waitForFunction((playerIndex) => {
+            const dropdown = document.querySelector(`#player-${playerIndex} .bracket-dropdown`);
+            return !dropdown || !dropdown.classList.contains('show');
+        }, playerIndex);
     }
 
     /**
@@ -377,7 +397,12 @@ class PlayerManager {
         await this.ensurePlayerRows(playerIndex + 1);
         const groupSelect = this.getGroupSelect(playerIndex);
         await groupSelect.selectOption(groupValue);
-        await this.page.waitForTimeout(200); // Allow time for group creation
+
+        // Wait for the group to actually be created/selected
+        await this.page.waitForFunction(({ playerIndex, expectedValue }) => {
+            const select = document.querySelector(`#player-${playerIndex} .group-select`) as HTMLSelectElement;
+            return select && select.value === expectedValue;
+        }, { playerIndex, expectedValue: groupValue });
     }
 
     /**
@@ -550,7 +575,7 @@ class ValidationHelper {
      */
     async triggerValidation() {
         await this.page.click('#generate-pods-btn');
-        await this.page.waitForTimeout(200);
+        await this.page.waitForTimeout(100); // Keep simple for validation trigger
     }
 
     /**

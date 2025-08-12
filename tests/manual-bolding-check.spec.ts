@@ -14,15 +14,15 @@ test.describe('Manual Power Level Bolding Verification', () => {
     test('Show what the bolded power levels actually look like', async ({ page }) => {
         // Create realistic scenario
         helper = await setupWithPods(page, [
-            { name: 'Alice', power: [6, 7, 8] },    
-            { name: 'Bob', power: [7, 8, 9] },      
-            { name: 'Charlie', power: [7, 8] },     
-            { name: 'Dave', power: [5, 7, 8] }      
+            { name: 'Alice', power: [6, 7, 8] },
+            { name: 'Bob', power: [7, 8, 9] },
+            { name: 'Charlie', power: [7, 8] },
+            { name: 'Dave', power: [5, 7, 8] }
         ]);
 
         // Log what each player looks like
         const playerElements = await helper.page.locator('.pod li.pod-player').all();
-        
+
         for (let i = 0; i < playerElements.length; i++) {
             const playerHTML = await playerElements[i].innerHTML();
             const playerText = await playerElements[i].textContent();

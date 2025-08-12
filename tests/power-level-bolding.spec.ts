@@ -22,26 +22,26 @@ test.describe('Player Power Level Bolding', () => {
 
         // Check the pod players to see bolded power levels
         const playerElements = await helper.page.locator('.pod li.pod-player').all();
-        
+
         // Alice should have 7,8 bolded but not 6
         const aliceText = await playerElements[0].innerHTML();
         expect(aliceText).toContain('<b>7</b>');
         expect(aliceText).toContain('<b>8</b>');
         expect(aliceText).not.toContain('<b>6</b>');
         expect(aliceText).toContain('6'); // 6 should be present but not bolded
-        
+
         // Bob should have 7,8 bolded but not 9
         const bobText = await playerElements[1].innerHTML();
         expect(bobText).toContain('<b>7</b>');
         expect(bobText).toContain('<b>8</b>');
         expect(bobText).not.toContain('<b>9</b>');
         expect(bobText).toContain('9'); // 9 should be present but not bolded
-        
+
         // Charlie should have all power levels bolded (7,8)
         const charlieText = await playerElements[2].innerHTML();
         expect(charlieText).toContain('<b>7</b>');
         expect(charlieText).toContain('<b>8</b>');
-        
+
         // Dave should have 7,8 bolded but not 5
         const daveText = await playerElements[3].innerHTML();
         expect(daveText).toContain('<b>7</b>');
@@ -61,7 +61,7 @@ test.describe('Player Power Level Bolding', () => {
 
         // Check that only power 8 is bolded for all players
         const playerElements = await helper.page.locator('.pod li.pod-player').all();
-        
+
         for (let i = 0; i < playerElements.length; i++) {
             const playerText = await playerElements[i].innerHTML();
             expect(playerText).toContain('<b>8</b>'); // 8 should always be bolded
@@ -82,7 +82,7 @@ test.describe('Player Power Level Bolding', () => {
 
         // Check that both 7 and 8 are bolded for all players
         const playerElements = await helper.page.locator('.pod li.pod-player').all();
-        
+
         for (let i = 0; i < playerElements.length; i++) {
             const playerText = await playerElements[i].innerHTML();
             expect(playerText).toContain('<b>7</b>');
@@ -101,12 +101,12 @@ test.describe('Player Power Level Bolding', () => {
 
         // Check that players show bracket info, not power bolding
         const playerElements = await helper.page.locator('.pod li.pod-player').all();
-        
+
         for (let i = 0; i < playerElements.length; i++) {
             const playerText = await playerElements[i].textContent() || '';
             expect(playerText).toContain('(B:'); // Should show bracket format
             expect(playerText).not.toContain('(P:'); // Should not show power format
-            
+
             const playerHTML = await playerElements[i].innerHTML();
             expect(playerHTML).not.toContain('<b>'); // Should not contain any bold tags
         }

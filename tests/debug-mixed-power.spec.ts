@@ -29,10 +29,10 @@ test.describe('Debug Mixed Power Intersection', () => {
 
         // Check pod title
         const podTitle = await helper.page.locator('.pod h3').first().textContent();
-        
+
         // Check individual pod players
         const podPlayers = await helper.page.locator('.pod li').allTextContents();
-        
+
         // Expected intersection should be 6, 7
         // Alice: [5,6,7], Bob: [6,7,8], Charlie: [6,7], Dave: [7,8,9] 
         // Only 7 works for all (Dave can't play 6)

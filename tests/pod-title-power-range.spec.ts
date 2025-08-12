@@ -23,9 +23,9 @@ test.describe('Pod Title Power Range Display', () => {
         // Get the pod title text
         const podTitle = page.locator('.display-mode-container .pod h3').first();
         const titleText = await podTitle.textContent();
-        
+
         console.log('Pod title text:', titleText);
-        
+
         // The title should show "Pod 1 (Power: 7, 8)" or "Pod 1 (Power: 7-8)" 
         // instead of just "Pod 1 (Power: 7)"
         expect(titleText).toMatch(/Pod 1 \(Power: (7, 8|7-8)\)/);
@@ -43,18 +43,20 @@ test.describe('Pod Title Power Range Display', () => {
         // Get the pod title text
         const podTitle = page.locator('.display-mode-container .pod h3').first();
         const titleText = await podTitle.textContent();
-        
+
         console.log('Pod title text:', titleText);
-        
+
         // Only power level 7 should work for all players
         expect(titleText).toBe('Pod 1 (Power: 7)');
     });
 
     test('should handle bracket mode correctly showing intersection', async ({ page }) => {
-        // Switch to bracket mode first
-        await page.goto('./index.html');
-        await page.check('#bracket-radio');
-        
+        // Initialize helper for bracket mode
+        helper = new TestHelper(page);
+        await helper.setup.gotoWithWait();
+        await helper.setup.setMode('bracket');
+        await helper.setup.waitForPageReady();
+
         // Create players who all can play brackets 2 and 3
         await helper.players.createPlayers([
             { name: 'Alice', bracket: [2, 3] },
@@ -69,9 +71,9 @@ test.describe('Pod Title Power Range Display', () => {
         // Get the pod title text
         const podTitle = page.locator('.display-mode-container .pod h3').first();
         const titleText = await podTitle.textContent();
-        
+
         console.log('Bracket pod title text:', titleText);
-        
+
         // The title should show both brackets that work for everyone
         expect(titleText).toMatch(/Pod 1 \(Bracket: (2, 3|2-3)\)/);
     });
@@ -88,31 +90,46 @@ test.describe('Pod Title Power Range Display', () => {
         // Get the pod title text
         const podTitle = page.locator('.display-mode-container .pod h3').first();
         const titleText = await podTitle.textContent();
-        
+
         console.log('Mixed pod title text:', titleText);
-        
+
         // Only power level 8 should work for all players
         expect(titleText).toBe('Pod 1 (Power: 8)');
     });
 
-    test('should debug what data is available to the display mode', async ({ page }) => {
-        helper = await setupDisplayModeTest(page, [
+    test.skip('should debug what data is available to the display mode', async ({ page }) => {
+        // This test is skipped as it's primarily for debugging
+        // Use simple setup instead of setupDisplayModeTest
+        helper = new TestHelper(page);
+        await helper.setup.gotoWithWait();
+        await helper.setup.waitForPageReady();
+
+        // Create simple players
+        await helper.players.createPlayers([
             { name: 'Alice', power: [7, 8] },
             { name: 'Bob', power: [7, 8] }
         ]);
+
+        await helper.pods.generatePods();
+
+        // Wait for pods to actually appear before trying display mode
+        await page.waitForSelector('.pod:not(.unassigned-pod)', { state: 'visible' });
+
+        await helper.displayMode.waitForDisplayModeButton();
+        await helper.displayMode.enterDisplayMode();
 
         // Check what's in the pods data structure
         const podData = await page.evaluate(() => {
             // Access the currentPods from the global scope if available
             return (window as any).currentPods || 'No currentPods found';
         });
-        
+
         console.log('Pod data structure:', JSON.stringify(podData, null, 2));
 
         // Get the pod title text
         const podTitle = page.locator('.display-mode-container .pod h3').first();
         const titleText = await podTitle.textContent();
-        
+
         console.log('Actual pod title:', titleText);
     });
 });
