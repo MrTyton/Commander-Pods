@@ -786,7 +786,10 @@ export class UIManager {
                         if (isBracketMode && p.bracketRange) {
                             subItem.textContent = `${p.name} (B: ${p.bracketRange})`;
                         } else {
-                            subItem.textContent = `${p.name} (P: ${p.powerRange})`;
+                            // Get valid powers for this pod and format with highlighting
+                            const validPowersForPod = getValidPowersArrayForPod(pod);
+                            const formattedPowerRange = formatPlayerPowerRangeWithBolding(p, validPowersForPod);
+                            subItem.innerHTML = `${p.name} (P: ${formattedPowerRange})`;
                         }
                         subList.appendChild(subItem);
                     });
@@ -906,6 +909,7 @@ export class UIManager {
                         if (isBracketMode && p.bracketRange) {
                             subItem.textContent = `${p.name} (B: ${p.bracketRange})`;
                         } else {
+                            // For unassigned players, don't highlight since they're not in a pod
                             subItem.textContent = `${p.name} (P: ${p.powerRange})`;
                         }
                         subList.appendChild(subItem);

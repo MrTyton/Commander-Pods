@@ -252,13 +252,47 @@ export function formatPlayerPowerRangeWithBolding(player: any, validPowersForPod
         }
     }
 
-    // Create formatted string with bolded valid powers
+    // Create formatted string with highlighted valid powers using CSS classes
     const formattedPowers = playerPowers.map(power => {
         const isValidForPod = validPowersForPod.includes(power);
-        return isValidForPod ? `<b>${power}</b>` : power.toString();
+        return isValidForPod ? `<span class="power-highlight">${power}</span>` : power.toString();
     });
 
     return formattedPowers.join(', ');
+}
+
+export function formatPlayerBracketRangeWithBolding(player: any, validBracketsForPod: string[]): string {
+    // Parse the player's available brackets
+    let playerBrackets: string[] = [];
+    if (Array.isArray(player.availableBrackets)) {
+        playerBrackets = player.availableBrackets;
+    } else if (typeof player.bracketRange === 'string') {
+        // Parse from bracketRange string like "2, 3, 4", "2-4", or "2, 3, cedh"
+        if (player.bracketRange.includes('-')) {
+            const [start, end] = player.bracketRange.split('-').map((x: string) => x.trim());
+            // Check if both are numeric
+            const startNum = parseInt(start);
+            const endNum = parseInt(end);
+            if (!isNaN(startNum) && !isNaN(endNum)) {
+                for (let i = startNum; i <= endNum; i++) {
+                    playerBrackets.push(i.toString());
+                }
+            } else {
+                // Handle non-numeric range (shouldn't happen, but fallback)
+                playerBrackets = [start, end];
+            }
+        } else {
+            playerBrackets = player.bracketRange.split(',').map((x: string) => x.trim());
+        }
+    }
+
+    // Create formatted string with highlighted valid brackets using CSS classes
+    const formattedBrackets = playerBrackets.map(bracket => {
+        const isValidForPod = validBracketsForPod.includes(bracket);
+        return isValidForPod ? `<span class="bracket-highlight">${bracket}</span>` : bracket.toString();
+    });
+
+    return formattedBrackets.join(', ');
 }
 
 export function getValidPowersArrayForPod(pod: Pod): number[] {
@@ -269,27 +303,33 @@ export function getValidPowersArrayForPod(pod: Pod): number[] {
 
     if (allPlayers.length === 0) return [];
 
-    const tolerance = getCurrentLeniencyTolerance();
+    // Use frequency-based approach for highlighting
+    // Find power levels that most players can play (like the pod generator logic)
+    const powerCounts = new Map<number, number>();
+    const forcedPowers = new Set<number>(); // Powers that are the only option for a player
 
-    // Find all powers that every player can participate in (considering leniency)
-    const validPowers: number[] = [];
-
-    // Get all unique power levels that any player can play
-    const allPossiblePowers = new Set<number>();
     allPlayers.forEach(player => {
-        player.availablePowers.forEach(power => allPossiblePowers.add(power));
+        // If player has only one available power, it's "forced" and should be highlighted
+        if (player.availablePowers.length === 1) {
+            forcedPowers.add(player.availablePowers[0]);
+        }
+
+        player.availablePowers.forEach(power => {
+            powerCounts.set(power, (powerCounts.get(power) || 0) + 1);
+        });
     });
 
-    // Check each possible power level to see if all players can participate
-    for (const testPower of allPossiblePowers) {
-        const canAllPlayersParticipate = allPlayers.every(player =>
-            player.availablePowers.some(playerPower =>
-                Math.abs(testPower - playerPower) <= tolerance
-            )
-        );
+    if (powerCounts.size === 0) return [];
 
-        if (canAllPlayersParticipate) {
-            validPowers.push(testPower);
+    // Find the maximum frequency
+    const maxCount = Math.max(...powerCounts.values());
+
+    // Return all power levels that appear with the maximum frequency OR are forced powers
+    // This highlights both popular powers and powers that are a player's only option
+    const validPowers: number[] = [];
+    for (const [power, count] of powerCounts.entries()) {
+        if (count === maxCount || forcedPowers.has(power)) {
+            validPowers.push(power);
         }
     }
 

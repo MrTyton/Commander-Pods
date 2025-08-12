@@ -23,31 +23,31 @@ test.describe('Player Power Level Bolding', () => {
         // Check the pod players to see bolded power levels
         const playerElements = await helper.page.locator('.pod li.pod-player').all();
 
-        // Alice should have 7,8 bolded but not 6
+        // Alice should have 7,8 highlighted but not 6
         const aliceText = await playerElements[0].innerHTML();
-        expect(aliceText).toContain('<b>7</b>');
-        expect(aliceText).toContain('<b>8</b>');
-        expect(aliceText).not.toContain('<b>6</b>');
-        expect(aliceText).toContain('6'); // 6 should be present but not bolded
+        expect(aliceText).toContain('<span class="power-highlight">7</span>');
+        expect(aliceText).toContain('<span class="power-highlight">8</span>');
+        expect(aliceText).not.toContain('<span class="power-highlight">6</span>');
+        expect(aliceText).toContain('6'); // 6 should be present but not highlighted
 
-        // Bob should have 7,8 bolded but not 9
+        // Bob should have 7,8 highlighted but not 9
         const bobText = await playerElements[1].innerHTML();
-        expect(bobText).toContain('<b>7</b>');
-        expect(bobText).toContain('<b>8</b>');
-        expect(bobText).not.toContain('<b>9</b>');
-        expect(bobText).toContain('9'); // 9 should be present but not bolded
+        expect(bobText).toContain('<span class="power-highlight">7</span>');
+        expect(bobText).toContain('<span class="power-highlight">8</span>');
+        expect(bobText).not.toContain('<span class="power-highlight">9</span>');
+        expect(bobText).toContain('9'); // 9 should be present but not highlighted
 
-        // Charlie should have all power levels bolded (7,8)
+        // Charlie should have all power levels highlighted (7,8)
         const charlieText = await playerElements[2].innerHTML();
-        expect(charlieText).toContain('<b>7</b>');
-        expect(charlieText).toContain('<b>8</b>');
+        expect(charlieText).toContain('<span class="power-highlight">7</span>');
+        expect(charlieText).toContain('<span class="power-highlight">8</span>');
 
-        // Dave should have 7,8 bolded but not 5
+        // Dave should have 7,8 highlighted but not 5
         const daveText = await playerElements[3].innerHTML();
-        expect(daveText).toContain('<b>7</b>');
-        expect(daveText).toContain('<b>8</b>');
-        expect(daveText).not.toContain('<b>5</b>');
-        expect(daveText).toContain('5'); // 5 should be present but not bolded
+        expect(daveText).toContain('<span class="power-highlight">7</span>');
+        expect(daveText).toContain('<span class="power-highlight">8</span>');
+        expect(daveText).not.toContain('<span class="power-highlight">5</span>');
+        expect(daveText).toContain('5'); // 5 should be present but not highlighted
     });
 
     test('Single valid power level should be bolded correctly', async ({ page }) => {
@@ -59,15 +59,15 @@ test.describe('Player Power Level Bolding', () => {
             { name: 'Dave', power: [6, 8] }
         ]);
 
-        // Check that only power 8 is bolded for all players
+        // Check that only power 8 is highlighted for all players
         const playerElements = await helper.page.locator('.pod li.pod-player').all();
 
         for (let i = 0; i < playerElements.length; i++) {
             const playerText = await playerElements[i].innerHTML();
-            expect(playerText).toContain('<b>8</b>'); // 8 should always be bolded
-            expect(playerText).not.toContain('<b>7</b>'); // 7 should not be bolded
-            expect(playerText).not.toContain('<b>9</b>'); // 9 should not be bolded
-            expect(playerText).not.toContain('<b>6</b>'); // 6 should not be bolded
+            expect(playerText).toContain('<span class="power-highlight">8</span>'); // 8 should always be highlighted
+            expect(playerText).not.toContain('<span class="power-highlight">7</span>'); // 7 should not be highlighted
+            expect(playerText).not.toContain('<span class="power-highlight">9</span>'); // 9 should not be highlighted
+            expect(playerText).not.toContain('<span class="power-highlight">6</span>'); // 6 should not be highlighted
         }
     });
 
@@ -80,13 +80,13 @@ test.describe('Player Power Level Bolding', () => {
             { name: 'Dave', power: [7, 8] }
         ]);
 
-        // Check that both 7 and 8 are bolded for all players
+        // Check that both 7 and 8 are highlighted for all players
         const playerElements = await helper.page.locator('.pod li.pod-player').all();
 
         for (let i = 0; i < playerElements.length; i++) {
             const playerText = await playerElements[i].innerHTML();
-            expect(playerText).toContain('<b>7</b>');
-            expect(playerText).toContain('<b>8</b>');
+            expect(playerText).toContain('<span class="power-highlight">7</span>');
+            expect(playerText).toContain('<span class="power-highlight">8</span>');
         }
     });
 
@@ -108,7 +108,7 @@ test.describe('Player Power Level Bolding', () => {
             expect(playerText).not.toContain('(P:'); // Should not show power format
 
             const playerHTML = await playerElements[i].innerHTML();
-            expect(playerHTML).not.toContain('<b>'); // Should not contain any bold tags
+            expect(playerHTML).not.toContain('power-highlight'); // Should not contain any highlighting classes
         }
     });
 });

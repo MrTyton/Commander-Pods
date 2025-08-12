@@ -194,29 +194,57 @@
     }
     const formattedPowers = playerPowers.map((power) => {
       const isValidForPod = validPowersForPod.includes(power);
-      return isValidForPod ? `<b>${power}</b>` : power.toString();
+      return isValidForPod ? `<span class="power-highlight">${power}</span>` : power.toString();
     });
     return formattedPowers.join(", ");
+  }
+  function formatPlayerBracketRangeWithBolding(player, validBracketsForPod) {
+    let playerBrackets = [];
+    if (Array.isArray(player.availableBrackets)) {
+      playerBrackets = player.availableBrackets;
+    } else if (typeof player.bracketRange === "string") {
+      if (player.bracketRange.includes("-")) {
+        const [start, end] = player.bracketRange.split("-").map((x) => x.trim());
+        const startNum = parseInt(start);
+        const endNum = parseInt(end);
+        if (!isNaN(startNum) && !isNaN(endNum)) {
+          for (let i = startNum; i <= endNum; i++) {
+            playerBrackets.push(i.toString());
+          }
+        } else {
+          playerBrackets = [start, end];
+        }
+      } else {
+        playerBrackets = player.bracketRange.split(",").map((x) => x.trim());
+      }
+    }
+    const formattedBrackets = playerBrackets.map((bracket) => {
+      const isValidForPod = validBracketsForPod.includes(bracket);
+      return isValidForPod ? `<span class="bracket-highlight">${bracket}</span>` : bracket.toString();
+    });
+    return formattedBrackets.join(", ");
   }
   function getValidPowersArrayForPod(pod) {
     const allPlayers = pod.players.flatMap(
       (item) => "players" in item ? item.players : [item]
     );
     if (allPlayers.length === 0) return [];
-    const tolerance = getCurrentLeniencyTolerance();
-    const validPowers = [];
-    const allPossiblePowers = /* @__PURE__ */ new Set();
+    const powerCounts = /* @__PURE__ */ new Map();
+    const forcedPowers = /* @__PURE__ */ new Set();
     allPlayers.forEach((player) => {
-      player.availablePowers.forEach((power) => allPossiblePowers.add(power));
+      if (player.availablePowers.length === 1) {
+        forcedPowers.add(player.availablePowers[0]);
+      }
+      player.availablePowers.forEach((power) => {
+        powerCounts.set(power, (powerCounts.get(power) || 0) + 1);
+      });
     });
-    for (const testPower of allPossiblePowers) {
-      const canAllPlayersParticipate = allPlayers.every(
-        (player) => player.availablePowers.some(
-          (playerPower) => Math.abs(testPower - playerPower) <= tolerance
-        )
-      );
-      if (canAllPlayersParticipate) {
-        validPowers.push(testPower);
+    if (powerCounts.size === 0) return [];
+    const maxCount = Math.max(...powerCounts.values());
+    const validPowers = [];
+    for (const [power, count] of powerCounts.entries()) {
+      if (count === maxCount || forcedPowers.has(power)) {
+        validPowers.push(power);
       }
     }
     validPowers.sort((a, b) => a - b);
@@ -1150,6 +1178,31 @@
         }
       }
     }
+    getValidBracketsArrayForPod(pod) {
+      const allPlayers = pod.players.flatMap(
+        (item) => "players" in item ? item.players : [item]
+      );
+      if (allPlayers.length === 0) return [];
+      const bracketCounts = /* @__PURE__ */ new Map();
+      allPlayers.forEach((player) => {
+        if (player.brackets) {
+          player.brackets.forEach((bracket) => {
+            bracketCounts.set(bracket, (bracketCounts.get(bracket) || 0) + 1);
+          });
+        }
+      });
+      if (bracketCounts.size === 0) return [];
+      const threshold = Math.ceil(allPlayers.length / 2);
+      const validBrackets = [];
+      for (const [bracket, count] of bracketCounts.entries()) {
+        if (count >= threshold) {
+          validBrackets.push(bracket);
+        }
+      }
+      const bracketOrder = ["1", "2", "3", "4", "cedh"];
+      validBrackets.sort((a, b) => bracketOrder.indexOf(a) - bracketOrder.indexOf(b));
+      return validBrackets;
+    }
     enterDisplayMode(currentPods) {
       if (currentPods.length === 0) return;
       this.isDisplayMode = true;
@@ -1274,9 +1327,13 @@
           nameDiv.className = "player-name";
           const powerDiv = document.createElement("div");
           if (playerIsBracketMode && player.bracketRange) {
-            powerDiv.textContent = `B: ${player.bracketRange}`;
+            const validBracketsForPod = this.getValidBracketsArrayForPod(pod);
+            const formattedBracketRange = formatPlayerBracketRangeWithBolding(player, validBracketsForPod);
+            powerDiv.innerHTML = `B: ${formattedBracketRange}`;
           } else {
-            powerDiv.textContent = `P: ${player.powerRange}`;
+            const validPowersForPod = getValidPowersArrayForPod(pod);
+            const formattedPowerRange = formatPlayerPowerRangeWithBolding(player, validPowersForPod);
+            powerDiv.innerHTML = `P: ${formattedPowerRange}`;
           }
           powerDiv.className = "player-power";
           playerItem.appendChild(nameDiv);
@@ -1922,7 +1979,9 @@ Duplicate player names found: ${duplicateNames.join(", ")}`;
               if (isBracketMode2 && p.bracketRange) {
                 subItem.textContent = `${p.name} (B: ${p.bracketRange})`;
               } else {
-                subItem.textContent = `${p.name} (P: ${p.powerRange})`;
+                const validPowersForPod = getValidPowersArrayForPod(pod);
+                const formattedPowerRange = formatPlayerPowerRangeWithBolding(p, validPowersForPod);
+                subItem.innerHTML = `${p.name} (P: ${formattedPowerRange})`;
               }
               subList.appendChild(subItem);
             });

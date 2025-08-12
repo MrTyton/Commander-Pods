@@ -1,5 +1,5 @@
 import { Pod } from './types.js';
-import { calculateValidPowerRange, getCurrentLeniencyTolerance } from './utils.js';
+import { calculateValidPowerRange, getCurrentLeniencyTolerance, formatPlayerPowerRangeWithBolding, getValidPowersArrayForPod, formatPlayerBracketRangeWithBolding } from './utils.js';
 
 export class DisplayModeManager {
     private isDisplayMode = false;
@@ -170,6 +170,45 @@ export class DisplayModeManager {
         }
     }
 
+    private getValidBracketsArrayForPod(pod: Pod): string[] {
+        // Get all individual players from the pod (flatten groups)
+        const allPlayers = pod.players.flatMap(item =>
+            'players' in item ? item.players : [item]
+        );
+
+        if (allPlayers.length === 0) return [];
+
+        // Use frequency-based approach for highlighting (like power levels)
+        // Find the most common bracket levels across all players
+        const bracketCounts = new Map<string, number>();
+
+        allPlayers.forEach(player => {
+            if (player.brackets) {
+                player.brackets.forEach(bracket => {
+                    bracketCounts.set(bracket, (bracketCounts.get(bracket) || 0) + 1);
+                });
+            }
+        });
+
+        if (bracketCounts.size === 0) return [];
+
+        // Return brackets that appear frequently (more than half the players)
+        const threshold = Math.ceil(allPlayers.length / 2);
+        const validBrackets: string[] = [];
+
+        for (const [bracket, count] of bracketCounts.entries()) {
+            if (count >= threshold) {
+                validBrackets.push(bracket);
+            }
+        }
+
+        // Sort brackets in order: 1, 2, 3, 4, cedh
+        const bracketOrder = ['1', '2', '3', '4', 'cedh'];
+        validBrackets.sort((a, b) => bracketOrder.indexOf(a) - bracketOrder.indexOf(b));
+
+        return validBrackets;
+    }
+
     enterDisplayMode(currentPods: Pod[]): void {
         if (currentPods.length === 0) return;
 
@@ -335,9 +374,15 @@ export class DisplayModeManager {
 
                 const powerDiv = document.createElement('div');
                 if (playerIsBracketMode && player.bracketRange) {
-                    powerDiv.textContent = `B: ${player.bracketRange}`;
+                    // Use the bracket highlighting function for bracket levels in display mode
+                    const validBracketsForPod = this.getValidBracketsArrayForPod(pod);
+                    const formattedBracketRange = formatPlayerBracketRangeWithBolding(player, validBracketsForPod);
+                    powerDiv.innerHTML = `B: ${formattedBracketRange}`;
                 } else {
-                    powerDiv.textContent = `P: ${player.powerRange}`;
+                    // Use the bolding function for power levels in display mode
+                    const validPowersForPod = getValidPowersArrayForPod(pod);
+                    const formattedPowerRange = formatPlayerPowerRangeWithBolding(player, validPowersForPod);
+                    powerDiv.innerHTML = `P: ${formattedPowerRange}`;
                 }
                 powerDiv.className = 'player-power';
 
