@@ -1454,15 +1454,18 @@
     }
     initializeEventListeners() {
       const addPlayerBtn = document.getElementById("add-player-btn");
+      const bulkAddBtn = document.getElementById("bulk-add-btn");
       const generatePodsBtn = document.getElementById("generate-pods-btn");
       const resetAllBtn = document.getElementById("reset-all-btn");
       const helpBtn = document.getElementById("help-btn");
       addPlayerBtn.addEventListener("click", () => this.addPlayerRow());
+      bulkAddBtn.addEventListener("click", () => this.bulkAddPlayers(4));
       generatePodsBtn.addEventListener("click", () => this.generatePods());
       resetAllBtn.addEventListener("click", () => this.resetAllWithConfirmation());
       this.displayModeBtn.addEventListener("click", () => this.displayModeManager.enterDisplayMode(this.currentPods));
       helpBtn.addEventListener("click", () => this.showHelpModal());
       this.initializeHelpModal();
+      this.initializeKeyboardShortcuts();
     }
     addPlayerRow() {
       const clone = this.playerRowTemplate.content.cloneNode(true);
@@ -1809,6 +1812,25 @@
         powerLevels.style.display = "block";
         bracketLevels.style.display = "none";
       }
+    }
+    bulkAddPlayers(count) {
+      for (let i = 0; i < count; i++) {
+        this.addPlayerRow();
+      }
+    }
+    initializeKeyboardShortcuts() {
+      document.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && e.key === "Enter") {
+          e.preventDefault();
+          this.addPlayerRow();
+          const playerRows = this.playerRowsContainer.querySelectorAll(".player-row");
+          const lastRow = playerRows[playerRows.length - 1];
+          const nameInput = lastRow.querySelector(".player-name");
+          if (nameInput) {
+            nameInput.focus();
+          }
+        }
+      });
     }
     cleanupBottomDisplayButton() {
       if (this.displayModeBtnBottom) {

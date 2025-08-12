@@ -59,11 +59,13 @@ export class UIManager {
 
     private initializeEventListeners(): void {
         const addPlayerBtn = document.getElementById('add-player-btn')!;
+        const bulkAddBtn = document.getElementById('bulk-add-btn')!;
         const generatePodsBtn = document.getElementById('generate-pods-btn')!;
         const resetAllBtn = document.getElementById('reset-all-btn')!;
         const helpBtn = document.getElementById('help-btn')!;
 
         addPlayerBtn.addEventListener('click', () => this.addPlayerRow());
+        bulkAddBtn.addEventListener('click', () => this.bulkAddPlayers(4));
         generatePodsBtn.addEventListener('click', () => this.generatePods());
         resetAllBtn.addEventListener('click', () => this.resetAllWithConfirmation());
         this.displayModeBtn.addEventListener('click', () => this.displayModeManager.enterDisplayMode(this.currentPods));
@@ -71,6 +73,9 @@ export class UIManager {
 
         // Initialize help modal event listeners
         this.initializeHelpModal();
+
+        // Add global keyboard shortcuts
+        this.initializeKeyboardShortcuts();
     }
 
     addPlayerRow(): void {
@@ -554,6 +559,30 @@ export class UIManager {
             powerLevels.style.display = 'block';
             bracketLevels.style.display = 'none';
         }
+    }
+
+    bulkAddPlayers(count: number): void {
+        for (let i = 0; i < count; i++) {
+            this.addPlayerRow();
+        }
+    }
+
+    private initializeKeyboardShortcuts(): void {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Enter to add new player row
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                this.addPlayerRow();
+
+                // Focus the name input of the newly added player
+                const playerRows = this.playerRowsContainer.querySelectorAll('.player-row');
+                const lastRow = playerRows[playerRows.length - 1] as HTMLElement;
+                const nameInput = lastRow.querySelector('.player-name') as HTMLInputElement;
+                if (nameInput) {
+                    nameInput.focus();
+                }
+            }
+        });
     }
 
     private cleanupBottomDisplayButton(): void {
