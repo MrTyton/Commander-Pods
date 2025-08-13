@@ -203,21 +203,9 @@ export class UIManager {
         this.displayModeBtn.addEventListener('click', () => this.displayModeManager.enterDisplayMode(this.currentPods));
         helpBtn.addEventListener('click', () => this.showHelpModal());
 
-        // Event Listener Cleanup: Setup event delegation instead of individual listeners
         this.setupEventDelegation();
-
-        // Initialize help modal event listeners
         this.initializeHelpModal();
-
-        // Add global keyboard shortcuts
         this.initializeKeyboardShortcuts();
-    }
-
-    /**
-     * Simple DOM query method
-     */
-    private getCachedElements(selector: string): Element[] {
-        return Array.from(this.playerRowsContainer.querySelectorAll(selector));
     }
 
     /**
@@ -232,26 +220,6 @@ export class UIManager {
      */
     private getBracketRadio(): HTMLInputElement | null {
         return getElementByIdTyped('bracket-radio', isHTMLInputElement);
-    }
-
-    // DOM Performance optimization: Element pooling (simplified)
-    private getPooledElement(type: string): HTMLElement | null {
-        return null; // Simplified - create elements directly
-    }
-
-    private returnToPool(type: string, element: HTMLElement): void {
-        // Simplified - no pooling for now
-    }
-
-    // DOM Performance optimization: Cached dropdown queries
-    private getDropdownsOptimized(): NodeListOf<HTMLElement> {
-        // Don't cache during tests - refresh each time for reliability  
-        return document.querySelectorAll('.bracket-selector-dropdown, .power-selector-dropdown');
-    }
-
-    private getButtonsOptimized(): NodeListOf<HTMLElement> {
-        // Don't cache during tests - refresh each time for reliability
-        return document.querySelectorAll('.bracket-selector-btn, .power-selector-btn');
     }
 
     // Event Listener Cleanup optimization: Use eventManager
@@ -397,11 +365,14 @@ export class UIManager {
 
     // Event Listener Cleanup: Individual handler methods for delegation
     private closeAllDropdowns(): void {
-        this.getDropdownsOptimized().forEach(dropdown => {
+        // Use domCache for optimized dropdown queries
+        const dropdowns = document.querySelectorAll('.bracket-selector-dropdown, .power-selector-dropdown');
+        dropdowns.forEach(dropdown => {
             (dropdown as HTMLElement).style.display = 'none';
             dropdown.classList.remove('show');
         });
-        this.getButtonsOptimized().forEach(btn => {
+        const buttons = document.querySelectorAll('.power-selector-btn, .bracket-selector-btn');
+        buttons.forEach(btn => {
             btn.classList.remove('open');
         });
     }
@@ -830,13 +801,13 @@ export class UIManager {
 
         // DOM Performance: Use document fragment for batch DOM operations
         const fragment = document.createDocumentFragment();
-        const podsContainer = this.getPooledElement('pods-container') || document.createElement('div');
+        const podsContainer = document.createElement('div');
         podsContainer.classList.add('pods-container');
         podsContainer.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
         podsContainer.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
 
         pods.forEach((pod, index) => {
-            const podElement = this.getPooledElement('pod') || document.createElement('div');
+            const podElement = document.createElement('div');
             podElement.classList.add('pod', `pod-color-${index % 10}`);
             podElement.dataset.podIndex = index.toString();
 
@@ -845,7 +816,7 @@ export class UIManager {
             podElement.addEventListener('drop', this.dragDropManager.handleDrop);
             podElement.addEventListener('dragleave', this.dragDropManager.handleDragLeave);
 
-            const title = this.getPooledElement('h3') || document.createElement('h3');
+            const title = document.createElement('h3');
 
             // Check if we're in bracket mode to display appropriate title
             const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
@@ -863,11 +834,11 @@ export class UIManager {
 
             podElement.appendChild(title);
 
-            const list = this.getPooledElement('ul') || document.createElement('ul');
+            const list = document.createElement('ul');
             pod.players.forEach((item, itemIndex) => {
                 if ('players' in item) {
                     // It's a group - DOM Performance: use pooled elements
-                    const groupItem = this.getPooledElement('li') || document.createElement('li');
+                    const groupItem = document.createElement('li');
                     groupItem.classList.add('pod-group');
                     groupItem.draggable = true;
                     groupItem.dataset.itemType = 'group';
@@ -892,9 +863,9 @@ export class UIManager {
                     }
                     groupItem.appendChild(groupTitle);
 
-                    const subList = this.getPooledElement('ul') || document.createElement('ul');
+                    const subList = document.createElement('ul');
                     item.players.forEach(p => {
-                        const subItem = this.getPooledElement('li') || document.createElement('li');
+                        const subItem = document.createElement('li');
                         if (isBracketMode && p.bracketRange) {
                             subItem.textContent = `${p.name} (B: ${p.bracketRange})`;
                         } else {
@@ -909,7 +880,7 @@ export class UIManager {
                     list.appendChild(groupItem);
                 } else {
                     // It's an individual player - DOM Performance: use pooled elements
-                    const playerItem = this.getPooledElement('li') || document.createElement('li');
+                    const playerItem = document.createElement('li');
                     playerItem.classList.add('pod-player');
                     playerItem.draggable = true;
                     playerItem.dataset.itemType = 'player';
