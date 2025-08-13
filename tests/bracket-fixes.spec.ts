@@ -296,7 +296,7 @@ test.describe('Bracket Mode Fixes', () => {
 
         // Verify the button text shows cEDH selection
         const buttonText = await bracketSelectorBtn.textContent();
-        expect(buttonText).toContain('Bracket: cedh');
+        expect(buttonText).toContain('Bracket: cEDH');
 
         // Verify the cEDH checkbox is checked
         const cedhCheckbox = page.locator('.player-row:nth-child(1) .bracket-checkbox input[value="cedh"]');
@@ -327,7 +327,7 @@ test.describe('Bracket Mode Fixes', () => {
         await page.waitForTimeout(600);
 
         // Verify the button text shows cEDH selection via keyboard
-        await expect(bracketSelectorBtn).toContainText('Bracket: cedh');
+        await expect(bracketSelectorBtn).toContainText('Bracket: cEDH');
 
         // Verify the cEDH checkbox is checked via keyboard shortcut
         await expect(cedhCheckbox).toBeChecked();
@@ -347,7 +347,7 @@ test.describe('Bracket Mode Fixes', () => {
         await page.waitForTimeout(600);
 
         // Verify it works when focused
-        await expect(bracketSelectorBtn).toContainText('Bracket: cedh');
+        await expect(bracketSelectorBtn).toContainText('Bracket: cEDH');
         await expect(cedhCheckbox).toBeChecked();
 
         // Test that existing "c" shortcut still works
@@ -363,7 +363,7 @@ test.describe('Bracket Mode Fixes', () => {
         await page.keyboard.press('c');
         await page.waitForTimeout(600);
 
-        await expect(bracketSelectorBtn).toContainText('Bracket: cedh');
+        await expect(bracketSelectorBtn).toContainText('Bracket: cEDH');
         await expect(cedhCheckbox).toBeChecked();
     });
 });

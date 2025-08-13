@@ -1,0 +1,152 @@
+{
+  "inputs": {
+    "src/utils.ts": {
+      "bytes": 12515,
+      "imports": [
+        {
+          "path": "./types.js",
+          "kind": "import-statement",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "src/player-manager.ts": {
+      "bytes": 17312,
+      "imports": [
+        {
+          "path": "./types.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "src/utils.ts",
+          "kind": "import-statement",
+          "original": "./utils.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/pod-generator.ts": {
+      "bytes": 23798,
+      "imports": [
+        {
+          "path": "./types.js",
+          "kind": "import-statement",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "src/drag-drop.ts": {
+      "bytes": 4854,
+      "imports": [
+        {
+          "path": "./types.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./player-manager.js",
+          "kind": "import-statement",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "src/display-mode.ts": {
+      "bytes": 22825,
+      "imports": [
+        {
+          "path": "./types.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "src/utils.ts",
+          "kind": "import-statement",
+          "original": "./utils.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/ui-manager.ts": {
+      "bytes": 73636,
+      "imports": [
+        {
+          "path": "./types.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "src/utils.ts",
+          "kind": "import-statement",
+          "original": "./utils.js"
+        },
+        {
+          "path": "src/player-manager.ts",
+          "kind": "import-statement",
+          "original": "./player-manager.js"
+        },
+        {
+          "path": "src/pod-generator.ts",
+          "kind": "import-statement",
+          "original": "./pod-generator.js"
+        },
+        {
+          "path": "src/drag-drop.ts",
+          "kind": "import-statement",
+          "original": "./drag-drop.js"
+        },
+        {
+          "path": "src/display-mode.ts",
+          "kind": "import-statement",
+          "original": "./display-mode.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/main.ts": {
+      "bytes": 2256,
+      "imports": [
+        {
+          "path": "src/ui-manager.ts",
+          "kind": "import-statement",
+          "original": "./ui-manager.js"
+        }
+      ],
+      "format": "esm"
+    }
+  },
+  "outputs": {
+    "script.js": {
+      "imports": [],
+      "exports": [],
+      "entryPoint": "src/main.ts",
+      "inputs": {
+        "src/utils.ts": {
+          "bytesInOutput": 3596
+        },
+        "src/player-manager.ts": {
+          "bytesInOutput": 5708
+        },
+        "src/pod-generator.ts": {
+          "bytesInOutput": 5049
+        },
+        "src/drag-drop.ts": {
+          "bytesInOutput": 1837
+        },
+        "src/display-mode.ts": {
+          "bytesInOutput": 7284
+        },
+        "src/ui-manager.ts": {
+          "bytesInOutput": 28215
+        },
+        "src/main.ts": {
+          "bytesInOutput": 685
+        }
+      },
+      "bytes": 52399
+    }
+  }
+}

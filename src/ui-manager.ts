@@ -4,6 +4,7 @@ import { PlayerManager } from './player-manager.js';
 import { PodGenerator } from './pod-generator.js';
 import { DragDropManager } from './drag-drop.js';
 import { DisplayModeManager } from './display-mode.js';
+import { eventManager } from './event-manager.js';
 
 interface PlayerResetData {
     name: string;
@@ -41,20 +42,16 @@ export class UIManager {
     private lastResetData: ResetData | null = null; // Store data before reset for undo functionality
     private isRestoring: boolean = false; // Flag to prevent clearAllSelections during restoration
     private displayModeBtnBottom: HTMLButtonElement | null = null; // Bottom Display Mode button
-    
-    // Memory optimization: DOM element cache
-    private domCache = new Map<string, Element[]>();
-    private queryCache = new Map<string, NodeListOf<Element>>();
 
     // Memory optimization: Reusable arrays to reduce garbage collection
     private reusablePlayerArray: Player[] = [];
-    
-    // DOM Performance optimization: Element pools and fragments
-    private elementPool = new Map<string, HTMLElement[]>();
-    private reusableFragment = document.createDocumentFragment();
-    private dropdownsCache: NodeListOf<HTMLElement> | null = null;
-    private buttonsCache: NodeListOf<HTMLElement> | null = null;
     private reusableItemArray: (Player | Group)[] = [];
+
+    // Event delegation handlers for better performance
+    private containerClickHandler: ((e: Event) => void) | null = null;
+    private containerChangeHandler: ((e: Event) => void) | null = null;
+    private containerInputHandler: ((e: Event) => void) | null = null;
+    private documentClickHandler: ((e: Event) => void) | null = null;
 
     constructor() {
         this.playerRowsContainer = document.getElementById('player-rows')!;
@@ -85,6 +82,9 @@ export class UIManager {
         this.displayModeBtn.addEventListener('click', () => this.displayModeManager.enterDisplayMode(this.currentPods));
         helpBtn.addEventListener('click', () => this.showHelpModal());
 
+        // Event Listener Cleanup: Setup event delegation instead of individual listeners
+        this.setupEventDelegation();
+
         // Initialize help modal event listeners
         this.initializeHelpModal();
 
@@ -93,52 +93,26 @@ export class UIManager {
     }
 
     /**
-     * Memory-optimized DOM query with caching
+     * Simple DOM query method
      */
     private getCachedElements(selector: string): Element[] {
-        if (!this.domCache.has(selector)) {
-            const elements = Array.from(this.playerRowsContainer.querySelectorAll(selector));
-            this.domCache.set(selector, elements);
-        }
-        return this.domCache.get(selector)!;
+        return Array.from(this.playerRowsContainer.querySelectorAll(selector));
     }
 
     /**
      * Clear DOM cache when elements change
      */
     private clearDOMCache(): void {
-        this.domCache.clear();
-        this.queryCache.clear();
-        // DOM Performance: Clear additional caches
-        this.dropdownsCache = null;
-        this.buttonsCache = null;
+        // Using event manager for cleanup instead of manual tracking
     }
 
-    // DOM Performance optimization: Element pooling
+    // DOM Performance optimization: Element pooling (simplified)
     private getPooledElement(type: string): HTMLElement | null {
-        const pool = this.elementPool.get(type);
-        return pool && pool.length > 0 ? pool.pop()! : null;
+        return null; // Simplified - create elements directly
     }
 
     private returnToPool(type: string, element: HTMLElement): void {
-        // Clean the element before returning to pool
-        element.innerHTML = '';
-        element.className = '';
-        element.removeAttribute('style');
-        element.removeAttribute('data-pod-index');
-        element.removeAttribute('data-item-index');
-        element.removeAttribute('data-item-id');
-        element.removeAttribute('data-item-type');
-        element.draggable = false;
-
-        if (!this.elementPool.has(type)) {
-            this.elementPool.set(type, []);
-        }
-        
-        const pool = this.elementPool.get(type)!;
-        if (pool.length < 20) { // Limit pool size
-            pool.push(element);
-        }
+        // Simplified - no pooling for now
     }
 
     // DOM Performance optimization: Cached dropdown queries
@@ -150,6 +124,373 @@ export class UIManager {
     private getButtonsOptimized(): NodeListOf<HTMLElement> {
         // Don't cache during tests - refresh each time for reliability
         return document.querySelectorAll('.bracket-selector-btn, .power-selector-btn');
+    }
+
+    // Event Listener Cleanup optimization: Use eventManager
+    private addEventListenerWithTracking(element: HTMLElement, event: string, listener: EventListener): void {
+        eventManager.addEventListener(element, event as keyof HTMLElementEventMap, listener);
+    }
+
+    private removeAllEventListeners(element: HTMLElement): void {
+        eventManager.removeAllFromElement(element);
+    }
+
+    private setupEventDelegation(): void {
+        // Event delegation for player row container
+        if (!this.containerClickHandler) {
+            this.containerClickHandler = (e: Event) => this.handleContainerClick(e);
+            this.playerRowsContainer.addEventListener('click', this.containerClickHandler);
+        }
+
+        if (!this.containerChangeHandler) {
+            this.containerChangeHandler = (e: Event) => this.handleContainerChange(e);
+            this.playerRowsContainer.addEventListener('change', this.containerChangeHandler);
+        }
+
+        // Add input event handling for real-time validation
+        if (!this.containerInputHandler) {
+            this.containerInputHandler = (e: Event) => this.handleContainerInput(e);
+            this.playerRowsContainer.addEventListener('input', this.containerInputHandler);
+        }
+
+        // Consolidated document click handler
+        if (!this.documentClickHandler) {
+            this.documentClickHandler = (e: Event) => this.handleDocumentClick(e);
+            document.addEventListener('click', this.documentClickHandler);
+        }
+    }
+
+    private handleContainerClick(e: Event): void {
+        const target = e.target as HTMLElement;
+
+        // Handle power selector button clicks
+        if (target.classList.contains('power-selector-btn')) {
+            this.handlePowerSelectorClick(e, target);
+            return;
+        }
+
+        // Handle bracket selector button clicks
+        if (target.classList.contains('bracket-selector-btn')) {
+            this.handleBracketSelectorClick(e, target);
+            return;
+        }
+
+        // Handle range button clicks
+        if (target.classList.contains('range-btn')) {
+            this.handleRangeButtonClick(target);
+            return;
+        }
+
+        // Handle bracket range button clicks
+        if (target.classList.contains('bracket-range-btn')) {
+            this.handleBracketRangeButtonClick(target);
+            return;
+        }
+
+        // Handle clear button clicks
+        if (target.classList.contains('clear-btn') || target.classList.contains('bracket-clear-btn')) {
+            this.handleClearButtonClick(target);
+            return;
+        }
+
+        // Handle remove button clicks
+        if (target.classList.contains('remove-player-btn')) {
+            this.handleRemoveButtonClick(target);
+            return;
+        }
+    }
+
+    private handleContainerChange(e: Event): void {
+        const target = e.target as HTMLElement;
+
+        // Handle group select changes
+        if (target.classList.contains('group-select')) {
+            this.playerManager.handleGroupChange(this.playerRowsContainer);
+            return;
+        }
+
+        // Handle checkbox changes for power levels
+        if ((target as HTMLInputElement).type === 'checkbox' && target.closest('.power-checkbox')) {
+            this.handlePowerCheckboxChange(target);
+            return;
+        }
+
+        // Handle checkbox changes for brackets
+        if ((target as HTMLInputElement).type === 'checkbox' && target.closest('.bracket-checkbox')) {
+            this.handleBracketCheckboxChange(target);
+            return;
+        }
+
+        // Handle player name input changes
+        if (target.classList.contains('player-name')) {
+            this.handlePlayerNameChange(target as HTMLInputElement);
+            return;
+        }
+    }
+
+    private handleContainerInput(e: Event): void {
+        const target = e.target as HTMLElement;
+
+        // Handle player name input for real-time validation
+        if (target.classList.contains('player-name')) {
+            this.handlePlayerNameChange(target as HTMLInputElement);
+            return;
+        }
+    }
+
+    private handleDocumentClick(e: Event): void {
+        const target = e.target as HTMLElement;
+
+        // Close all dropdowns when clicking outside
+        if (!target.closest('.power-selector-btn') && !target.closest('.power-selector-dropdown') &&
+            !target.closest('.bracket-selector-btn') && !target.closest('.bracket-selector-dropdown')) {
+
+            this.closeAllDropdowns();
+        }
+    }
+
+    // Event Listener Cleanup: Individual handler methods for delegation
+    private closeAllDropdowns(): void {
+        this.getDropdownsOptimized().forEach(dropdown => {
+            (dropdown as HTMLElement).style.display = 'none';
+            dropdown.classList.remove('show');
+        });
+        this.getButtonsOptimized().forEach(btn => {
+            btn.classList.remove('open');
+        });
+    }
+
+    private handlePowerSelectorClick(e: Event, target: HTMLElement): void {
+        e.preventDefault();
+        const playerRow = target.closest('.player-row') as HTMLElement;
+        if (!playerRow) return;
+
+        const dropdown = playerRow.querySelector('.power-selector-dropdown') as HTMLElement;
+        if (!dropdown) return;
+
+        const isOpen = dropdown.style.display !== 'none';
+
+        // Close all other dropdowns first
+        this.closeAllDropdowns();
+
+        if (!isOpen) {
+            dropdown.style.display = 'block';
+            target.classList.add('open');
+            setTimeout(() => dropdown.classList.add('show'), 10);
+        }
+    }
+
+    private handleBracketSelectorClick(e: Event, target: HTMLElement): void {
+        e.preventDefault();
+        const playerRow = target.closest('.player-row') as HTMLElement;
+        if (!playerRow) return;
+
+        const dropdown = playerRow.querySelector('.bracket-selector-dropdown') as HTMLElement;
+        if (!dropdown) return;
+
+        const isOpen = dropdown.style.display !== 'none';
+
+        // Close all other dropdowns first
+        this.closeAllDropdowns();
+
+        if (!isOpen) {
+            dropdown.style.display = 'block';
+            target.classList.add('open');
+            setTimeout(() => dropdown.classList.add('show'), 10);
+        }
+    }
+
+    private handleRangeButtonClick(target: HTMLElement): void {
+        const playerRow = target.closest('.player-row') as HTMLElement;
+        if (!playerRow) return;
+
+        const range = target.dataset.range!;
+        const checkboxes = playerRow.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+
+        // Clear all checkboxes first
+        checkboxes.forEach(cb => cb.checked = false);
+
+        // Select only the start and end values
+        const [start, end] = range.split('-').map(Number);
+        checkboxes.forEach(cb => {
+            const value = parseFloat(cb.value);
+            if (value === start || value === end) {
+                cb.checked = true;
+            }
+        });
+
+        this.updatePowerButtonText(playerRow);
+    }
+
+    private handleBracketRangeButtonClick(target: HTMLElement): void {
+        const playerRow = target.closest('.player-row') as HTMLElement;
+        if (!playerRow) return;
+
+        const range = target.dataset.range!;
+        const checkboxes = playerRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+
+        // Clear all checkboxes first
+        checkboxes.forEach(cb => cb.checked = false);
+
+        if (range === 'cedh') {
+            // Select only cEDH
+            const cedhCheckbox = Array.from(checkboxes).find(cb => cb.value === 'cedh');
+            if (cedhCheckbox) cedhCheckbox.checked = true;
+        } else {
+            // Select range (e.g., "1-2", "2-3", "3-4")
+            const [start, end] = range.split('-').map(val =>
+                val === 'cedh' ? val : parseInt(val)
+            );
+
+            checkboxes.forEach(cb => {
+                const value = cb.value === 'cedh' ? 'cedh' : parseInt(cb.value);
+                if (value === start || value === end) {
+                    cb.checked = true;
+                }
+            });
+        }
+
+        this.updateBracketButtonText(playerRow);
+    }
+
+    private handleClearButtonClick(target: HTMLElement): void {
+        const playerRow = target.closest('.player-row') as HTMLElement;
+        if (!playerRow) return;
+
+        if (target.classList.contains('clear-btn')) {
+            // Clear power checkboxes
+            const checkboxes = playerRow.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+            checkboxes.forEach(cb => cb.checked = false);
+            this.updatePowerButtonText(playerRow);
+        } else if (target.classList.contains('bracket-clear-btn')) {
+            // Clear bracket checkboxes
+            const checkboxes = playerRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+            checkboxes.forEach(cb => cb.checked = false);
+            this.updateBracketButtonText(playerRow);
+        }
+    }
+
+    private handleRemoveButtonClick(target: HTMLElement): void {
+        const playerRow = target.closest('.player-row') as HTMLElement;
+        if (!playerRow) return;
+
+        // Clean up event listeners before removing
+        this.removeAllEventListeners(playerRow);
+
+        this.playerRowsContainer.removeChild(playerRow);
+        this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
+        this.updatePlayerNumbers();
+        this.clearDOMCache();
+    }
+
+    private handlePowerCheckboxChange(target: HTMLElement): void {
+        const playerRow = target.closest('.player-row') as HTMLElement;
+        if (playerRow) {
+            this.updatePowerButtonText(playerRow);
+        }
+    }
+
+    private handleBracketCheckboxChange(target: HTMLElement): void {
+        const playerRow = target.closest('.player-row') as HTMLElement;
+        if (playerRow) {
+            this.updateBracketButtonText(playerRow);
+        }
+    }
+
+    private handlePlayerNameChange(target: HTMLInputElement): void {
+        // Real-time validation for empty names
+        const name = target.value.trim();
+        if (!name) {
+            target.classList.add('input-error');
+        } else {
+            target.classList.remove('input-error');
+        }
+        
+        // Trigger duplicate name validation when names change
+        this.clearDuplicateErrorsOnInput();
+    }
+
+    private updatePowerButtonText(playerRow: HTMLElement): void {
+        const button = playerRow.querySelector('.power-selector-btn') as HTMLButtonElement;
+        const checkboxes = playerRow.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+
+        const selectedValues: number[] = [];
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                selectedValues.push(parseFloat(cb.value));
+            }
+        });
+
+        if (selectedValues.length === 0) {
+            button.textContent = 'Select Power Levels';
+            button.classList.remove('has-selection');
+            if (button.dataset.validationTriggered === 'true') {
+                button.classList.add('error');
+            }
+        } else {
+            button.classList.remove('error');
+            selectedValues.sort((a, b) => a - b);
+
+            let displayText: string;
+            if (selectedValues.length === 1) {
+                displayText = `Power: ${selectedValues[0]}`;
+            } else {
+                const min = selectedValues[0];
+                const max = selectedValues[selectedValues.length - 1];
+
+                // Check if it's a continuous range
+                const isContinuous = selectedValues.every((val, idx) => {
+                    if (idx === 0) return true;
+                    const diff = val - selectedValues[idx - 1];
+                    return diff === 0.5 || diff === 1;
+                }) && selectedValues.length > 2;
+
+                if (isContinuous) {
+                    displayText = `Power: ${min}-${max}`;
+                } else if (selectedValues.length <= 4) {
+                    displayText = `Power: ${selectedValues.join(', ')}`;
+                } else {
+                    displayText = `Power: ${min}-${max} (${selectedValues.length} levels)`;
+                }
+            }
+
+            button.textContent = displayText;
+            button.classList.add('has-selection');
+        }
+    }
+
+    private updateBracketButtonText(playerRow: HTMLElement): void {
+        const button = playerRow.querySelector('.bracket-selector-btn') as HTMLButtonElement;
+        const checkboxes = playerRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+
+        const selectedValues: string[] = [];
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                selectedValues.push(cb.value);
+            }
+        });
+
+        if (selectedValues.length === 0) {
+            button.textContent = 'Select Brackets';
+            button.classList.remove('has-selection');
+            if (button.dataset.validationTriggered === 'true') {
+                button.classList.add('error');
+            }
+        } else {
+            button.classList.remove('error');
+            let displayText: string;
+
+            if (selectedValues.length === 1) {
+                displayText = selectedValues[0] === 'cedh' ? 'Bracket: cEDH' : `Bracket: ${selectedValues[0]}`;
+            } else {
+                displayText = selectedValues.length <= 3 ?
+                    `Brackets: ${selectedValues.join(', ')}` :
+                    `Brackets: ${selectedValues.length} selected`;
+            }
+
+            button.textContent = displayText;
+            button.classList.add('has-selection');
+        }
     }
 
     /**
@@ -178,467 +519,13 @@ export class UIManager {
         const playerId = this.playerManager.getNextPlayerId();
         newRow.dataset.playerId = playerId.toString();
 
-        // Initialize power selector functionality
-        const powerSelectorBtn = newRow.querySelector('.power-selector-btn') as HTMLButtonElement;
-        const powerDropdown = newRow.querySelector('.power-selector-dropdown') as HTMLElement;
-        const rangeButtons = newRow.querySelectorAll('.range-btn') as NodeListOf<HTMLButtonElement>;
-
-        const updateButtonText = () => {
-            const checkboxes = newRow.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
-            const selectedPowers: number[] = [];
-
-            checkboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    selectedPowers.push(parseFloat(checkbox.value));
-                }
-            });
-
-            if (selectedPowers.length === 0) {
-                powerSelectorBtn.textContent = 'Select Power Levels';
-                powerSelectorBtn.classList.remove('has-selection');
-                // Only show error if validation has been triggered (pods generation attempted)
-                if (powerSelectorBtn.dataset.validationTriggered === 'true') {
-                    powerSelectorBtn.classList.add('error');
-                }
-            } else {
-                powerSelectorBtn.classList.remove('error');
-                selectedPowers.sort((a, b) => a - b);
-                let displayText: string;
-
-                if (selectedPowers.length === 1) {
-                    displayText = `Power: ${selectedPowers[0]}`;
-                } else {
-                    const min = selectedPowers[0];
-                    const max = selectedPowers[selectedPowers.length - 1];
-                    const isContiguous = selectedPowers.every((power, index) => {
-                        if (index === 0) return true;
-                        const diff = power - selectedPowers[index - 1];
-                        return diff === 0.5 || diff === 1.0; // Allow both 0.5 and 1.0 increments
-                    });
-
-                    if (isContiguous && selectedPowers.length > 2) {
-                        displayText = `Power: ${min}-${max}`;
-                    } else if (selectedPowers.length <= 4) {
-                        displayText = `Power: ${selectedPowers.join(', ')}`;
-                    } else {
-                        displayText = `Power: ${min}-${max} (${selectedPowers.length} levels)`;
-                    }
-                }
-
-                powerSelectorBtn.textContent = displayText;
-                powerSelectorBtn.classList.add('has-selection');
-            }
-        };
-
-        // Toggle dropdown visibility
-        powerSelectorBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const isOpen = powerDropdown.style.display !== 'none';
-
-            // Close all other dropdowns first (DOM Performance: use cached queries)
-            this.getDropdownsOptimized().forEach(dropdown => {
-                (dropdown as HTMLElement).style.display = 'none';
-                dropdown.classList.remove('show');
-            });
-            this.getButtonsOptimized().forEach(btn => {
-                btn.classList.remove('open');
-            });
-
-            if (!isOpen) {
-                powerDropdown.style.display = 'block';
-                powerSelectorBtn.classList.add('open');
-                // Trigger animation
-                setTimeout(() => powerDropdown.classList.add('show'), 10);
-            }
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!powerSelectorBtn.contains(e.target as Node) && !powerDropdown.contains(e.target as Node)) {
-                powerDropdown.classList.remove('show');
-                powerSelectorBtn.classList.remove('open');
-                setTimeout(() => {
-                    if (!powerDropdown.classList.contains('show')) {
-                        powerDropdown.style.display = 'none';
-                    }
-                }, 200);
-            }
-        });
-
-        // Add change listeners to checkboxes
-        const checkboxes = newRow.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', updateButtonText);
-        });
-
-        // Range button functionality
-        rangeButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const range = button.dataset.range!;
-
-                // Clear all checkboxes first
-                checkboxes.forEach(cb => cb.checked = false);
-
-                // Select only the start and end values (no 0.5 increments)
-                const [start, end] = range.split('-').map(Number);
-                checkboxes.forEach(cb => {
-                    const value = parseFloat(cb.value);
-                    if (value === start || value === end) {
-                        cb.checked = true;
-                    }
-                });
-
-                updateButtonText();
-            });
-        });
-
-        // Add event listener for clear button
-        const clearButton = newRow.querySelector('.clear-btn')!;
-        clearButton.addEventListener('click', () => {
-            checkboxes.forEach(cb => cb.checked = false);
-            updateButtonText();
-        });
-
-        // Add keyboard shortcuts for power selector
-        const closeDropdown = () => {
-            powerDropdown.classList.remove('show');
-            powerSelectorBtn.classList.remove('open');
-            setTimeout(() => {
-                if (!powerDropdown.classList.contains('show')) {
-                    powerDropdown.style.display = 'none';
-                }
-            }, 200);
-        };
-
-        // Track typed sequence for decimal numbers
-        let typedSequence = '';
-        let sequenceTimeout: NodeJS.Timeout | null = null;
-
-        // Global keydown listener for this dropdown
-        document.addEventListener('keydown', (e) => {
-            const isDropdownOpen = powerDropdown.style.display === 'block' && powerDropdown.classList.contains('show');
-            const isButtonFocused = document.activeElement === powerSelectorBtn;
-
-            // Handle keys when dropdown is open OR when the button is focused
-            if (isDropdownOpen || isButtonFocused) {
-                if (e.key === 'Escape') {
-                    e.preventDefault();
-                    if (isDropdownOpen) {
-                        closeDropdown();
-                        powerSelectorBtn.focus(); // Return focus to the button
-                    }
-                    typedSequence = '';
-                    if (sequenceTimeout) clearTimeout(sequenceTimeout);
-                } else if ((e.key >= '1' && e.key <= '9') || e.key === '.' || e.key === '0' || e.key === '-') {
-                    e.preventDefault();
-
-                    // Add to typed sequence
-                    typedSequence += e.key;
-
-                    // Clear any existing timeout
-                    if (sequenceTimeout) clearTimeout(sequenceTimeout);
-
-                    // Set timeout to process the sequence
-                    sequenceTimeout = setTimeout(() => {
-                        // Check if it's a range (contains dash)
-                        if (typedSequence.includes('-')) {
-                            const parts = typedSequence.split('-');
-                            if (parts.length === 2) {
-                                const startValue = parseFloat(parts[0]);
-                                const endValue = parseFloat(parts[1]);
-
-                                // Check if either part contains a decimal point
-                                const includeHalfSteps = parts[0].includes('.') || parts[1].includes('.');
-
-                                // Validate range values
-                                if (!isNaN(startValue) && !isNaN(endValue) &&
-                                    startValue >= 1 && startValue <= 10 &&
-                                    endValue >= 1 && endValue <= 10 &&
-                                    startValue <= endValue) {
-
-                                    // Clear all checkboxes first
-                                    checkboxes.forEach(cb => cb.checked = false);
-
-                                    // Select power levels in the range
-                                    checkboxes.forEach(cb => {
-                                        const value = parseFloat(cb.value);
-                                        if (value >= startValue && value <= endValue) {
-                                            // Include this value if:
-                                            // 1. It's a whole number, OR
-                                            // 2. User specified decimals AND it's a .5 increment
-                                            const isWholeNumber = value % 1 === 0;
-                                            const isHalfStep = value % 1 === 0.5;
-
-                                            if (isWholeNumber || (includeHalfSteps && isHalfStep)) {
-                                                cb.checked = true;
-                                            }
-                                        }
-                                    });
-
-                                    updateButtonText();
-                                    // Only close dropdown if it was already open
-                                    if (isDropdownOpen) {
-                                        closeDropdown();
-                                    }
-                                }
-                            }
-                        } else {
-                            // Handle single value (original logic)
-                            const targetValue = parseFloat(typedSequence);
-
-                            // Validate that it's a reasonable power level (1-10, including .5 increments)
-                            if (!isNaN(targetValue) && targetValue >= 1 && targetValue <= 10) {
-                                // Clear all checkboxes first
-                                checkboxes.forEach(cb => cb.checked = false);
-
-                                // Find and check the matching checkbox
-                                const targetCheckbox = Array.from(checkboxes).find(cb =>
-                                    Math.abs(parseFloat(cb.value) - targetValue) < 0.01
-                                );
-
-                                if (targetCheckbox) {
-                                    targetCheckbox.checked = true;
-                                    updateButtonText();
-                                    // Only close dropdown if it was already open
-                                    if (isDropdownOpen) {
-                                        closeDropdown();
-                                    }
-                                }
-                            }
-                        }
-
-                        // Reset sequence
-                        typedSequence = '';
-                    }, 500); // Wait 500ms for more input
-                }
-            }
-        });
-
-        // Initialize button text
-        updateButtonText();
-
-        // Bracket selector functionality
-        const bracketSelectorBtn = newRow.querySelector('.bracket-selector-btn') as HTMLButtonElement;
-        const bracketDropdown = newRow.querySelector('.bracket-selector-dropdown') as HTMLElement;
-        const bracketRangeButtons = newRow.querySelectorAll('.bracket-range-btn') as NodeListOf<HTMLButtonElement>;
-
-        const updateBracketButtonText = () => {
-            const bracketCheckboxes = newRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
-            const selectedBrackets: string[] = [];
-
-            bracketCheckboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    selectedBrackets.push(checkbox.value);
-                }
-            });
-
-            if (selectedBrackets.length === 0) {
-                bracketSelectorBtn.textContent = 'Select Brackets';
-                bracketSelectorBtn.classList.remove('has-selection');
-                // Only show error if validation has been triggered (pods generation attempted)
-                if (bracketSelectorBtn.dataset.validationTriggered === 'true') {
-                    bracketSelectorBtn.classList.add('error');
-                }
-            } else {
-                bracketSelectorBtn.classList.remove('error');
-                let displayText: string;
-                if (selectedBrackets.length === 1) {
-                    displayText = `Bracket: ${selectedBrackets[0]}`;
-                } else {
-                    displayText = `Brackets: ${selectedBrackets.join(', ')}`;
-                }
-                bracketSelectorBtn.textContent = displayText;
-                bracketSelectorBtn.classList.add('has-selection');
-            }
-        };
-
-        // Toggle bracket dropdown visibility
-        bracketSelectorBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const isOpen = bracketDropdown.style.display !== 'none';
-
-            // Close all other dropdowns first (DOM Performance: use cached queries)
-            this.getDropdownsOptimized().forEach(dropdown => {
-                (dropdown as HTMLElement).style.display = 'none';
-                dropdown.classList.remove('show');
-            });
-            this.getButtonsOptimized().forEach(btn => {
-                btn.classList.remove('open');
-            });
-
-            if (!isOpen) {
-                bracketDropdown.style.display = 'block';
-                bracketSelectorBtn.classList.add('open');
-                setTimeout(() => bracketDropdown.classList.add('show'), 10);
-            }
-        });
-
-        // Close bracket dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!bracketSelectorBtn.contains(e.target as Node) && !bracketDropdown.contains(e.target as Node)) {
-                bracketDropdown.classList.remove('show');
-                bracketSelectorBtn.classList.remove('open');
-                setTimeout(() => {
-                    if (!bracketDropdown.classList.contains('show')) {
-                        bracketDropdown.style.display = 'none';
-                    }
-                }, 200);
-            }
-        });
-
-        // Add change listeners to bracket checkboxes
-        const bracketCheckboxes = newRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
-        bracketCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', updateBracketButtonText);
-        });
-
-        // Bracket range button functionality
-        bracketRangeButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const range = button.dataset.range!;
-
-                // Clear all checkboxes first
-                bracketCheckboxes.forEach(cb => cb.checked = false);
-
-                if (range === 'cedh') {
-                    // Special case for cEDH button
-                    bracketCheckboxes.forEach(cb => {
-                        if (cb.value === 'cedh') {
-                            cb.checked = true;
-                        }
-                    });
-                } else {
-                    // Select the range brackets
-                    const [start, end] = range.split('-');
-                    const startNum = parseInt(start);
-                    const endNum = parseInt(end);
-
-                    bracketCheckboxes.forEach(cb => {
-                        const value = cb.value;
-                        if (value !== 'cedh') {
-                            const num = parseInt(value);
-                            if (num >= startNum && num <= endNum) {
-                                cb.checked = true;
-                            }
-                        }
-                    });
-                }
-
-                updateBracketButtonText();
-            });
-        });
-
-        // Add event listener for bracket clear button
-        const bracketClearButton = newRow.querySelector('.bracket-clear-btn')!;
-        bracketClearButton.addEventListener('click', () => {
-            bracketCheckboxes.forEach(cb => cb.checked = false);
-            updateBracketButtonText();
-        });
-
-        // Bracket keyboard shortcuts
-        const closeBracketDropdown = () => {
-            bracketDropdown.classList.remove('show');
-            bracketSelectorBtn.classList.remove('open');
-            setTimeout(() => {
-                if (!bracketDropdown.classList.contains('show')) {
-                    bracketDropdown.style.display = 'none';
-                }
-            }, 200);
-        };
-
-        // Bracket keyboard handling
-        document.addEventListener('keydown', (e) => {
-            const isBracketDropdownOpen = bracketDropdown.style.display === 'block' && bracketDropdown.classList.contains('show');
-            const isBracketButtonFocused = document.activeElement === bracketSelectorBtn;
-
-            if (isBracketDropdownOpen || isBracketButtonFocused) {
-                if (e.key === 'Escape') {
-                    e.preventDefault();
-                    if (isBracketDropdownOpen) {
-                        closeBracketDropdown();
-                        bracketSelectorBtn.focus();
-                    }
-                } else if (e.key >= '1' && e.key <= '4') {
-                    e.preventDefault();
-                    const targetValue = e.key;
-
-                    // Clear all checkboxes first
-                    bracketCheckboxes.forEach(cb => cb.checked = false);
-
-                    // Find and check the matching checkbox
-                    const targetCheckbox = Array.from(bracketCheckboxes).find(cb => cb.value === targetValue);
-                    if (targetCheckbox) {
-                        targetCheckbox.checked = true;
-                        updateBracketButtonText();
-                        if (isBracketDropdownOpen) {
-                            closeBracketDropdown();
-                        }
-                    }
-                } else if (e.key === '5' || e.key.toLowerCase() === 'c') {
-                    e.preventDefault();
-
-                    // Clear all checkboxes first
-                    bracketCheckboxes.forEach(cb => cb.checked = false);
-
-                    // Check cEDH
-                    const cedhCheckbox = Array.from(bracketCheckboxes).find(cb => cb.value === 'cedh');
-                    if (cedhCheckbox) {
-                        cedhCheckbox.checked = true;
-                        updateBracketButtonText();
-                        if (isBracketDropdownOpen) {
-                            closeBracketDropdown();
-                        }
-                    }
-                }
-            }
-        });
-
-        // Initialize bracket button text
-        updateBracketButtonText();
-
-        // Don't initialize bracket validation state for new rows
-
-        // Add event listener for remove button
-        const removeBtn = newRow.querySelector('.remove-player-btn')!;
-        removeBtn.addEventListener('click', () => {
-            this.playerRowsContainer.removeChild(newRow);
-            this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
-
-            // Update player numbers after removal
-            this.updatePlayerNumbers();
-            
-            // DOM Performance: Clear caches when DOM structure changes
-            this.clearDOMCache();
-        });
-
-        // Add real-time validation for player name
-        const nameInput = newRow.querySelector('.player-name') as HTMLInputElement;
-        nameInput.addEventListener('input', () => {
-            // Mark field as touched
-            nameInput.dataset.touched = 'true';
-
-            // Real-time validation for empty names - only if touched
-            const name = nameInput.value.trim();
-            if (!name && nameInput.dataset.touched === 'true') {
-                nameInput.classList.add('input-error');
-            } else {
-                nameInput.classList.remove('input-error');
-            }
-
-            // Clear duplicate errors on input
-            this.clearDuplicateErrorsOnInput();
-        });
-
-        // Don't initialize validation state for new rows
-
-        // Add event listener for group select
-        const groupSelect = newRow.querySelector('.group-select') as HTMLSelectElement;
-        groupSelect.addEventListener('change', () => {
-            this.playerManager.handleGroupChange(this.playerRowsContainer);
-        });
+        // Event Listener Cleanup: No individual listeners needed - using delegation
+        // Just initialize button text with helper function
+        this.updatePowerButtonText(newRow);
+        this.updateBracketButtonText(newRow);
 
         this.playerRowsContainer.appendChild(newRow);
-        
+
         // DOM Performance: Clear caches when DOM structure changes
         this.clearDOMCache();
         this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
@@ -684,8 +571,44 @@ export class UIManager {
                 if (nameInput) {
                     nameInput.focus();
                 }
+                return;
+            }
+
+            // Handle bracket shortcuts when a bracket selector button is focused
+            const activeElement = document.activeElement as HTMLElement;
+            if (activeElement && activeElement.classList.contains('bracket-selector-btn')) {
+                let bracketValue: string | null = null;
+                
+                // Map keys to bracket values
+                if (e.key === '1') bracketValue = '1';
+                else if (e.key === '2') bracketValue = '2';
+                else if (e.key === '3') bracketValue = '3';
+                else if (e.key === '4') bracketValue = '4';
+                else if (e.key === '5' || e.key === 'c' || e.key === 'C') bracketValue = 'cedh';
+
+                if (bracketValue) {
+                    e.preventDefault();
+                    this.selectBracketByKeyboard(activeElement, bracketValue);
+                }
             }
         });
+    }
+
+    private selectBracketByKeyboard(bracketButton: HTMLElement, bracketValue: string): void {
+        const playerRow = bracketButton.closest('.player-row') as HTMLElement;
+        if (!playerRow) return;
+
+        // Clear all checkboxes first
+        const checkboxes = playerRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+        checkboxes.forEach(cb => cb.checked = false);
+
+        // Check the specific bracket
+        const targetCheckbox = playerRow.querySelector(`.bracket-checkbox input[value="${bracketValue}"]`) as HTMLInputElement;
+        if (targetCheckbox) {
+            targetCheckbox.checked = true;
+            // Trigger the change event to update button text
+            targetCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+        }
     }
 
     private cleanupBottomDisplayButton(): void {

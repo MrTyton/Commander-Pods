@@ -53,12 +53,12 @@ export class PodGenerator {
      */
     private getItemSize(item: Player | Group): number {
         const key = 'players' in item ? `group-${item.id}` : `player-${item.id}`;
-        
+
         if (!this.sizeCache.has(key)) {
             const size = 'players' in item ? item.size : 1;
             this.sizeCache.set(key, size);
         }
-        
+
         return this.sizeCache.get(key)!;
     }
 
