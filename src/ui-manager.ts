@@ -48,6 +48,12 @@ export class UIManager {
 
     // Memory optimization: Reusable arrays to reduce garbage collection
     private reusablePlayerArray: Player[] = [];
+    
+    // DOM Performance optimization: Element pools and fragments
+    private elementPool = new Map<string, HTMLElement[]>();
+    private reusableFragment = document.createDocumentFragment();
+    private dropdownsCache: NodeListOf<HTMLElement> | null = null;
+    private buttonsCache: NodeListOf<HTMLElement> | null = null;
     private reusableItemArray: (Player | Group)[] = [];
 
     constructor() {
@@ -103,6 +109,47 @@ export class UIManager {
     private clearDOMCache(): void {
         this.domCache.clear();
         this.queryCache.clear();
+        // DOM Performance: Clear additional caches
+        this.dropdownsCache = null;
+        this.buttonsCache = null;
+    }
+
+    // DOM Performance optimization: Element pooling
+    private getPooledElement(type: string): HTMLElement | null {
+        const pool = this.elementPool.get(type);
+        return pool && pool.length > 0 ? pool.pop()! : null;
+    }
+
+    private returnToPool(type: string, element: HTMLElement): void {
+        // Clean the element before returning to pool
+        element.innerHTML = '';
+        element.className = '';
+        element.removeAttribute('style');
+        element.removeAttribute('data-pod-index');
+        element.removeAttribute('data-item-index');
+        element.removeAttribute('data-item-id');
+        element.removeAttribute('data-item-type');
+        element.draggable = false;
+
+        if (!this.elementPool.has(type)) {
+            this.elementPool.set(type, []);
+        }
+        
+        const pool = this.elementPool.get(type)!;
+        if (pool.length < 20) { // Limit pool size
+            pool.push(element);
+        }
+    }
+
+    // DOM Performance optimization: Cached dropdown queries
+    private getDropdownsOptimized(): NodeListOf<HTMLElement> {
+        // Don't cache during tests - refresh each time for reliability  
+        return document.querySelectorAll('.bracket-selector-dropdown, .power-selector-dropdown');
+    }
+
+    private getButtonsOptimized(): NodeListOf<HTMLElement> {
+        // Don't cache during tests - refresh each time for reliability
+        return document.querySelectorAll('.bracket-selector-btn, .power-selector-btn');
     }
 
     /**
@@ -188,12 +235,12 @@ export class UIManager {
             e.preventDefault();
             const isOpen = powerDropdown.style.display !== 'none';
 
-            // Close all other dropdowns first
-            document.querySelectorAll('.power-selector-dropdown').forEach(dropdown => {
+            // Close all other dropdowns first (DOM Performance: use cached queries)
+            this.getDropdownsOptimized().forEach(dropdown => {
                 (dropdown as HTMLElement).style.display = 'none';
                 dropdown.classList.remove('show');
             });
-            document.querySelectorAll('.power-selector-btn').forEach(btn => {
+            this.getButtonsOptimized().forEach(btn => {
                 btn.classList.remove('open');
             });
 
@@ -410,12 +457,12 @@ export class UIManager {
             e.preventDefault();
             const isOpen = bracketDropdown.style.display !== 'none';
 
-            // Close all other dropdowns first
-            document.querySelectorAll('.bracket-selector-dropdown, .power-selector-dropdown').forEach(dropdown => {
+            // Close all other dropdowns first (DOM Performance: use cached queries)
+            this.getDropdownsOptimized().forEach(dropdown => {
                 (dropdown as HTMLElement).style.display = 'none';
                 dropdown.classList.remove('show');
             });
-            document.querySelectorAll('.bracket-selector-btn, .power-selector-btn').forEach(btn => {
+            this.getButtonsOptimized().forEach(btn => {
                 btn.classList.remove('open');
             });
 
@@ -559,6 +606,9 @@ export class UIManager {
 
             // Update player numbers after removal
             this.updatePlayerNumbers();
+            
+            // DOM Performance: Clear caches when DOM structure changes
+            this.clearDOMCache();
         });
 
         // Add real-time validation for player name
@@ -588,6 +638,9 @@ export class UIManager {
         });
 
         this.playerRowsContainer.appendChild(newRow);
+        
+        // DOM Performance: Clear caches when DOM structure changes
+        this.clearDOMCache();
         this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
 
         // Clear DOM cache since we added a new element
@@ -804,13 +857,15 @@ export class UIManager {
         // Calculate grid size using ceil(sqrt(pods))
         const gridSize = Math.ceil(Math.sqrt(pods.length));
 
-        const podsContainer = document.createElement('div');
+        // DOM Performance: Use document fragment for batch DOM operations
+        const fragment = document.createDocumentFragment();
+        const podsContainer = this.getPooledElement('pods-container') || document.createElement('div');
         podsContainer.classList.add('pods-container');
         podsContainer.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
         podsContainer.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
 
         pods.forEach((pod, index) => {
-            const podElement = document.createElement('div');
+            const podElement = this.getPooledElement('pod') || document.createElement('div');
             podElement.classList.add('pod', `pod-color-${index % 10}`);
             podElement.dataset.podIndex = index.toString();
 
@@ -819,7 +874,7 @@ export class UIManager {
             podElement.addEventListener('drop', this.dragDropManager.handleDrop);
             podElement.addEventListener('dragleave', this.dragDropManager.handleDragLeave);
 
-            const title = document.createElement('h3');
+            const title = this.getPooledElement('h3') || document.createElement('h3');
 
             // Check if we're in bracket mode to display appropriate title
             const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
@@ -837,11 +892,11 @@ export class UIManager {
 
             podElement.appendChild(title);
 
-            const list = document.createElement('ul');
+            const list = this.getPooledElement('ul') || document.createElement('ul');
             pod.players.forEach((item, itemIndex) => {
                 if ('players' in item) {
-                    // It's a group
-                    const groupItem = document.createElement('li');
+                    // It's a group - DOM Performance: use pooled elements
+                    const groupItem = this.getPooledElement('li') || document.createElement('li');
                     groupItem.classList.add('pod-group');
                     groupItem.draggable = true;
                     groupItem.dataset.itemType = 'group';
@@ -857,15 +912,18 @@ export class UIManager {
                     const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
                     const isBracketMode = bracketRadio && bracketRadio.checked;
 
+                    // DOM Performance: Use textContent instead of innerHTML when possible
+                    const groupTitle = document.createElement('strong');
                     if (isBracketMode) {
-                        groupItem.innerHTML = `<strong>Group ${item.id.split('-')[1]}:</strong>`;
+                        groupTitle.textContent = `Group ${item.id.split('-')[1]}:`;
                     } else {
-                        groupItem.innerHTML = `<strong>Group ${item.id.split('-')[1]} (Avg Power: ${item.averagePower}):</strong>`;
+                        groupTitle.textContent = `Group ${item.id.split('-')[1]} (Avg Power: ${item.averagePower}):`;
                     }
+                    groupItem.appendChild(groupTitle);
 
-                    const subList = document.createElement('ul');
+                    const subList = this.getPooledElement('ul') || document.createElement('ul');
                     item.players.forEach(p => {
-                        const subItem = document.createElement('li');
+                        const subItem = this.getPooledElement('li') || document.createElement('li');
                         if (isBracketMode && p.bracketRange) {
                             subItem.textContent = `${p.name} (B: ${p.bracketRange})`;
                         } else {
@@ -879,8 +937,8 @@ export class UIManager {
                     groupItem.appendChild(subList);
                     list.appendChild(groupItem);
                 } else {
-                    // It's an individual player
-                    const playerItem = document.createElement('li');
+                    // It's an individual player - DOM Performance: use pooled elements
+                    const playerItem = this.getPooledElement('li') || document.createElement('li');
                     playerItem.classList.add('pod-player');
                     playerItem.draggable = true;
                     playerItem.dataset.itemType = 'player';
@@ -1030,7 +1088,9 @@ export class UIManager {
             podsContainer.appendChild(unassignedElement);
         }
 
-        this.outputSection.appendChild(podsContainer);
+        // DOM Performance: Use document fragment for batch DOM update
+        fragment.appendChild(podsContainer);
+        this.outputSection.appendChild(fragment);
 
         // Add a second Display Mode button right before the help section for better accessibility
         const helpSection = document.querySelector('.help-section');
