@@ -41,6 +41,14 @@ export class UIManager {
     private lastResetData: ResetData | null = null; // Store data before reset for undo functionality
     private isRestoring: boolean = false; // Flag to prevent clearAllSelections during restoration
     private displayModeBtnBottom: HTMLButtonElement | null = null; // Bottom Display Mode button
+    
+    // Memory optimization: DOM element cache
+    private domCache = new Map<string, Element[]>();
+    private queryCache = new Map<string, NodeListOf<Element>>();
+
+    // Memory optimization: Reusable arrays to reduce garbage collection
+    private reusablePlayerArray: Player[] = [];
+    private reusableItemArray: (Player | Group)[] = [];
 
     constructor() {
         this.playerRowsContainer = document.getElementById('player-rows')!;
@@ -76,6 +84,45 @@ export class UIManager {
 
         // Add global keyboard shortcuts
         this.initializeKeyboardShortcuts();
+    }
+
+    /**
+     * Memory-optimized DOM query with caching
+     */
+    private getCachedElements(selector: string): Element[] {
+        if (!this.domCache.has(selector)) {
+            const elements = Array.from(this.playerRowsContainer.querySelectorAll(selector));
+            this.domCache.set(selector, elements);
+        }
+        return this.domCache.get(selector)!;
+    }
+
+    /**
+     * Clear DOM cache when elements change
+     */
+    private clearDOMCache(): void {
+        this.domCache.clear();
+        this.queryCache.clear();
+    }
+
+    /**
+     * Memory-optimized way to get player rows without Array.from()
+     */
+    private getPlayerRowsOptimized(): HTMLElement[] {
+        const nodeList = this.playerRowsContainer.querySelectorAll('.player-row');
+        const result: HTMLElement[] = [];
+        for (let i = 0; i < nodeList.length; i++) {
+            result.push(nodeList[i] as HTMLElement);
+        }
+        return result;
+    }
+
+    /**
+     * Reuse arrays to reduce garbage collection
+     */
+    private clearReusableArrays(): void {
+        this.reusablePlayerArray.length = 0;
+        this.reusableItemArray.length = 0;
     }
 
     addPlayerRow(): void {
@@ -543,6 +590,9 @@ export class UIManager {
         this.playerRowsContainer.appendChild(newRow);
         this.playerManager.updateAllGroupDropdowns(this.playerRowsContainer);
 
+        // Clear DOM cache since we added a new element
+        this.clearDOMCache();
+
         // Update player numbers for all rows
         this.updatePlayerNumbers();
 
@@ -604,21 +654,23 @@ export class UIManager {
         this.outputSection.innerHTML = '';
         this.playerManager.handleGroupChange(this.playerRowsContainer);
 
-        const allPlayers: Player[] = [];
-        const playerRows = Array.from(this.playerRowsContainer.querySelectorAll('.player-row'));
+        // Clear reusable arrays and use optimized player row fetching
+        this.clearReusableArrays();
+        const playerRows = this.getPlayerRowsOptimized();
         let validationFailed = false;
 
-        // Clear any existing name validation errors
-        playerRows.forEach(row => {
-            const nameInput = row.querySelector('.player-name') as HTMLInputElement;
+        // Clear any existing name validation errors (optimized loop)
+        for (let i = 0; i < playerRows.length; i++) {
+            const nameInput = playerRows[i].querySelector('.player-name') as HTMLInputElement;
             // Remove all possible duplicate error classes
             nameInput.classList.remove('name-duplicate-error', 'name-duplicate-error-1', 'name-duplicate-error-2', 'name-duplicate-error-3', 'name-duplicate-error-4', 'name-duplicate-error-5');
-        });
+        }
 
-        for (const row of playerRows) {
-            const player = this.playerManager.getPlayerFromRow(row as HTMLElement);
+        // Use reusable array to reduce memory allocation
+        for (let i = 0; i < playerRows.length; i++) {
+            const player = this.playerManager.getPlayerFromRow(playerRows[i]);
             if (player) {
-                allPlayers.push(player);
+                this.reusablePlayerArray.push(player);
             } else {
                 validationFailed = true;
             }
@@ -677,11 +729,13 @@ export class UIManager {
         });
 
         const groupedPlayerIds = new Set([...this.playerManager.getGroups().values()].flat().map(p => p.id));
-        const ungroupedPlayers = allPlayers.filter(p => !groupedPlayerIds.has(p.id));
+        const ungroupedPlayers = this.reusablePlayerArray.filter(p => !groupedPlayerIds.has(p.id));
 
-        let itemsToPod: (Player | Group)[] = [...ungroupedPlayers];
+        // Use reusable array for items to pod
+        this.reusableItemArray.length = 0;
+        this.reusableItemArray.push(...ungroupedPlayers);
         processedGroups.forEach(group => {
-            itemsToPod.push({
+            this.reusableItemArray.push({
                 id: group.id,
                 players: group.players,
                 averagePower: group.averagePower,
@@ -689,7 +743,7 @@ export class UIManager {
             });
         });
 
-        const totalPlayerCount = allPlayers.length;
+        const totalPlayerCount = this.reusablePlayerArray.length;
         if (totalPlayerCount < 3) {
             alert("You need at least 3 players to form a pod.");
             return;
@@ -712,8 +766,8 @@ export class UIManager {
 
         if (isTestEnvironment) {
             // Use a deterministic seed based on player names for consistent test results
-            const playerNames = allPlayers.map(p => p.name).join('');
-            const deterministicSeed = Array.from(playerNames).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+            const playerNames = this.reusablePlayerArray.map(p => p.name).join('');
+            const deterministicSeed = Array.from(playerNames).reduce((sum: number, char: string) => sum + char.charCodeAt(0), 0);
             this.podGenerator.setShuffleSeed(deterministicSeed);
         } else {
             // Use random seed in production for true randomness
@@ -721,7 +775,7 @@ export class UIManager {
         }
 
         // Use backtracking algorithm for optimal pod assignment
-        const result = this.podGenerator.generatePodsWithBacktracking(itemsToPod, podSizes, leniencySettings);
+        const result = this.podGenerator.generatePodsWithBacktracking(this.reusableItemArray, podSizes, leniencySettings);
         const pods = result.pods;
         let unassignedPlayers = result.unassigned;
 
@@ -1493,9 +1547,10 @@ export class UIManager {
     }
 
     private triggerValidationForAllFields(): void {
-        const playerRows = Array.from(this.playerRowsContainer.querySelectorAll('.player-row'));
+        const playerRows = this.getPlayerRowsOptimized();
 
-        playerRows.forEach(row => {
+        for (let i = 0; i < playerRows.length; i++) {
+            const row = playerRows[i];
             // Mark name fields as needing validation if they're empty
             const nameInput = row.querySelector('.player-name') as HTMLInputElement;
             const name = nameInput.value.trim();
@@ -1533,7 +1588,7 @@ export class UIManager {
                     powerSelectorBtn.classList.add('error');
                 }
             }
-        });
+        }
     }
 
     // Helper method to manually update button texts for a row
