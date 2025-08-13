@@ -19,6 +19,7 @@ This document contains the step-by-step workflow for fixing tests systematically
    ```powershell
    npm run bundle
    ```
+   This will make edits to the scripts.js file, as it will compile it. It is never modified manually, and should never be modified manually. The typescript files should be considered the single source of truth.
 
 4. **Run Tests**
    ```powershell

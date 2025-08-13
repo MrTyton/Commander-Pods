@@ -10,6 +10,9 @@
     "bundle": "esbuild src/main.ts --bundle --outfile=script.js --format=iife --minify --tree-shaking=true --target=es2020",
     "bundle:dev": "esbuild src/main.ts --bundle --outfile=script.js --format=iife --sourcemap",
     "bundle:analyze": "esbuild src/main.ts --bundle --outfile=script.js --format=iife --minify --tree-shaking=true --target=es2020 --metafile=meta.json --analyze",
+    "bundle:chunks": "npm run bundle:display-mode && npm run bundle:main",
+    "bundle:display-mode": "esbuild src/display-mode.ts --bundle --outfile=display-mode-chunk.js --format=iife --global-name=DisplayModeChunk --minify --tree-shaking=true --target=es2020",
+    "bundle:main": "esbuild src/main.ts --bundle --outfile=script.js --format=iife --minify --tree-shaking=true --target=es2020 --external:./display-mode.js",
     "deploy": "npm run bundle"
   },
   "keywords": [],
