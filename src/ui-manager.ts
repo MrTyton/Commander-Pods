@@ -9,6 +9,14 @@ import { ValidationUtils, ButtonTextUtils, DOMUtils } from './shared-utils.js';
 import { ButtonTextManager } from './button-text-manager.js';
 import { domCache } from './dom-cache.js';
 import { realTimeValidator } from './real-time-validator.js';
+import { 
+    isHTMLElement, 
+    isHTMLInputElement, 
+    isHTMLButtonElement, 
+    getElementByIdTyped, 
+    getEventTarget,
+    assertExists 
+} from './type-guards.js';
 
 interface PlayerResetData {
     name: string;
@@ -58,10 +66,22 @@ export class UIManager {
     private documentClickHandler: ((e: Event) => void) | null = null;
 
     constructor() {
-        this.playerRowsContainer = document.getElementById('player-rows')!;
-        this.outputSection = document.getElementById('output-section')!;
-        this.displayModeBtn = document.getElementById('display-mode-btn')!;
-        this.playerRowTemplate = document.getElementById('player-row-template') as HTMLTemplateElement;
+        this.playerRowsContainer = assertExists(
+            getElementByIdTyped('player-rows', isHTMLElement),
+            'player-rows container is required'
+        );
+        this.outputSection = assertExists(
+            getElementByIdTyped('output-section', isHTMLElement),
+            'output-section is required'
+        );
+        this.displayModeBtn = assertExists(
+            getElementByIdTyped('display-mode-btn', isHTMLButtonElement),
+            'display-mode-btn is required'
+        );
+        this.playerRowTemplate = assertExists(
+            document.getElementById('player-row-template') as HTMLTemplateElement,
+            'player-row-template is required'
+        );
 
         this.playerManager = new PlayerManager();
         this.podGenerator = new PodGenerator();
@@ -74,11 +94,26 @@ export class UIManager {
     }
 
     private initializeEventListeners(): void {
-        const addPlayerBtn = document.getElementById('add-player-btn')!;
-        const bulkAddBtn = document.getElementById('bulk-add-btn')!;
-        const generatePodsBtn = document.getElementById('generate-pods-btn')!;
-        const resetAllBtn = document.getElementById('reset-all-btn')!;
-        const helpBtn = document.getElementById('help-btn')!;
+        const addPlayerBtn = assertExists(
+            getElementByIdTyped('add-player-btn', isHTMLButtonElement),
+            'add-player-btn is required'
+        );
+        const bulkAddBtn = assertExists(
+            getElementByIdTyped('bulk-add-btn', isHTMLButtonElement),
+            'bulk-add-btn is required'
+        );
+        const generatePodsBtn = assertExists(
+            getElementByIdTyped('generate-pods-btn', isHTMLButtonElement),
+            'generate-pods-btn is required'
+        );
+        const resetAllBtn = assertExists(
+            getElementByIdTyped('reset-all-btn', isHTMLButtonElement),
+            'reset-all-btn is required'
+        );
+        const helpBtn = assertExists(
+            getElementByIdTyped('help-btn', isHTMLButtonElement),
+            'help-btn is required'
+        );
 
         addPlayerBtn.addEventListener('click', () => this.addPlayerRow());
         bulkAddBtn.addEventListener('click', () => this.bulkAddPlayers(4));
@@ -109,6 +144,13 @@ export class UIManager {
      */
     private clearDOMCache(): void {
         domCache.clear();
+    }
+
+    /**
+     * Type-safe helper to get bracket radio element
+     */
+    private getBracketRadio(): HTMLInputElement | null {
+        return getElementByIdTyped('bracket-radio', isHTMLInputElement);
     }
 
     // DOM Performance optimization: Element pooling (simplified)
@@ -177,7 +219,8 @@ export class UIManager {
     }
 
     private handleContainerClick(e: Event): void {
-        const target = e.target as HTMLElement;
+        const target = getEventTarget(e, isHTMLElement);
+        if (!target) return;
 
         // Handle power selector button clicks
         if (target.classList.contains('power-selector-btn')) {
@@ -217,7 +260,8 @@ export class UIManager {
     }
 
     private handleContainerChange(e: Event): void {
-        const target = e.target as HTMLElement;
+        const target = getEventTarget(e, isHTMLElement);
+        if (!target) return;
 
         // Handle group select changes
         if (target.classList.contains('group-select')) {
@@ -226,36 +270,41 @@ export class UIManager {
         }
 
         // Handle checkbox changes for power levels
-        if ((target as HTMLInputElement).type === 'checkbox' && target.closest('.power-checkbox')) {
+        if (isHTMLInputElement(target) && target.type === 'checkbox' && target.closest('.power-checkbox')) {
             this.handlePowerCheckboxChange(target);
             return;
         }
 
         // Handle checkbox changes for brackets
-        if ((target as HTMLInputElement).type === 'checkbox' && target.closest('.bracket-checkbox')) {
+        if (isHTMLInputElement(target) && target.type === 'checkbox' && target.closest('.bracket-checkbox')) {
             this.handleBracketCheckboxChange(target);
             return;
         }
 
         // Handle player name input changes
-        if (target.classList.contains('player-name')) {
-            this.handlePlayerNameChange(target as HTMLInputElement);
+        if (target.classList.contains('player-name') && isHTMLInputElement(target)) {
+            this.handlePlayerNameChange(target);
             return;
         }
     }
 
     private handleContainerInput(e: Event): void {
-        const target = e.target as HTMLElement;
+        const target = getEventTarget(e, isHTMLElement);
+        if (!target) return;
 
         // Handle player name input for real-time validation
         if (target.classList.contains('player-name')) {
-            this.handlePlayerNameChange(target as HTMLInputElement);
+            const inputTarget = getEventTarget(e, isHTMLInputElement);
+            if (inputTarget) {
+                this.handlePlayerNameChange(inputTarget);
+            }
             return;
         }
     }
 
     private handleDocumentClick(e: Event): void {
-        const target = e.target as HTMLElement;
+        const target = getEventTarget(e, isHTMLElement);
+        if (!target) return;
 
         // Close all dropdowns when clicking outside
         if (!target.closest('.power-selector-btn') && !target.closest('.power-selector-dropdown') &&
@@ -477,8 +526,8 @@ export class UIManager {
         this.updatePlayerNumbers();
 
         // Apply current ranking mode to the new row
-        const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
-        const isBracketMode = bracketRadio.checked;
+        const bracketRadio = this.getBracketRadio();
+        const isBracketMode = bracketRadio?.checked ?? false;
         const powerLevels = domCache.getFromRow<HTMLElement>(newRow, '.power-levels');
         const bracketLevels = domCache.getFromRow<HTMLElement>(newRow, '.bracket-levels');
 
@@ -515,8 +564,8 @@ export class UIManager {
             }
 
             // Handle bracket shortcuts when a bracket selector button is focused
-            const activeElement = document.activeElement as HTMLElement;
-            if (activeElement && activeElement.classList.contains('bracket-selector-btn')) {
+            const activeElement = document.activeElement;
+            if (isHTMLElement(activeElement) && activeElement.classList.contains('bracket-selector-btn')) {
                 let bracketValue: string | null = null;
                 
                 // Map keys to bracket values
