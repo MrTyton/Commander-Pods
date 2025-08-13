@@ -408,35 +408,32 @@ export class UIManager {
 
     private handlePowerSelectorClick(e: Event, target: HTMLElement): void {
         e.preventDefault();
-        const playerRow = target.closest('.player-row') as HTMLElement;
-        if (!playerRow) return;
-
-        const dropdown = domCache.getFromRow<HTMLElement>(playerRow, '.power-selector-dropdown');
-        if (!dropdown) return;
-
-        const isOpen = dropdown.style.display !== 'none';
-
-        // Close all other dropdowns first
-        this.closeAllDropdowns();
-
-        if (!isOpen) {
-            dropdown.style.display = 'block';
-            target.classList.add('open');
-            setTimeout(() => dropdown.classList.add('show'), 10);
-        }
+        this.handleDropdownToggle(target, '.power-selector-dropdown');
     }
 
     private handleBracketSelectorClick(e: Event, target: HTMLElement): void {
         e.preventDefault();
-        const playerRow = target.closest('.player-row') as HTMLElement;
+        this.handleDropdownToggle(target, '.bracket-selector-dropdown');
+    }
+
+    /**
+     * Safely find the player row for an event target using TypeGuards
+     * Optimizes repeated player row lookups throughout event handlers
+     */
+    private findPlayerRow(target: HTMLElement): HTMLElement | null {
+        return target.closest('.player-row') as HTMLElement;
+    }
+
+    private handleDropdownToggle(target: HTMLElement, dropdownSelector: string): void {
+        const playerRow = this.findPlayerRow(target);
         if (!playerRow) return;
 
-        const dropdown = domCache.getFromRow<HTMLElement>(playerRow, '.bracket-selector-dropdown');
+        const dropdown = domCache.getFromRow<HTMLElement>(playerRow, dropdownSelector);
         if (!dropdown) return;
 
         const isOpen = dropdown.style.display !== 'none';
 
-        // Close all other dropdowns first
+        // Close all other dropdowns first (using optimized cache)
         this.closeAllDropdowns();
 
         if (!isOpen) {
@@ -447,7 +444,8 @@ export class UIManager {
     }
 
     private handleRangeButtonClick(target: HTMLElement): void {
-        const playerRow = target.closest('.player-row') as HTMLElement;
+        const playerRow = this.findPlayerRow(target);
+        if (!playerRow) return;
         if (!playerRow) return;
 
         const range = target.dataset.range!;
@@ -469,7 +467,7 @@ export class UIManager {
     }
 
     private handleBracketRangeButtonClick(target: HTMLElement): void {
-        const playerRow = target.closest('.player-row') as HTMLElement;
+        const playerRow = this.findPlayerRow(target);
         if (!playerRow) return;
 
         const range = target.dataset.range!;
@@ -500,7 +498,7 @@ export class UIManager {
     }
 
     private handleClearButtonClick(target: HTMLElement): void {
-        const playerRow = target.closest('.player-row') as HTMLElement;
+        const playerRow = this.findPlayerRow(target);
         if (!playerRow) return;
 
         if (target.classList.contains('clear-btn')) {
@@ -517,7 +515,7 @@ export class UIManager {
     }
 
     private handleRemoveButtonClick(target: HTMLElement): void {
-        const playerRow = target.closest('.player-row') as HTMLElement;
+        const playerRow = this.findPlayerRow(target);
         if (!playerRow) return;
 
         // Clean up event listeners before removing
@@ -530,14 +528,14 @@ export class UIManager {
     }
 
     private handlePowerCheckboxChange(target: HTMLElement): void {
-        const playerRow = target.closest('.player-row') as HTMLElement;
+        const playerRow = this.findPlayerRow(target);
         if (playerRow) {
             this.updatePowerButtonText(playerRow);
         }
     }
 
     private handleBracketCheckboxChange(target: HTMLElement): void {
-        const playerRow = target.closest('.player-row') as HTMLElement;
+        const playerRow = this.findPlayerRow(target);
         if (playerRow) {
             this.updateBracketButtonText(playerRow);
         }
@@ -672,7 +670,7 @@ export class UIManager {
     }
 
     private selectBracketByKeyboard(bracketButton: HTMLElement, bracketValue: string): void {
-        const playerRow = bracketButton.closest('.player-row') as HTMLElement;
+        const playerRow = this.findPlayerRow(bracketButton);
         if (!playerRow) return;
 
         // Clear all checkboxes first
