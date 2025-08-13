@@ -709,15 +709,13 @@ export class UIManager {
 
         // Clear reusable arrays and use optimized player row fetching
         this.clearReusableArrays();
+        
+        // Clear any existing validation errors and check for duplicates using ValidationUtils
         const playerRows = this.getPlayerRowsOptimized();
-        let validationFailed = false;
-
-        // Clear any existing name validation errors (optimized loop)
-        for (let i = 0; i < playerRows.length; i++) {
-            const nameInput = playerRows[i].querySelector('.player-name') as HTMLInputElement;
-            // Remove all possible duplicate error classes
-            nameInput.classList.remove('name-duplicate-error', 'name-duplicate-error-1', 'name-duplicate-error-2', 'name-duplicate-error-3', 'name-duplicate-error-4', 'name-duplicate-error-5');
-        }
+        ValidationUtils.clearDuplicateErrors(playerRows);
+        const duplicateNames = ValidationUtils.highlightDuplicateNames(playerRows);
+        
+        let validationFailed = duplicateNames.length > 0;
 
         // Use reusable array to reduce memory allocation
         for (let i = 0; i < playerRows.length; i++) {
@@ -728,35 +726,6 @@ export class UIManager {
                 validationFailed = true;
             }
         }
-
-        // Check for duplicate names
-        const nameCount = new Map<string, HTMLElement[]>();
-        playerRows.forEach(row => {
-            const nameInput = row.querySelector('.player-name') as HTMLInputElement;
-            const name = nameInput.value.trim().toLowerCase();
-            if (name) {
-                if (!nameCount.has(name)) {
-                    nameCount.set(name, []);
-                }
-                nameCount.get(name)!.push(row as HTMLElement);
-            }
-        });
-
-        // Highlight duplicate names with different colors for each group
-        const duplicateNames: string[] = [];
-        let colorIndex = 1;
-        nameCount.forEach((rows, name) => {
-            if (rows.length > 1) {
-                duplicateNames.push(name);
-                const colorClass = `name-duplicate-error-${colorIndex}`;
-                rows.forEach(row => {
-                    const nameInput = row.querySelector('.player-name') as HTMLInputElement;
-                    nameInput.classList.add(colorClass);
-                });
-                colorIndex = (colorIndex % 5) + 1; // Cycle through colors 1-5
-                validationFailed = true;
-            }
-        });
 
         if (validationFailed) {
             let errorMessage = 'Please fix the errors before generating pods.';
@@ -1411,38 +1380,12 @@ export class UIManager {
     }
 
     private clearDuplicateErrorsOnInput(): void {
+        // Use ValidationUtils for centralized duplicate error management
         const playerRows = Array.from(this.playerRowsContainer.querySelectorAll('.player-row'));
-
-        // Get all current names and their inputs
-        const nameInputs = new Map<string, HTMLInputElement[]>();
-        playerRows.forEach(row => {
-            const nameInput = row.querySelector('.player-name') as HTMLInputElement;
-            const name = nameInput.value.trim().toLowerCase();
-            if (name) {
-                if (!nameInputs.has(name)) {
-                    nameInputs.set(name, []);
-                }
-                nameInputs.get(name)!.push(nameInput);
-            }
-        });
-
-        // Clear all duplicate error classes first
-        playerRows.forEach(row => {
-            const nameInput = row.querySelector('.player-name') as HTMLInputElement;
-            nameInput.classList.remove('name-duplicate-error', 'name-duplicate-error-1', 'name-duplicate-error-2', 'name-duplicate-error-3', 'name-duplicate-error-4', 'name-duplicate-error-5');
-        });
-
-        // Re-apply highlighting only for names that are still duplicated
-        let colorIndex = 1;
-        nameInputs.forEach((inputs, name) => {
-            if (inputs.length > 1) {
-                const colorClass = `name-duplicate-error-${colorIndex}`;
-                inputs.forEach(input => {
-                    input.classList.add(colorClass);
-                });
-                colorIndex = (colorIndex % 5) + 1; // Cycle through colors 1-5
-            }
-        });
+        ValidationUtils.clearDuplicateErrors(playerRows);
+        
+        // Re-apply duplicate highlighting with current state
+        ValidationUtils.highlightDuplicateNames(playerRows);
     }
 
     private initializeRankingModeToggle(): void {
