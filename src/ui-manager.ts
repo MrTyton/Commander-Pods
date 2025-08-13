@@ -7,6 +7,7 @@ import { DisplayModeManager } from './display-mode.js';
 import { eventManager } from './event-manager.js';
 import { ValidationUtils, ButtonTextUtils, DOMUtils } from './shared-utils.js';
 import { ButtonTextManager } from './button-text-manager.js';
+import { domCache } from './dom-cache.js';
 
 interface PlayerResetData {
     name: string;
@@ -105,7 +106,7 @@ export class UIManager {
      * Clear DOM cache when elements change
      */
     private clearDOMCache(): void {
-        // Using event manager for cleanup instead of manual tracking
+        domCache.clear();
     }
 
     // DOM Performance optimization: Element pooling (simplified)
@@ -267,7 +268,7 @@ export class UIManager {
         const playerRow = target.closest('.player-row') as HTMLElement;
         if (!playerRow) return;
 
-        const dropdown = playerRow.querySelector('.power-selector-dropdown') as HTMLElement;
+        const dropdown = domCache.getFromRow<HTMLElement>(playerRow, '.power-selector-dropdown');
         if (!dropdown) return;
 
         const isOpen = dropdown.style.display !== 'none';
@@ -287,7 +288,7 @@ export class UIManager {
         const playerRow = target.closest('.player-row') as HTMLElement;
         if (!playerRow) return;
 
-        const dropdown = playerRow.querySelector('.bracket-selector-dropdown') as HTMLElement;
+        const dropdown = domCache.getFromRow<HTMLElement>(playerRow, '.bracket-selector-dropdown');
         if (!dropdown) return;
 
         const isOpen = dropdown.style.display !== 'none';
@@ -307,7 +308,7 @@ export class UIManager {
         if (!playerRow) return;
 
         const range = target.dataset.range!;
-        const checkboxes = playerRow.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+        const checkboxes = domCache.getAllFromRow<HTMLInputElement>(playerRow, '.power-checkbox input[type="checkbox"]');
 
         // Clear all checkboxes first
         checkboxes.forEach(cb => cb.checked = false);
@@ -329,7 +330,7 @@ export class UIManager {
         if (!playerRow) return;
 
         const range = target.dataset.range!;
-        const checkboxes = playerRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+        const checkboxes = domCache.getAllFromRow<HTMLInputElement>(playerRow, '.bracket-checkbox input[type="checkbox"]');
 
         // Clear all checkboxes first
         checkboxes.forEach(cb => cb.checked = false);
@@ -361,12 +362,12 @@ export class UIManager {
 
         if (target.classList.contains('clear-btn')) {
             // Clear power checkboxes
-            const checkboxes = playerRow.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+            const checkboxes = domCache.getAllFromRow<HTMLInputElement>(playerRow, '.power-checkbox input[type="checkbox"]');
             checkboxes.forEach(cb => cb.checked = false);
             this.updatePowerButtonText(playerRow);
         } else if (target.classList.contains('bracket-clear-btn')) {
             // Clear bracket checkboxes
-            const checkboxes = playerRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+            const checkboxes = domCache.getAllFromRow<HTMLInputElement>(playerRow, '.bracket-checkbox input[type="checkbox"]');
             checkboxes.forEach(cb => cb.checked = false);
             this.updateBracketButtonText(playerRow);
         }
@@ -421,13 +422,13 @@ export class UIManager {
     }
 
     /**
-     * Memory-optimized way to get player rows without Array.from()
+     * Memory-optimized way to get player rows with DOM caching
      */
     private getPlayerRowsOptimized(): HTMLElement[] {
-        const nodeList = this.playerRowsContainer.querySelectorAll('.player-row');
+        const nodeList = domCache.getAll<HTMLElement>('.player-row', this.playerRowsContainer);
         const result: HTMLElement[] = [];
         for (let i = 0; i < nodeList.length; i++) {
-            result.push(nodeList[i] as HTMLElement);
+            result.push(nodeList[i]);
         }
         return result;
     }
@@ -466,13 +467,13 @@ export class UIManager {
         // Apply current ranking mode to the new row
         const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
         const isBracketMode = bracketRadio.checked;
-        const powerLevels = newRow.querySelector('.power-levels') as HTMLElement;
-        const bracketLevels = newRow.querySelector('.bracket-levels') as HTMLElement;
+        const powerLevels = domCache.getFromRow<HTMLElement>(newRow, '.power-levels');
+        const bracketLevels = domCache.getFromRow<HTMLElement>(newRow, '.bracket-levels');
 
-        if (isBracketMode) {
+        if (isBracketMode && powerLevels && bracketLevels) {
             powerLevels.style.display = 'none';
             bracketLevels.style.display = 'block';
-        } else {
+        } else if (powerLevels && bracketLevels) {
             powerLevels.style.display = 'block';
             bracketLevels.style.display = 'none';
         }
@@ -492,9 +493,9 @@ export class UIManager {
                 this.addPlayerRow();
 
                 // Focus the name input of the newly added player
-                const playerRows = this.playerRowsContainer.querySelectorAll('.player-row');
-                const lastRow = playerRows[playerRows.length - 1] as HTMLElement;
-                const nameInput = lastRow.querySelector('.player-name') as HTMLInputElement;
+                const playerRows = domCache.getAll<HTMLElement>('.player-row', this.playerRowsContainer);
+                const lastRow = playerRows[playerRows.length - 1];
+                const nameInput = domCache.getFromRow<HTMLInputElement>(lastRow, '.player-name');
                 if (nameInput) {
                     nameInput.focus();
                 }
@@ -526,11 +527,11 @@ export class UIManager {
         if (!playerRow) return;
 
         // Clear all checkboxes first
-        const checkboxes = playerRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+        const checkboxes = domCache.getAllFromRow<HTMLInputElement>(playerRow, '.bracket-checkbox input[type="checkbox"]');
         checkboxes.forEach(cb => cb.checked = false);
 
         // Check the specific bracket
-        const targetCheckbox = playerRow.querySelector(`.bracket-checkbox input[value="${bracketValue}"]`) as HTMLInputElement;
+        const targetCheckbox = domCache.getFromRow<HTMLInputElement>(playerRow, `.bracket-checkbox input[value="${bracketValue}"]`);
         if (targetCheckbox) {
             targetCheckbox.checked = true;
             // Trigger the change event to update button text
