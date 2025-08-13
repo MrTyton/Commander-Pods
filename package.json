@@ -7,7 +7,9 @@
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
     "build": "tsc",
-    "bundle": "esbuild src/main.ts --bundle --outfile=script.js --format=iife",
+    "bundle": "esbuild src/main.ts --bundle --outfile=script.js --format=iife --minify --tree-shaking=true --target=es2020",
+    "bundle:dev": "esbuild src/main.ts --bundle --outfile=script.js --format=iife --sourcemap",
+    "bundle:analyze": "esbuild src/main.ts --bundle --outfile=script.js --format=iife --minify --tree-shaking=true --target=es2020 --metafile=meta.json --analyze",
     "deploy": "npm run bundle"
   },
   "keywords": [],
