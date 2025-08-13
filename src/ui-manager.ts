@@ -5,6 +5,8 @@ import { PodGenerator } from './pod-generator.js';
 import { DragDropManager } from './drag-drop.js';
 import { DisplayModeManager } from './display-mode.js';
 import { eventManager } from './event-manager.js';
+import { ValidationUtils, ButtonTextUtils, DOMUtils } from './shared-utils.js';
+import { ButtonTextManager } from './button-text-manager.js';
 
 interface PlayerResetData {
     name: string;
@@ -411,86 +413,11 @@ export class UIManager {
     }
 
     private updatePowerButtonText(playerRow: HTMLElement): void {
-        const button = playerRow.querySelector('.power-selector-btn') as HTMLButtonElement;
-        const checkboxes = playerRow.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
-
-        const selectedValues: number[] = [];
-        checkboxes.forEach(cb => {
-            if (cb.checked) {
-                selectedValues.push(parseFloat(cb.value));
-            }
-        });
-
-        if (selectedValues.length === 0) {
-            button.textContent = 'Select Power Levels';
-            button.classList.remove('has-selection');
-            if (button.dataset.validationTriggered === 'true') {
-                button.classList.add('error');
-            }
-        } else {
-            button.classList.remove('error');
-            selectedValues.sort((a, b) => a - b);
-
-            let displayText: string;
-            if (selectedValues.length === 1) {
-                displayText = `Power: ${selectedValues[0]}`;
-            } else {
-                const min = selectedValues[0];
-                const max = selectedValues[selectedValues.length - 1];
-
-                // Check if it's a continuous range
-                const isContinuous = selectedValues.every((val, idx) => {
-                    if (idx === 0) return true;
-                    const diff = val - selectedValues[idx - 1];
-                    return diff === 0.5 || diff === 1;
-                }) && selectedValues.length > 2;
-
-                if (isContinuous) {
-                    displayText = `Power: ${min}-${max}`;
-                } else if (selectedValues.length <= 4) {
-                    displayText = `Power: ${selectedValues.join(', ')}`;
-                } else {
-                    displayText = `Power: ${min}-${max} (${selectedValues.length} levels)`;
-                }
-            }
-
-            button.textContent = displayText;
-            button.classList.add('has-selection');
-        }
+        ButtonTextManager.updatePowerButton(playerRow);
     }
 
     private updateBracketButtonText(playerRow: HTMLElement): void {
-        const button = playerRow.querySelector('.bracket-selector-btn') as HTMLButtonElement;
-        const checkboxes = playerRow.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
-
-        const selectedValues: string[] = [];
-        checkboxes.forEach(cb => {
-            if (cb.checked) {
-                selectedValues.push(cb.value);
-            }
-        });
-
-        if (selectedValues.length === 0) {
-            button.textContent = 'Select Brackets';
-            button.classList.remove('has-selection');
-            if (button.dataset.validationTriggered === 'true') {
-                button.classList.add('error');
-            }
-        } else {
-            button.classList.remove('error');
-            let displayText: string;
-
-            if (selectedValues.length === 1) {
-                displayText = selectedValues[0] === 'cedh' ? 'Bracket: cEDH' : `Bracket: ${selectedValues[0]}`;
-            } else {
-                displayText = selectedValues.length <= 3 ?
-                    `Brackets: ${selectedValues.join(', ')}` :
-                    `Brackets: ${selectedValues.length} selected`;
-            }
-
-            button.textContent = displayText;
-            button.classList.add('has-selection');
-        }
+        ButtonTextManager.updateBracketButton(playerRow);
     }
 
     /**

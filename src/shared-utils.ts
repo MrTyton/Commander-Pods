@@ -159,9 +159,16 @@ export class ButtonTextUtils {
         }
 
         if (selectedBrackets.length === 1) {
-            return `Bracket: ${selectedBrackets[0]}`;
+            // Handle cEDH capitalization
+            const bracket = selectedBrackets[0] === 'cedh' ? 'cEDH' : selectedBrackets[0];
+            return `Bracket: ${bracket}`;
         } else {
-            return `Brackets: ${selectedBrackets.join(', ')}`;
+            // For multiple brackets, show count if more than 3
+            if (selectedBrackets.length <= 3) {
+                return `Brackets: ${selectedBrackets.join(', ')}`;
+            } else {
+                return `Brackets: ${selectedBrackets.length} selected`;
+            }
         }
     }
 
