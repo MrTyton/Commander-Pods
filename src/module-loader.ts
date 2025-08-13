@@ -88,7 +88,7 @@ class ModuleLoader {
 
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown loading error';
-            
+
             this.loadingStates.set(moduleId, {
                 isLoading: false,
                 error: errorMessage,
@@ -166,7 +166,7 @@ class ModuleLoader {
      */
     private showErrorMessage(message: string): void {
         console.error(message);
-        
+
         const errorElement = document.createElement('div');
         errorElement.textContent = message;
         errorElement.style.cssText = `

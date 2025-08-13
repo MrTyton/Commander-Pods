@@ -131,7 +131,7 @@ export class ButtonTextUtils {
         }
         if (selectedBrackets.length <= 2) {
             // Special case for cEDH capitalization in multiple brackets
-            const displayBrackets = selectedBrackets.map(bracket => 
+            const displayBrackets = selectedBrackets.map(bracket =>
                 bracket.toLowerCase() === 'cedh' ? 'cEDH' : bracket
             );
             return `Brackets: ${displayBrackets.join(', ')}`;
@@ -144,7 +144,7 @@ export class ButtonTextUtils {
      */
     static updateButtonState(button: HTMLButtonElement, text: string, hasSelection: boolean): void {
         button.textContent = text;
-        
+
         if (hasSelection) {
             ValidationUtils.removeValidationError(button);
         }

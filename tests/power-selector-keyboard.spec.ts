@@ -18,14 +18,14 @@ test.describe('Power Selector Keyboard Functionality', () => {
         await helper.players.createPlayers([{ name: 'Test Player', power: [] }]);
 
         const powerBtn = page.locator('.player-row:first-child .power-selector-btn');
-        
+
         // Focus the power selector button
         await powerBtn.focus();
-        
+
         // Type "7" followed by Enter
         await page.keyboard.press('7');
         await page.keyboard.press('Enter');
-        
+
         // Verify that power level 7 was selected
         await expect(powerBtn).toContainText('Power: 7');
 
@@ -41,16 +41,16 @@ test.describe('Power Selector Keyboard Functionality', () => {
         await helper.players.createPlayers([{ name: 'Test Player', power: [] }]);
 
         const powerBtn = page.locator('.player-row:first-child .power-selector-btn');
-        
+
         // Focus the power selector button
         await powerBtn.focus();
-        
+
         // Type "7-9" followed by Enter (should only select whole numbers: 7, 8, 9)
         await page.keyboard.press('7');
         await page.keyboard.press('-');
         await page.keyboard.press('9');
         await page.keyboard.press('Enter');
-        
+
         // Verify that only whole number power levels were selected (no 7.5, 8.5)
         await expect(powerBtn).toContainText('Power: 7, 8, 9');
 
@@ -60,7 +60,7 @@ test.describe('Power Selector Keyboard Functionality', () => {
         const checkbox8 = page.locator('.player-row:first-child .power-checkbox input[value="8"]');
         const checkbox85 = page.locator('.player-row:first-child .power-checkbox input[value="8.5"]');
         const checkbox9 = page.locator('.player-row:first-child .power-checkbox input[value="9"]');
-        
+
         await expect(checkbox7).toBeChecked();
         await expect(checkbox75).not.toBeChecked(); // Should NOT be checked
         await expect(checkbox8).toBeChecked();
@@ -75,10 +75,10 @@ test.describe('Power Selector Keyboard Functionality', () => {
         await helper.players.createPlayers([{ name: 'Test Player', power: [] }]);
 
         const powerBtn = page.locator('.player-row:first-child .power-selector-btn');
-        
+
         // Focus the power selector button
         await powerBtn.focus();
-        
+
         // Type "6.5-8" followed by Enter (should include decimals since start is decimal)
         await page.keyboard.press('6');
         await page.keyboard.press('.');
@@ -86,7 +86,7 @@ test.describe('Power Selector Keyboard Functionality', () => {
         await page.keyboard.press('-');
         await page.keyboard.press('8');
         await page.keyboard.press('Enter');
-        
+
         // Verify that decimal power levels are included
         await expect(powerBtn).toContainText('4 Powers Selected');
 
@@ -95,7 +95,7 @@ test.describe('Power Selector Keyboard Functionality', () => {
         const checkbox7 = page.locator('.player-row:first-child .power-checkbox input[value="7"]');
         const checkbox75 = page.locator('.player-row:first-child .power-checkbox input[value="7.5"]');
         const checkbox8 = page.locator('.player-row:first-child .power-checkbox input[value="8"]');
-        
+
         await expect(checkbox65).toBeChecked();
         await expect(checkbox7).toBeChecked();
         await expect(checkbox75).toBeChecked();
@@ -110,20 +110,20 @@ test.describe('Power Selector Keyboard Functionality', () => {
 
         const powerBtn = page.locator('.player-row:first-child .power-selector-btn');
         const dropdown = page.locator('.player-row:first-child .power-selector-dropdown');
-        
+
         // Click to open dropdown
         await powerBtn.click();
         await page.waitForSelector('.player-row:first-child .power-selector-dropdown', { state: 'visible' });
-        
+
         // Focus the power selector button
         await powerBtn.focus();
-        
+
         // Press Escape to close dropdown
         await page.keyboard.press('Escape');
-        
+
         // Wait a moment for the dropdown to close
         await page.waitForTimeout(200);
-        
+
         // Verify dropdown is closed
         await expect(dropdown).toBeHidden();
     });
@@ -135,16 +135,16 @@ test.describe('Power Selector Keyboard Functionality', () => {
         await helper.players.createPlayers([{ name: 'Test Player', power: [] }]);
 
         const powerBtn = page.locator('.player-row:first-child .power-selector-btn');
-        
+
         // Focus the power selector button
         await powerBtn.focus();
-        
+
         // Type "75", then backspace to make "7", then Enter
         await page.keyboard.press('7');
         await page.keyboard.press('5');
         await page.keyboard.press('Backspace');
         await page.keyboard.press('Enter');
-        
+
         // Verify that power level 7 was selected (not 75)
         await expect(powerBtn).toContainText('Power: 7');
 
@@ -160,14 +160,14 @@ test.describe('Power Selector Keyboard Functionality', () => {
         await helper.players.createPlayers([{ name: 'Test Player', power: [] }]);
 
         const powerBtn = page.locator('.player-row:first-child .power-selector-btn');
-        
+
         // Focus the power selector button
         await powerBtn.focus();
-        
+
         // Type "8" and wait for auto-apply timeout (1 second)
         await page.keyboard.press('8');
         await page.waitForTimeout(1200); // Wait longer than 1 second timeout
-        
+
         // Verify that power level 8 was selected automatically
         await expect(powerBtn).toContainText('Power: 8');
 
@@ -183,16 +183,16 @@ test.describe('Power Selector Keyboard Functionality', () => {
         await helper.players.createPlayers([{ name: 'Test Player', power: [] }]);
 
         const powerBtn = page.locator('.player-row:first-child .power-selector-btn');
-        
+
         // Focus the power selector button
         await powerBtn.focus();
-        
+
         // Type "6.5" followed by Enter
         await page.keyboard.press('6');
         await page.keyboard.press('.');
         await page.keyboard.press('5');
         await page.keyboard.press('Enter');
-        
+
         // Verify that power level 6.5 was selected
         await expect(powerBtn).toContainText('Power: 6.5');
 
@@ -208,17 +208,17 @@ test.describe('Power Selector Keyboard Functionality', () => {
         await helper.players.createPlayers([{ name: 'Test Player', power: [5] }]);
 
         const powerBtn = page.locator('.player-row:first-child .power-selector-btn');
-        
+
         // Verify initial selection
         await expect(powerBtn).toContainText('Power: 5');
-        
+
         // Focus the power selector button
         await powerBtn.focus();
-        
+
         // Type "7" followed by Enter to change selection
         await page.keyboard.press('7');
         await page.keyboard.press('Enter');
-        
+
         // Verify that only power level 7 is selected (5 should be cleared)
         await expect(powerBtn).toContainText('Power: 7');
 

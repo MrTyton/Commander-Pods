@@ -57,7 +57,7 @@ export class ErrorMessages {
     static show(code: ErrorCode, details?: string): void {
         const message = this.get(code, details);
         console.error(`[${code}] ${message}`);
-        
+
         // Simple alert for now - could be extended to toast notifications
         alert(message);
     }
@@ -67,7 +67,7 @@ export class ErrorMessages {
      */
     static showSuccess(message: string): void {
         console.log(`✅ ${message}`);
-        
+
         // Simple alert for now - could be enhanced with green toast notifications
         alert(message);
     }

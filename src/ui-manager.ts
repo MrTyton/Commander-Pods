@@ -37,13 +37,13 @@ import { ValidationUtils, ButtonTextUtils, DOMUtils } from './shared-utils.js';
 import { ButtonTextManager } from './button-text-manager.js';
 import { domCache } from './dom-cache.js';
 import { realTimeValidator } from './real-time-validator.js';
-import { 
-    isHTMLElement, 
-    isHTMLInputElement, 
-    isHTMLButtonElement, 
-    getElementByIdTyped, 
+import {
+    isHTMLElement,
+    isHTMLInputElement,
+    isHTMLButtonElement,
+    getElementByIdTyped,
     getEventTarget,
-    assertExists 
+    assertExists
 } from './type-guards.js';
 
 interface PlayerResetData {
@@ -123,7 +123,7 @@ class PerformanceMonitor {
         console.log('💾 Memory Usage:', `${metrics.memoryUsage}MB`);
         console.log('⚡ Validation Time:', `${metrics.validationTime}ms`);
         console.log('🎯 Pod Generation:', `${metrics.podGenerationTime}ms`);
-        
+
         console.group('📈 Helper Module Impact');
         console.log('✅ ButtonTextManager: +2.7kb (display state management)');
         console.log('✅ DOMCache: +1.2kb (query optimization)');
@@ -131,7 +131,7 @@ class PerformanceMonitor {
         console.log('✅ TypeGuards: +0.7kb (runtime type safety)');
         console.log('✅ PerformanceMonitor: +1.0kb (metrics tracking)');
         console.groupEnd();
-        
+
         console.log('🎯 Next: Validation consolidation & event optimization');
         console.groupEnd();
     }
@@ -205,11 +205,11 @@ export class UIManager {
     // Memory optimization: Reusable arrays to reduce garbage collection
     private reusablePlayerArray: Player[] = [];
     private reusableItemArray: (Player | Group)[] = [];
-    
+
     // Memory optimization: DOM element pools to reduce createElement calls
     private elementPools: Map<string, HTMLElement[]> = new Map();
     private readonly POOL_SIZE = 10;
-    
+
     // Memory optimization: Reusable objects to reduce object creation
     private reusablePlayerObject: Partial<Player> = {};
     private reusableGroupObject: Partial<Group> = {};
@@ -244,7 +244,7 @@ export class UIManager {
             this.playerManager = new PlayerManager();
             this.podGenerator = new PodGenerator();
             this.dragDropManager = new DragDropManager(
-                this.playerManager, 
+                this.playerManager,
                 (pods, unassigned) => this.renderPods(pods, unassigned)
             );
             // DisplayModeManager will be lazy initialized when needed
@@ -255,7 +255,7 @@ export class UIManager {
 
             // Expose performance monitor for debugging
             (window as any).performanceMonitor = performanceMonitor;
-            
+
         } catch (error) {
             console.error('Critical error during UIManager initialization:', error);
             this.showErrorMessage(
@@ -264,7 +264,7 @@ export class UIManager {
             );
         }
     }
-    
+
     /**
      * Safe initialization wrapper for non-critical features
      * Allows app to function even if some features fail to initialize
@@ -275,13 +275,13 @@ export class UIManager {
         } catch (error) {
             console.error('Error initializing event listeners:', error);
         }
-        
+
         try {
             this.initializeRankingModeToggle();
         } catch (error) {
             console.error('Error initializing ranking mode toggle:', error);
         }
-        
+
         try {
             this.setupRealTimeValidationForExistingRows();
         } catch (error) {
@@ -357,11 +357,11 @@ export class UIManager {
      */
     private clearDOMCache(): void {
         domCache.clear();
-        
+
         // Clear element pools to free memory
         this.elementPools.clear();
     }
-    
+
     /**
      * Display error message with improved UX (replaces alert() calls)
      * 
@@ -372,14 +372,14 @@ export class UIManager {
      */
     private showErrorMessage(message: string): void {
         console.error('UIManager Error:', message);
-        
+
         // For now, use alert but this could be enhanced with custom modals
         alert(message);
-        
+
         // Future enhancement: Show toast notification instead
         // this.showToast(message, 'error');
     }
-    
+
     /**
      * Display success message with improved UX
      * 
@@ -389,14 +389,14 @@ export class UIManager {
      */
     private showSuccessMessage(message: string): void {
         console.log('UIManager Success:', message);
-        
+
         // For now, use alert but this could be enhanced with custom modals
         alert(message);
-        
+
         // Future enhancement: Show green toast notification instead
         // this.showToast(message, 'success');
     }
-    
+
     /**
      * Process groups with comprehensive error handling
      * 
@@ -407,20 +407,20 @@ export class UIManager {
      */
     private processGroupsSafely(): Map<string, Group> {
         const processedGroups: Map<string, Group> = new Map();
-        
+
         try {
             this.playerManager.getGroups().forEach((players, id) => {
                 if (!players || players.length === 0) {
                     console.warn(`Skipping empty group: ${id}`);
                     return;
                 }
-                
+
                 // Validate player data
                 if (!players.every(p => p && typeof p.power === 'number')) {
                     console.warn(`Skipping group with invalid player data: ${id}`);
                     return;
                 }
-                
+
                 // Calculate the actual average power level for the group
                 const totalPower = players.reduce((sum, player) => sum + player.power, 0);
                 const averagePower = Math.round((totalPower / players.length) * 2) / 2; // Round to nearest 0.5
@@ -432,7 +432,7 @@ export class UIManager {
                     averagePower,
                     size: players.length
                 });
-                
+
                 // Create new group from reusable object
                 processedGroups.set(id, { ...this.reusableGroupObject } as Group);
             });
@@ -440,7 +440,7 @@ export class UIManager {
             console.error('Error processing groups:', error);
             // Return empty map to allow graceful degradation
         }
-        
+
         return processedGroups;
     }
 
@@ -812,12 +812,12 @@ export class UIManager {
     private clearReusableArrays(): void {
         this.reusablePlayerArray.length = 0;
         this.reusableItemArray.length = 0;
-        
+
         // Reset reusable objects by reassigning
         this.reusablePlayerObject = {};
         this.reusableGroupObject = {};
     }
-    
+
     /**
      * Get a DOM element from the pool or create a new one
      * Reduces DOM createElement calls for better performance
@@ -832,9 +832,9 @@ export class UIManager {
             if (!tagName || typeof tagName !== 'string') {
                 throw new Error(`Invalid tagName provided: ${tagName}`);
             }
-            
+
             const pool = this.elementPools.get(tagName) || [];
-            
+
             if (pool.length > 0) {
                 const element = pool.pop()!;
                 // Reset element state safely
@@ -849,9 +849,9 @@ export class UIManager {
                 }
                 return element;
             }
-            
+
             return document.createElement(tagName);
-            
+
         } catch (error) {
             console.error('Error in getPooledElement:', error);
             // Fallback to regular createElement
@@ -863,7 +863,7 @@ export class UIManager {
             }
         }
     }
-    
+
     /**
      * Return a DOM element to the pool for reuse
      * Maintains pool size limit to prevent memory leaks
@@ -871,19 +871,19 @@ export class UIManager {
     private returnToPool(element: HTMLElement): void {
         const tagName = element.tagName.toLowerCase();
         let pool = this.elementPools.get(tagName);
-        
+
         if (!pool) {
             pool = [];
             this.elementPools.set(tagName, pool);
         }
-        
+
         if (pool.length < this.POOL_SIZE) {
             // Clean element for reuse
             element.innerHTML = '';
             element.className = '';
             element.removeAttribute('style');
             element.removeAttribute('id');
-            
+
             // Remove all event listeners by cloning
             const clonedElement = element.cloneNode(false) as HTMLElement;
             pool.push(clonedElement);
@@ -996,7 +996,7 @@ export class UIManager {
                 // Collect character inputs for power level sequences
                 if (e.key.match(/[0-9.\-]/) || e.key === 'Backspace') {
                     e.preventDefault();
-                    
+
                     if (e.key === 'Backspace') {
                         powerSequenceInput = powerSequenceInput.slice(0, -1);
                     } else {
@@ -1024,7 +1024,7 @@ export class UIManager {
             // Handle bracket shortcuts when a bracket selector button is focused
             if (isHTMLElement(activeElement) && activeElement.classList.contains('bracket-selector-btn')) {
                 let bracketValue: string | null = null;
-                
+
                 // Map keys to bracket values
                 if (e.key === '1') bracketValue = '1';
                 else if (e.key === '2') bracketValue = '2';
@@ -1072,11 +1072,11 @@ export class UIManager {
             if (parts.length === 2) {
                 const start = parseFloat(parts[0]);
                 const end = parseFloat(parts[1]);
-                
+
                 if (!isNaN(start) && !isNaN(end) && start <= end) {
                     // Check if both start and end are whole numbers
                     const isWholeNumberRange = Number.isInteger(start) && Number.isInteger(end);
-                    
+
                     checkboxes.forEach(cb => {
                         const value = parseFloat(cb.value);
                         if (value >= start && value <= end) {
@@ -1152,12 +1152,12 @@ export class UIManager {
 
         // Clear reusable arrays and use optimized player row fetching
         this.clearReusableArrays();
-        
+
         // Clear any existing validation errors and check for duplicates using ValidationUtils
         const playerRows = this.getPlayerRowsOptimized();
         ValidationUtils.clearDuplicateErrors(playerRows);
         const duplicateNames = ValidationUtils.highlightDuplicateNames(playerRows);
-        
+
         let validationFailed = duplicateNames.length > 0;
 
         // Use reusable array to reduce memory allocation
@@ -1192,7 +1192,7 @@ export class UIManager {
                 averagePower,
                 size: players.length
             });
-            
+
             // Create new group from reusable object
             processedGroups.set(id, { ...this.reusableGroupObject } as Group);
         });
@@ -1271,16 +1271,16 @@ export class UIManager {
             if (!Array.isArray(pods)) {
                 throw new Error('Invalid pods array provided to renderPods');
             }
-            
+
             if (!Array.isArray(unassignedPlayers)) {
                 throw new Error('Invalid unassignedPlayers array provided to renderPods');
             }
-            
+
             this.currentPods = [...pods]; // Store current pods for drag-and-drop
             this.currentUnassigned = [...unassignedPlayers]; // Store current unassigned for drag-and-drop
             this.dragDropManager.setCurrentPods(this.currentPods, this.currentUnassigned);
             this.cleanupBottomDisplayButton();
-            
+
             // Safe DOM manipulation
             if (!this.outputSection) {
                 throw new Error('Output section not found - cannot render pods');
@@ -1301,14 +1301,14 @@ export class UIManager {
             }
 
             this.renderPodsToDOM(pods, unassignedPlayers);
-            
+
         } catch (error) {
             console.error('Error in renderPods:', error);
             this.showErrorMessage(
                 `Failed to display pods: ${error instanceof Error ? error.message : 'Unknown error'}. ` +
                 'Please try generating pods again.'
             );
-            
+
             // Fallback: Clear output and hide display button
             if (this.outputSection) {
                 this.outputSection.textContent = 'Error displaying pods. Please try again.';
@@ -1318,7 +1318,7 @@ export class UIManager {
             }
         }
     }
-    
+
     /**
      * Internal method to render pods to DOM (separated for better error handling)
      */
@@ -1895,7 +1895,7 @@ export class UIManager {
         // Use ValidationUtils for centralized duplicate error management
         const playerRows = Array.from(this.playerRowsContainer.querySelectorAll('.player-row'));
         ValidationUtils.clearDuplicateErrors(playerRows);
-        
+
         // Re-apply duplicate highlighting with current state
         ValidationUtils.highlightDuplicateNames(playerRows);
     }
@@ -2092,7 +2092,7 @@ export class UIManager {
     private triggerValidationForAllFields(): void {
         // Use RealTimeValidator for batch validation with performance tracking
         const result = realTimeValidator.batchValidateRows(this.playerRowsContainer);
-        
+
         // Track validation performance
         performanceMonitor.trackValidationTime(result.validationTime);
         if (result.validationTime > 100) {
