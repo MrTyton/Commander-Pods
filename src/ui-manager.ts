@@ -33,6 +33,65 @@ interface LeniencyResetData {
     bracket: boolean;
 }
 
+interface PerformanceMetrics {
+    bundleSize: string;
+    memoryUsage: number;
+    domCacheHits: number;
+    validationTime: number;
+    podGenerationTime: number;
+    lastUpdated: Date;
+}
+
+/**
+ * Simple performance monitoring utility
+ */
+class PerformanceMonitor {
+    private metrics: PerformanceMetrics = {
+        bundleSize: '58.2kb',
+        memoryUsage: 0,
+        domCacheHits: 0,
+        validationTime: 0,
+        podGenerationTime: 0,
+        lastUpdated: new Date()
+    };
+
+    updateMemoryUsage(): void {
+        if ('memory' in performance) {
+            // @ts-ignore - performance.memory might not be available in all browsers
+            this.metrics.memoryUsage = Math.round((performance.memory?.usedJSHeapSize || 0) / 1024 / 1024 * 100) / 100;
+        }
+        this.metrics.lastUpdated = new Date();
+    }
+
+    trackValidationTime(time: number): void {
+        this.metrics.validationTime = Math.round(time * 100) / 100;
+        this.metrics.lastUpdated = new Date();
+    }
+
+    trackPodGenerationTime(time: number): void {
+        this.metrics.podGenerationTime = Math.round(time * 100) / 100;
+        this.metrics.lastUpdated = new Date();
+    }
+
+    getMetrics(): PerformanceMetrics {
+        this.updateMemoryUsage();
+        return { ...this.metrics };
+    }
+
+    logMetrics(): void {
+        const metrics = this.getMetrics();
+        console.log('Performance Metrics:', {
+            'Bundle Size': metrics.bundleSize,
+            'Memory Usage': `${metrics.memoryUsage}MB`,
+            'Validation Time': `${metrics.validationTime}ms`,
+            'Pod Generation': `${metrics.podGenerationTime}ms`,
+            'Last Updated': metrics.lastUpdated.toLocaleTimeString()
+        });
+    }
+}
+
+const performanceMonitor = new PerformanceMonitor();
+
 interface ResetData {
     players: PlayerResetData[];
     leniencySettings: LeniencyResetData;
@@ -91,6 +150,9 @@ export class UIManager {
         this.initializeEventListeners();
         this.initializeRankingModeToggle();
         this.setupRealTimeValidationForExistingRows();
+
+        // Expose performance monitor for debugging
+        (window as any).performanceMonitor = performanceMonitor;
     }
 
     private initializeEventListeners(): void {
@@ -548,6 +610,13 @@ export class UIManager {
 
     private initializeKeyboardShortcuts(): void {
         document.addEventListener('keydown', (e) => {
+            // Ctrl+P to show performance metrics
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                performanceMonitor.logMetrics();
+                return;
+            }
+
             // Ctrl+Enter to add new player row
             if (e.ctrlKey && e.key === 'Enter') {
                 e.preventDefault();
@@ -739,8 +808,12 @@ export class UIManager {
             this.podGenerator.setShuffleSeed(null);
         }
 
-        // Use backtracking algorithm for optimal pod assignment
+        // Use backtracking algorithm for optimal pod assignment with performance tracking
+        const podGenStart = performance.now();
         const result = this.podGenerator.generatePodsWithBacktracking(this.reusableItemArray, podSizes, leniencySettings);
+        const podGenEnd = performance.now();
+        performanceMonitor.trackPodGenerationTime(podGenEnd - podGenStart);
+
         const pods = result.pods;
         let unassignedPlayers = result.unassigned;
 
@@ -1522,7 +1595,8 @@ export class UIManager {
         // Use RealTimeValidator for batch validation with performance tracking
         const result = realTimeValidator.batchValidateRows(this.playerRowsContainer);
         
-        // Track validation performance if it's slow
+        // Track validation performance
+        performanceMonitor.trackValidationTime(result.validationTime);
         if (result.validationTime > 100) {
             console.warn(`Slow validation detected: ${result.validationTime.toFixed(2)}ms`);
         }
