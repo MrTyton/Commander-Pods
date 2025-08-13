@@ -2,6 +2,8 @@ import { Player, Group, Pod, LeniencySettings, VirtualPlayer, BacktrackingSoluti
 
 export class PodGenerator {
     private shuffleSeed: number | null = null;
+    // Memoization caches for performance optimization
+    private sizeCache = new Map<string, number>();
 
     /**
      * Set a seed for deterministic shuffling. Used primarily for testing.
@@ -9,6 +11,8 @@ export class PodGenerator {
      */
     setShuffleSeed(seed: number | null): void {
         this.shuffleSeed = seed;
+        // Clear caches when seed changes to ensure fresh calculations
+        this.sizeCache.clear();
     }
 
     /**
@@ -42,6 +46,27 @@ export class PodGenerator {
         }
 
         return shuffled;
+    }
+
+    /**
+     * Get cached size of an item (player or group) for performance
+     */
+    private getItemSize(item: Player | Group): number {
+        const key = 'players' in item ? `group-${item.id}` : `player-${item.id}`;
+        
+        if (!this.sizeCache.has(key)) {
+            const size = 'players' in item ? item.size : 1;
+            this.sizeCache.set(key, size);
+        }
+        
+        return this.sizeCache.get(key)!;
+    }
+
+    /**
+     * Optimized item ID extraction
+     */
+    private getItemId(item: Player | Group): string {
+        return 'players' in item ? item.id : item.id.toString();
     }
 
     generatePodsWithBacktracking(
@@ -220,21 +245,23 @@ export class PodGenerator {
         // Try each power level that has enough available items
         for (const [powerLevel, virtualItemsAtThisPower] of powerGroups) {
             const availableVirtualItems = virtualItemsAtThisPower.filter(vi => {
-                const itemId = 'players' in vi.item ? vi.item.id : vi.item.id.toString();
+                const itemId = this.getItemId(vi.item);
                 return !usedItemIds.has(itemId);
             });
 
-            // Calculate total actual player count (accounting for group sizes)
-            const totalActualPlayers = availableVirtualItems.reduce((sum, vi) => {
-                return sum + ('players' in vi.item ? vi.item.size : 1);
-            }, 0);
+            // Calculate total actual player count (optimized with caching)
+            let totalActualPlayers = 0;
+            for (let i = 0; i < availableVirtualItems.length; i++) {
+                totalActualPlayers += this.getItemSize(availableVirtualItems[i].item);
+            }
 
-            if (totalActualPlayers >= Math.max(3, targetSize)) {
+            const minPodSize = Math.max(3, targetSize);
+            if (totalActualPlayers >= minPodSize) {
                 // Use simple selection instead of complex combinations
                 // Try to form pods that match the target size as closely as possible
                 const sortedBySize = availableVirtualItems.sort((a, b) => {
-                    const aSize = 'players' in a.item ? a.item.size : 1;
-                    const bSize = 'players' in b.item ? b.item.size : 1;
+                    const aSize = this.getItemSize(a.item);
+                    const bSize = this.getItemSize(b.item);
                     return bSize - aSize; // Larger items first to better fill target sizes
                 });
 
@@ -244,8 +271,8 @@ export class PodGenerator {
                 let currentSize = 0;
 
                 for (const item of sortedBySize) {
-                    const itemId = 'players' in item.item ? item.item.id : item.item.id.toString();
-                    const itemSize = 'players' in item.item ? item.item.size : 1;
+                    const itemId = this.getItemId(item.item);
+                    const itemSize = this.getItemSize(item.item);
 
                     // Skip if we've already selected this item (prevents duplicate groups)
                     if (selectedItemIds.has(itemId)) {
@@ -392,16 +419,18 @@ export class PodGenerator {
                 return Math.abs(a.powerLevel - basePowerLevel) - Math.abs(b.powerLevel - basePowerLevel);
             });
 
-            // Calculate total actual player count (accounting for group sizes)
-            const totalActualPlayers = sortedCompatiblePlayers.reduce((sum, vp) => {
-                return sum + ('players' in vp.item ? vp.item.size : 1);
-            }, 0);
+            // Calculate total actual player count (optimized with caching)
+            let totalActualPlayers = 0;
+            for (let i = 0; i < sortedCompatiblePlayers.length; i++) {
+                totalActualPlayers += this.getItemSize(sortedCompatiblePlayers[i].item);
+            }
 
-            if (totalActualPlayers >= Math.max(3, targetSize)) {
+            const minPodSize = Math.max(3, targetSize);
+            if (totalActualPlayers >= minPodSize) {
                 // Use greedy selection to meet target size with preference-sorted players
                 const sortedBySize = sortedCompatiblePlayers.sort((a, b) => {
-                    const aSize = 'players' in a.item ? a.item.size : 1;
-                    const bSize = 'players' in b.item ? b.item.size : 1;
+                    const aSize = this.getItemSize(a.item);
+                    const bSize = this.getItemSize(b.item);
                     return bSize - aSize; // Larger items first
                 });
 
@@ -411,8 +440,8 @@ export class PodGenerator {
                 let currentSize = 0;
 
                 for (const item of sortedBySize) {
-                    const itemId = 'players' in item.item ? item.item.id : item.item.id.toString();
-                    const itemSize = 'players' in item.item ? item.item.size : 1;
+                    const itemId = this.getItemId(item.item);
+                    const itemSize = this.getItemSize(item.item);
 
                     // Skip if we've already selected this item (prevents duplicate groups in same pod)
                     if (selectedItemIds.has(itemId)) {
