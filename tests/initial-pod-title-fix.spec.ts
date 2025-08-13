@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setupWithPods, teardownBasicTest } from './test-setup.js';
+import { setupWithPods, teardownDisplayModeTest } from './test-setup.js';
 import TestHelper from './test-helpers.js';
 
 test.describe('Initial Pod Title Power Range Fix', () => {
@@ -7,7 +7,7 @@ test.describe('Initial Pod Title Power Range Fix', () => {
 
     test.afterEach(async () => {
         if (helper) {
-            await teardownBasicTest(helper);
+            await teardownDisplayModeTest(helper);
         }
     });
 
