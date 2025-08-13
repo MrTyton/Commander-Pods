@@ -8,6 +8,7 @@ import { eventManager } from './event-manager.js';
 import { ValidationUtils, ButtonTextUtils, DOMUtils } from './shared-utils.js';
 import { ButtonTextManager } from './button-text-manager.js';
 import { domCache } from './dom-cache.js';
+import { realTimeValidator } from './real-time-validator.js';
 
 interface PlayerResetData {
     name: string;
@@ -69,6 +70,7 @@ export class UIManager {
 
         this.initializeEventListeners();
         this.initializeRankingModeToggle();
+        this.setupRealTimeValidationForExistingRows();
     }
 
     private initializeEventListeners(): void {
@@ -161,6 +163,17 @@ export class UIManager {
             this.documentClickHandler = (e: Event) => this.handleDocumentClick(e);
             document.addEventListener('click', this.documentClickHandler);
         }
+    }
+
+    private setupRealTimeValidationForExistingRows(): void {
+        // Setup real-time validation for any existing name inputs
+        const existingRows = domCache.getAll<HTMLElement>('.player-row', this.playerRowsContainer);
+        existingRows.forEach(row => {
+            const nameInput = domCache.getFromRow<HTMLInputElement>(row, '.player-name');
+            if (nameInput) {
+                realTimeValidator.setupNameValidation(nameInput, () => this.clearDuplicateErrorsOnInput());
+            }
+        });
     }
 
     private handleContainerClick(e: Event): void {
@@ -401,16 +414,9 @@ export class UIManager {
     }
 
     private handlePlayerNameChange(target: HTMLInputElement): void {
-        // Real-time validation for empty names
-        const name = target.value.trim();
-        if (!name) {
-            target.classList.add('input-error');
-        } else {
-            target.classList.remove('input-error');
-        }
-        
-        // Trigger duplicate name validation when names change
-        this.clearDuplicateErrorsOnInput();
+        // Real-time validation is now handled by RealTimeValidator with debouncing
+        // This method is kept for backward compatibility with event delegation
+        // The actual validation logic is in RealTimeValidator.setupNameValidation()
     }
 
     private updatePowerButtonText(playerRow: HTMLElement): void {
@@ -453,6 +459,12 @@ export class UIManager {
         this.updateBracketButtonText(newRow);
 
         this.playerRowsContainer.appendChild(newRow);
+
+        // Setup real-time validation for the new name input
+        const nameInput = domCache.getFromRow<HTMLInputElement>(newRow, '.player-name');
+        if (nameInput) {
+            realTimeValidator.setupNameValidation(nameInput, () => this.clearDuplicateErrorsOnInput());
+        }
 
         // DOM Performance: Clear caches when DOM structure changes
         this.clearDOMCache();
@@ -1458,47 +1470,12 @@ export class UIManager {
     }
 
     private triggerValidationForAllFields(): void {
-        const playerRows = this.getPlayerRowsOptimized();
-
-        for (let i = 0; i < playerRows.length; i++) {
-            const row = playerRows[i];
-            // Mark name fields as needing validation if they're empty
-            const nameInput = row.querySelector('.player-name') as HTMLInputElement;
-            const name = nameInput.value.trim();
-            if (!name) {
-                nameInput.classList.add('input-error');
-            }
-
-            // Mark power/bracket selectors as needing validation
-            const powerSelectorBtn = row.querySelector('.power-selector-btn') as HTMLButtonElement;
-            const bracketSelectorBtn = row.querySelector('.bracket-selector-btn') as HTMLButtonElement;
-
-            if (powerSelectorBtn) {
-                powerSelectorBtn.dataset.validationTriggered = 'true';
-            }
-            if (bracketSelectorBtn) {
-                bracketSelectorBtn.dataset.validationTriggered = 'true';
-            }
-
-            // Check current ranking mode and update validation accordingly
-            const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
-            const isBracketMode = bracketRadio.checked;
-
-            if (isBracketMode) {
-                // Check if brackets are selected
-                const bracketCheckboxes = row.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
-                const hasSelectedBrackets = Array.from(bracketCheckboxes).some(checkbox => checkbox.checked);
-                if (!hasSelectedBrackets) {
-                    bracketSelectorBtn.classList.add('error');
-                }
-            } else {
-                // Check if power levels are selected
-                const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
-                const hasSelectedPowers = Array.from(powerCheckboxes).some(checkbox => checkbox.checked);
-                if (!hasSelectedPowers) {
-                    powerSelectorBtn.classList.add('error');
-                }
-            }
+        // Use RealTimeValidator for batch validation with performance tracking
+        const result = realTimeValidator.batchValidateRows(this.playerRowsContainer);
+        
+        // Track validation performance if it's slow
+        if (result.validationTime > 100) {
+            console.warn(`Slow validation detected: ${result.validationTime.toFixed(2)}ms`);
         }
     }
 
