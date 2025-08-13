@@ -21,17 +21,23 @@ This document contains the step-by-step workflow for fixing tests systematically
    ```
    This will make edits to the scripts.js file, as it will compile it. It is never modified manually, and should never be modified manually. The typescript files should be considered the single source of truth.
 
-4. **Run Tests**
+   
+4. **Test Coverage for New Functionality**
+   - If new functionality was added, ensure appropriate tests are written
+   - Verify that any test failures are intentional changes, not regressions
+   - All existing functionality should continue to work unless deliberately modified
+
+5. **Run Tests**
    ```powershell
    npx playwright test --reporter=line --timeout=30000
    ```
 
-5. **Verify All Tests Pass**
+6. **Verify All Tests Pass**
    - Ensure the specific issue is fixed
    - Ensure no new test failures are introduced
    - All tests must pass before proceeding
 
-6. **Commit the Fix**
+7. **Commit the Fix**
    ```powershell
    git add .
    git commit -m "Fix: [description of the specific issue fixed]"

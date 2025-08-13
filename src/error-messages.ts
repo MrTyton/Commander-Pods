@@ -1,6 +1,6 @@
 /**
- * Compressed error messages using error codes
- * Reduces string literals in bundle
+ * Enhanced error messages with contextual solutions
+ * Provides specific guidance to help users resolve issues
  */
 
 // Error codes for compression
@@ -12,35 +12,103 @@ enum ErrorCode {
     INSUFFICIENT_PLAYERS = 'E005',
     GENERATION_FAILED = 'E006',
     DISPLAY_MODE_FAILED = 'E007',
-    INITIALIZATION_FAILED = 'E008'
+    INITIALIZATION_FAILED = 'E008',
+    VALIDATION_FAILED = 'E009',
+    INCOMPATIBLE_POWER_LEVELS = 'E010',
+    INCOMPATIBLE_BRACKETS = 'E011',
+    GROUP_CONFLICTS = 'E012'
 }
 
-// Compressed error message templates
-const ERROR_TEMPLATES: Record<string, string> = {
-    [ErrorCode.PLAYER_NAME_REQUIRED]: 'Name required',
-    [ErrorCode.PLAYER_NAME_DUPLICATE]: 'Duplicate name',
-    [ErrorCode.POWER_LEVEL_REQUIRED]: 'Select power level',
-    [ErrorCode.BRACKET_LEVEL_REQUIRED]: 'Select bracket',
-    [ErrorCode.INSUFFICIENT_PLAYERS]: 'Need more players',
-    [ErrorCode.GENERATION_FAILED]: 'Generation failed',
-    [ErrorCode.DISPLAY_MODE_FAILED]: 'Display mode failed',
-    [ErrorCode.INITIALIZATION_FAILED]: 'Init failed'
+// Enhanced error message templates with context
+const ERROR_TEMPLATES: Record<string, { title: string; message: string; suggestions: string[] }> = {
+    [ErrorCode.PLAYER_NAME_REQUIRED]: {
+        title: 'Player Name Required',
+        message: 'All players must have a name before generating pods.',
+        suggestions: ['Fill in the empty name field(s) highlighted in red', 'Use unique names for each player']
+    },
+    [ErrorCode.PLAYER_NAME_DUPLICATE]: {
+        title: 'Duplicate Player Names',
+        message: 'Multiple players have the same name.',
+        suggestions: ['Change one of the highlighted duplicate names', 'Each player must have a unique name']
+    },
+    [ErrorCode.POWER_LEVEL_REQUIRED]: {
+        title: 'Power Level Selection Required',
+        message: 'Each player must have at least one power level selected.',
+        suggestions: ['Click the power level button for highlighted players', 'Use keyboard shortcuts: 7, 7-9, 6.5-8', 'Check at least one power level for each player']
+    },
+    [ErrorCode.BRACKET_LEVEL_REQUIRED]: {
+        title: 'Bracket Selection Required',
+        message: 'Each player must have at least one bracket selected.',
+        suggestions: ['Click the bracket button for highlighted players', 'Check at least one bracket level for each player', 'Switch to Power Level mode if preferred']
+    },
+    [ErrorCode.INSUFFICIENT_PLAYERS]: {
+        title: 'Not Enough Players',
+        message: 'You need at least 3 players to form a pod.',
+        suggestions: ['Add more players using the "Add Player" button', 'Use "Add 4 Players" for quick setup', 'Remove unused empty player rows']
+    },
+    [ErrorCode.VALIDATION_FAILED]: {
+        title: 'Validation Errors Found',
+        message: 'Please fix the highlighted errors before generating pods.',
+        suggestions: ['Check red highlighted fields for missing information', 'Ensure all names are unique', 'Verify power levels or brackets are selected']
+    },
+    [ErrorCode.INCOMPATIBLE_POWER_LEVELS]: {
+        title: 'Incompatible Power Levels',
+        message: 'Some players have power levels too far apart to form balanced pods.',
+        suggestions: ['Increase the leniency setting to allow wider power ranges', 'Adjust player power levels to be closer together', 'Consider grouping players manually to keep them together']
+    },
+    [ErrorCode.INCOMPATIBLE_BRACKETS]: {
+        title: 'Incompatible Bracket Levels',
+        message: 'Some players have brackets with no overlap for balanced pods.',
+        suggestions: ['Select additional brackets for flexibility', 'Group incompatible players manually', 'Adjust bracket selections to have some overlap']
+    },
+    [ErrorCode.GROUP_CONFLICTS]: {
+        title: 'Group Configuration Issues',
+        message: 'Some groups have internal conflicts preventing pod assignment.',
+        suggestions: ['Check grouped players have compatible power/bracket levels', 'Consider splitting problematic groups', 'Adjust group member selections for better compatibility']
+    },
+    [ErrorCode.GENERATION_FAILED]: {
+        title: 'Pod Generation Failed',
+        message: 'Unable to create balanced pods with current settings.',
+        suggestions: ['Try enabling leniency for more flexible matching', 'Adjust player power levels or brackets', 'Reduce group sizes or ungroup some players']
+    },
+    [ErrorCode.DISPLAY_MODE_FAILED]: {
+        title: 'Display Mode Error',
+        message: 'Unable to switch to display mode.',
+        suggestions: ['Generate pods first before using display mode', 'Refresh the page if issues persist']
+    },
+    [ErrorCode.INITIALIZATION_FAILED]: {
+        title: 'Initialization Error',
+        message: 'Application failed to start properly.',
+        suggestions: ['Refresh the page', 'Clear browser cache', 'Check browser console for details']
+    }
 };
 
 /**
- * Error message utility with compression
+ * Enhanced error message utility with contextual solutions
  */
 export class ErrorMessages {
     /**
-     * Get compressed error message
+     * Get enhanced error information
      */
-    static get(code: ErrorCode, details?: string): string {
-        const template = ERROR_TEMPLATES[code] || 'Unknown error';
-        return details ? `${template}: ${details}` : template;
+    static get(code: ErrorCode): { title: string; message: string; suggestions: string[] } {
+        return ERROR_TEMPLATES[code] || {
+            title: 'Unknown Error',
+            message: 'An unexpected error occurred.',
+            suggestions: ['Try refreshing the page', 'Check browser console for details']
+        };
     }
 
     /**
-     * Common error messages as constants
+     * Get simple error message (for backward compatibility)
+     */
+    static getSimple(code: ErrorCode, details?: string): string {
+        const errorInfo = this.get(code);
+        const message = details ? `${errorInfo.message}: ${details}` : errorInfo.message;
+        return message;
+    }
+
+    /**
+     * Common error codes as constants
      */
     static readonly PLAYER_NAME_REQUIRED = ErrorCode.PLAYER_NAME_REQUIRED;
     static readonly PLAYER_NAME_DUPLICATE = ErrorCode.PLAYER_NAME_DUPLICATE;
@@ -50,15 +118,40 @@ export class ErrorMessages {
     static readonly GENERATION_FAILED = ErrorCode.GENERATION_FAILED;
     static readonly DISPLAY_MODE_FAILED = ErrorCode.DISPLAY_MODE_FAILED;
     static readonly INITIALIZATION_FAILED = ErrorCode.INITIALIZATION_FAILED;
+    static readonly VALIDATION_FAILED = ErrorCode.VALIDATION_FAILED;
+    static readonly INCOMPATIBLE_POWER_LEVELS = ErrorCode.INCOMPATIBLE_POWER_LEVELS;
+    static readonly INCOMPATIBLE_BRACKETS = ErrorCode.INCOMPATIBLE_BRACKETS;
+    static readonly GROUP_CONFLICTS = ErrorCode.GROUP_CONFLICTS;
 
     /**
-     * Show error message with improved UX
+     * Show enhanced error dialog with contextual solutions
+     */
+    static showEnhanced(code: ErrorCode, details?: string): void {
+        const errorInfo = this.get(code);
+        console.error(`[${code}] ${errorInfo.title}: ${errorInfo.message}`);
+
+        // Create enhanced error message with suggestions
+        let message = `${errorInfo.title}\n\n${errorInfo.message}`;
+        
+        if (details) {
+            message += `\n\nDetails: ${details}`;
+        }
+
+        message += '\n\nSuggestions:';
+        errorInfo.suggestions.forEach((suggestion, index) => {
+            message += `\n${index + 1}. ${suggestion}`;
+        });
+
+        // Show enhanced alert dialog
+        alert(message);
+    }
+
+    /**
+     * Show error message with improved UX (backward compatibility)
      */
     static show(code: ErrorCode, details?: string): void {
-        const message = this.get(code, details);
+        const message = this.getSimple(code, details);
         console.error(`[${code}] ${message}`);
-
-        // Simple alert for now - could be extended to toast notifications
         alert(message);
     }
 
@@ -67,8 +160,6 @@ export class ErrorMessages {
      */
     static showSuccess(message: string): void {
         console.log(`✅ ${message}`);
-
-        // Simple alert for now - could be enhanced with green toast notifications
         alert(message);
     }
 }

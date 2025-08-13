@@ -63,6 +63,15 @@ h2 {
     flex-grow: 1;
 }
 
+.player-row input:focus,
+.player-row select:focus,
+.player-row input:focus-visible,
+.player-row select:focus-visible {
+    outline: 2px solid #4a90e2;
+    outline-offset: 1px;
+    box-shadow: 0 0 6px rgba(74, 144, 226, 0.3);
+}
+
 .player-name {
     flex-basis: 40%;
 }
@@ -125,6 +134,13 @@ button {
     cursor: pointer;
     font-size: 16px;
     transition: background-color 0.3s;
+}
+
+button:focus,
+button:focus-visible {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+    box-shadow: 0 0 8px rgba(74, 144, 226, 0.3);
 }
 
 #add-player-btn {
@@ -335,6 +351,15 @@ button {
     background-color: #3a3a3a;
 }
 
+.power-selector-btn:focus,
+.bracket-selector-btn:focus,
+.power-selector-btn:focus-visible,
+.bracket-selector-btn:focus-visible {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+    box-shadow: 0 0 8px rgba(74, 144, 226, 0.3);
+}
+
 .power-selector-btn.has-selection,
 .bracket-selector-btn.has-selection {
     background-color: #2a4a2a;
@@ -385,6 +410,18 @@ button {
 .bracket-selector-dropdown.show {
     opacity: 1;
     transform: translateY(0);
+}
+
+.keyboard-hint {
+    background-color: #2d3748;
+    color: #a0aec0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    text-align: center;
+    margin-bottom: 8px;
+    border: 1px solid #4a5568;
+    font-family: 'Courier New', monospace;
 }
 
 .power-levels-label {
@@ -438,6 +475,13 @@ button {
     border-color: #777;
 }
 
+.power-checkbox:focus-within,
+.bracket-checkbox:focus-within {
+    outline: 2px solid #4a90e2;
+    outline-offset: 1px;
+    box-shadow: 0 0 6px rgba(74, 144, 226, 0.3);
+}
+
 .power-checkbox input[type="checkbox"],
 .bracket-checkbox input[type="checkbox"] {
     position: absolute;
@@ -484,6 +528,19 @@ button {
 .bracket-range-btn:hover,
 .bracket-clear-btn:hover {
     background-color: #4a4a4a;
+}
+
+.range-btn:focus,
+.clear-btn:focus,
+.bracket-range-btn:focus,
+.bracket-clear-btn:focus,
+.range-btn:focus-visible,
+.clear-btn:focus-visible,
+.bracket-range-btn:focus-visible,
+.bracket-clear-btn:focus-visible {
+    outline: 2px solid #4a90e2;
+    outline-offset: 1px;
+    box-shadow: 0 0 6px rgba(74, 144, 226, 0.3);
 }
 
 .clear-btn,

@@ -1,3 +1,5 @@
+import { ErrorMessages } from './src/error-messages.js';
+
 interface Player {
     id: number;
     name: string;
@@ -385,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (validationFailed) {
-            alert('Please fix the errors before generating pods.');
+            ErrorMessages.showEnhanced(ErrorMessages.VALIDATION_FAILED);
             return;
         }
 
@@ -418,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const totalPlayerCount = allPlayers.length;
         if (totalPlayerCount < 3) {
-            alert("You need at least 3 players to form a pod.");
+            ErrorMessages.showEnhanced(ErrorMessages.INSUFFICIENT_PLAYERS);
             return;
         }
 
