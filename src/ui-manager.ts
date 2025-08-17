@@ -328,7 +328,7 @@ export class UIManager {
         bulkAddBtn.addEventListener('click', () => this.bulkAddPlayers(4));
         generatePodsBtn.addEventListener('click', () => this.generatePods());
         resetAllBtn.addEventListener('click', () => this.resetAllWithConfirmation());
-        this.displayModeBtn.addEventListener('click', () => this.getDisplayModeManager().enterDisplayMode(this.currentPods));
+        this.displayModeBtn.addEventListener('click', () => this.enterDisplayModeWithWarning());
         helpBtn.addEventListener('click', () => this.showHelpModal());
 
         this.setupEventDelegation();
@@ -1574,7 +1574,7 @@ export class UIManager {
             this.displayModeBtnBottom = this.displayModeBtn.cloneNode(true) as HTMLButtonElement;
             this.displayModeBtnBottom.id = 'display-mode-btn-bottom';
             this.displayModeBtnBottom.style.display = 'inline-block';
-            this.displayModeBtnBottom.addEventListener('click', () => this.getDisplayModeManager().enterDisplayMode(this.currentPods));
+            this.displayModeBtnBottom.addEventListener('click', () => this.enterDisplayModeWithWarning());
 
             buttonWrapper.appendChild(this.displayModeBtnBottom);
             helpSection.parentNode.insertBefore(buttonWrapper, helpSection);
@@ -1665,6 +1665,28 @@ export class UIManager {
             this.resetAll();
             this.showUndoResetButton();
         }
+    }
+
+    // Show warning dialog if there are unassigned players before entering display mode
+    private enterDisplayModeWithWarning(): void {
+        // Check if there are any unassigned players
+        if (this.currentUnassigned.length > 0) {
+            const playerCount = this.currentUnassigned.length;
+            const playerWord = playerCount === 1 ? 'player' : 'players';
+            
+            const confirmed = confirm(
+                `Warning: There ${playerCount === 1 ? 'is' : 'are'} ${playerCount} unassigned ${playerWord}.\n\n` +
+                "These players will not be displayed in display mode. " +
+                "Do you want to continue without assigning them?"
+            );
+
+            if (!confirmed) {
+                return; // User cancelled, don't enter display mode
+            }
+        }
+
+        // Either no unassigned players or user confirmed to continue
+        this.getDisplayModeManager().enterDisplayMode(this.currentPods);
     }
 
     // Show the undo reset button
