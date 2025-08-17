@@ -51,7 +51,7 @@ test.describe('Unassigned Players Warning Dialog', () => {
 
         // Verify we have unassigned players using the correct selector
         await expect(page.locator('.unassigned-pod')).toBeVisible();
-        
+
         // Set up dialog handler to cancel
         let dialogShown = false;
         page.on('dialog', dialog => {

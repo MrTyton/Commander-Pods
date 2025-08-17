@@ -247,7 +247,7 @@ export class UIManager {
      */
     private clearDOMCache(): void {
         domCache.clear();
-        
+
         // Clear centralized element pools for memory optimization
         elementPool.clear();
     }
@@ -754,7 +754,7 @@ export class UIManager {
         // Power level keyboard input sequence tracking
         let powerSequenceInput = '';
         let powerSequenceTimeout: NodeJS.Timeout | null = null;
-        
+
         // Bracket keyboard input sequence tracking
         let bracketSequenceInput = '';
         let bracketSequenceTimeout: NodeJS.Timeout | null = null;
@@ -925,7 +925,7 @@ export class UIManager {
         } else {
             // Single bracket selection (e.g., "1", "2", "c", "cedh")
             let targetValue = input;
-            
+
             // Handle special cases
             if (input === 'c') targetValue = 'cedh';
             if (input === '5') targetValue = 'cedh';
@@ -1570,7 +1570,7 @@ export class UIManager {
         if (this.currentUnassigned.length > 0) {
             const playerCount = this.currentUnassigned.length;
             const playerWord = playerCount === 1 ? 'player' : 'players';
-            
+
             const confirmed = confirm(
                 `Warning: There ${playerCount === 1 ? 'is' : 'are'} ${playerCount} unassigned ${playerWord}.\n\n` +
                 "These players will not be displayed in display mode. " +

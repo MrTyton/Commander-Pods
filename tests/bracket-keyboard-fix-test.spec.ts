@@ -33,16 +33,16 @@ test.describe('Bracket Keyboard Fix Test', () => {
         // Test typing a range "1-2" - should not close until Enter or timeout
         await page.keyboard.press('1');
         await expect(dropdown).toBeVisible(); // Should still be open
-        
+
         await page.keyboard.press('-');
         await expect(dropdown).toBeVisible(); // Should still be open
-        
+
         await page.keyboard.press('2');
         await expect(dropdown).toBeVisible(); // Should still be open
-        
+
         // Press Enter to apply the range
         await page.keyboard.press('Enter');
-        
+
         // Should have selected brackets 1 and 2, and closed dropdown
         await expect(bracketBtn).toContainText('Brackets: 1, 2');
         await expect(dropdown).not.toBeVisible();
@@ -88,7 +88,7 @@ test.describe('Bracket Keyboard Fix Test', () => {
         // Test single bracket selection with '3' and Enter
         await page.keyboard.press('3');
         await page.keyboard.press('Enter');
-        
+
         // Should have selected bracket 3 and closed dropdown
         await expect(bracketBtn).toContainText('Bracket: 3');
         await expect(dropdown).not.toBeVisible();
@@ -112,7 +112,7 @@ test.describe('Bracket Keyboard Fix Test', () => {
         // Test cEDH selection with 'c' and Enter
         await page.keyboard.press('c');
         await page.keyboard.press('Enter');
-        
+
         // Should have selected cEDH and closed dropdown
         await expect(bracketBtn).toContainText('Bracket: cEDH');
         await expect(dropdown).not.toBeVisible();

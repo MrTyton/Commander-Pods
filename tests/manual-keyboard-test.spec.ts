@@ -43,7 +43,7 @@ test.describe('Manual Keyboard Test - Debug Issues', () => {
         // Test Enter key behavior - should work with number input
         await page.keyboard.press('7');
         await page.keyboard.press('Enter');
-        
+
         // Should have selected power 7
         await expect(powerBtn).toContainText('Power: 7');
         await expect(dropdown).not.toBeVisible();

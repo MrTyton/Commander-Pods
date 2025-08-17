@@ -34,13 +34,13 @@ export class ElementPool {
      */
     get<T extends HTMLElement>(tagName: string): T {
         const pool = this.pools.get(tagName.toLowerCase()) || [];
-        
+
         if (pool.length > 0) {
             const element = pool.pop()! as T;
             this.resetElement(element);
             return element;
         }
-        
+
         return document.createElement(tagName) as T;
     }
 
@@ -51,12 +51,12 @@ export class ElementPool {
     release(element: HTMLElement): void {
         const tagName = element.tagName.toLowerCase();
         let pool = this.pools.get(tagName);
-        
+
         if (!pool) {
             pool = [];
             this.pools.set(tagName, pool);
         }
-        
+
         if (pool.length < this.POOL_SIZE) {
             this.resetElement(element);
             pool.push(element);
@@ -74,12 +74,12 @@ export class ElementPool {
         element.removeAttribute('style');
         element.removeAttribute('draggable');
         element.removeAttribute('id');
-        
+
         // Remove all dataset attributes
         Object.keys(element.dataset).forEach(key => {
             delete element.dataset[key];
         });
-        
+
         // Note: We don't clone during reset since elements in pool aren't attached to DOM
         // Event listener cleanup happens naturally when elements are removed from DOM
     }
