@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { setupBasicTest, teardownBasicTest } from './test-setup';
 import TestHelper from './test-helpers';
 
-test.describe('Keyboard Hint UI Features', () => {
+test.describe('Keyboard Functionality Tests', () => {
     let helper: TestHelper;
 
     test.afterEach(async () => {
@@ -11,7 +11,7 @@ test.describe('Keyboard Hint UI Features', () => {
         }
     });
 
-    test('should display keyboard hints in power selector dropdown', async ({ page }) => {
+    test('should not display keyboard hints in power selector dropdown', async ({ page }) => {
         helper = await setupBasicTest(page);
 
         // Click to open power selector dropdown
@@ -21,13 +21,12 @@ test.describe('Keyboard Hint UI Features', () => {
         // Wait for dropdown to be visible
         await page.waitForSelector('.player-row:first-child .power-selector-dropdown', { state: 'visible' });
 
-        // Check that keyboard hint is visible
+        // Check that keyboard hint is NOT visible (tooltips removed)
         const keyboardHint = page.locator('.player-row:first-child .power-selector-dropdown .keyboard-hint');
-        await expect(keyboardHint).toBeVisible();
-        await expect(keyboardHint).toContainText('💡 Focus button + type: 7, 7-9, 6.5-8, Esc');
+        await expect(keyboardHint).not.toBeVisible();
     });
 
-    test('should display keyboard hints in bracket selector dropdown', async ({ page }) => {
+    test('should not display keyboard hints in bracket selector dropdown', async ({ page }) => {
         helper = await setupBasicTest(page);
 
         // Switch to bracket mode
@@ -41,10 +40,9 @@ test.describe('Keyboard Hint UI Features', () => {
         // Wait for dropdown to be visible
         await page.waitForSelector('.player-row:first-child .bracket-selector-dropdown', { state: 'visible' });
 
-        // Check that keyboard hint is visible
+        // Check that keyboard hint is NOT visible (tooltips removed)
         const keyboardHint = page.locator('.player-row:first-child .bracket-selector-dropdown .keyboard-hint');
-        await expect(keyboardHint).toBeVisible();
-        await expect(keyboardHint).toContainText('💡 Focus button + type: 1, 2, 3, 4, 5/c (cEDH)');
+        await expect(keyboardHint).not.toBeVisible();
     });
 
     test('should not interfere with existing keyboard functionality', async ({ page }) => {

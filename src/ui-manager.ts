@@ -944,6 +944,10 @@ export class UIManager {
         // Power level keyboard input sequence tracking
         let powerSequenceInput = '';
         let powerSequenceTimeout: NodeJS.Timeout | null = null;
+        
+        // Bracket keyboard input sequence tracking
+        let bracketSequenceInput = '';
+        let bracketSequenceTimeout: NodeJS.Timeout | null = null;
 
         document.addEventListener('keydown', (e) => {
             // Ctrl+P to show performance metrics
@@ -1023,24 +1027,58 @@ export class UIManager {
 
             // Handle bracket shortcuts when a bracket selector button is focused
             if (isHTMLElement(activeElement) && activeElement.classList.contains('bracket-selector-btn')) {
-                let bracketValue: string | null = null;
-
-                // Map keys to bracket values
-                if (e.key === '1') bracketValue = '1';
-                else if (e.key === '2') bracketValue = '2';
-                else if (e.key === '3') bracketValue = '3';
-                else if (e.key === '4') bracketValue = '4';
-                else if (e.key === '5' || e.key === 'c' || e.key === 'C') bracketValue = 'cedh';
-
-                if (bracketValue) {
+                // Handle Escape to close dropdown
+                if (e.key === 'Escape') {
                     e.preventDefault();
-                    this.selectBracketByKeyboard(activeElement, bracketValue);
+                    this.closeAllDropdowns();
+                    return;
+                }
+
+                // Handle Enter to apply current sequence
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (bracketSequenceInput.trim()) {
+                        this.selectBracketByKeyboard(activeElement, bracketSequenceInput.trim());
+                        bracketSequenceInput = '';
+                        if (bracketSequenceTimeout) {
+                            clearTimeout(bracketSequenceTimeout);
+                            bracketSequenceTimeout = null;
+                        }
+                    }
+                    return;
+                }
+
+                // Collect character inputs for bracket sequences
+                if (e.key.match(/[1-5c\-]/) || e.key === 'Backspace' || e.key === 'C') {
+                    e.preventDefault();
+
+                    if (e.key === 'Backspace') {
+                        bracketSequenceInput = bracketSequenceInput.slice(0, -1);
+                    } else {
+                        bracketSequenceInput += e.key.toLowerCase();
+                    }
+
+                    // Clear existing timeout
+                    if (bracketSequenceTimeout) {
+                        clearTimeout(bracketSequenceTimeout);
+                    }
+
+                    // Set timeout to auto-apply sequence after 1 second of inactivity
+                    bracketSequenceTimeout = setTimeout(() => {
+                        if (bracketSequenceInput.trim()) {
+                            this.selectBracketByKeyboard(activeElement, bracketSequenceInput.trim());
+                            bracketSequenceInput = '';
+                        }
+                        bracketSequenceTimeout = null;
+                    }, 1000);
+
+                    return;
                 }
             }
         });
     }
 
-    private selectBracketByKeyboard(bracketButton: HTMLElement, bracketValue: string): void {
+    private selectBracketByKeyboard(bracketButton: HTMLElement, input: string): void {
         const playerRow = this.findPlayerRow(bracketButton);
         if (!playerRow) return;
 
@@ -1048,13 +1086,59 @@ export class UIManager {
         const checkboxes = domCache.getAllFromRow<HTMLInputElement>(playerRow, '.bracket-checkbox input[type="checkbox"]');
         checkboxes.forEach(cb => cb.checked = false);
 
-        // Check the specific bracket
-        const targetCheckbox = domCache.getFromRow<HTMLInputElement>(playerRow, `.bracket-checkbox input[value="${bracketValue}"]`);
-        if (targetCheckbox) {
-            targetCheckbox.checked = true;
-            // Trigger the change event to update button text
-            targetCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+        // Parse the input to determine what to select
+        if (input.includes('-')) {
+            // Range selection (e.g., "1-2", "2-3")
+            const parts = input.split('-');
+            if (parts.length === 2) {
+                const start = parts[0].trim();
+                const end = parts[1].trim();
+
+                // Convert bracket strings to numbers for range checking
+                const bracketToNumber = (bracket: string): number => {
+                    if (bracket === 'cedh' || bracket === 'c') return 5;
+                    return parseInt(bracket);
+                };
+
+                const startNum = bracketToNumber(start);
+                const endNum = bracketToNumber(end);
+
+                if (!isNaN(startNum) && !isNaN(endNum) && startNum <= endNum) {
+                    checkboxes.forEach(cb => {
+                        const bracketNum = bracketToNumber(cb.value);
+                        if (bracketNum >= startNum && bracketNum <= endNum) {
+                            cb.checked = true;
+                        }
+                    });
+                }
+            }
+        } else {
+            // Single bracket selection (e.g., "1", "2", "c", "cedh")
+            let targetValue = input;
+            
+            // Handle special cases
+            if (input === 'c') targetValue = 'cedh';
+            if (input === '5') targetValue = 'cedh';
+
+            const targetCheckbox = domCache.getFromRow<HTMLInputElement>(playerRow, `.bracket-checkbox input[value="${targetValue}"]`);
+            if (targetCheckbox) {
+                targetCheckbox.checked = true;
+            }
         }
+
+        // Update the button text by triggering change events
+        const changedCheckboxes = Array.from(checkboxes).filter(cb => cb.checked);
+        changedCheckboxes.forEach(cb => {
+            cb.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        // If no checkboxes were checked, trigger one change event to update the button
+        if (changedCheckboxes.length === 0) {
+            checkboxes[0]?.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        // Close the dropdown after selection
+        this.closeAllDropdowns();
     }
 
     private selectPowerByKeyboard(powerButton: HTMLElement, input: string): void {
@@ -1110,6 +1194,9 @@ export class UIManager {
         if (changedCheckboxes.length === 0) {
             checkboxes[0]?.dispatchEvent(new Event('change', { bubbles: true }));
         }
+
+        // Close the dropdown after selection
+        this.closeAllDropdowns();
     }
 
     private cleanupBottomDisplayButton(): void {
