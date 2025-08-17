@@ -38,6 +38,7 @@ import { ButtonTextManager } from './button-text-manager.js';
 import { domCache } from './dom-cache.js';
 import { realTimeValidator } from './real-time-validator.js';
 import { performanceMonitor } from './performance-monitor.js';
+import { elementPool } from './element-pool.js';
 import {
     isHTMLElement,
     isHTMLInputElement,
@@ -110,10 +111,6 @@ export class UIManager {
     // Memory optimization: Reusable objects to reduce object creation
     private reusablePlayerObject: Partial<Player> = {};
     private reusableGroupObject: Partial<Group> = {};
-
-    // Element pooling for performance optimization
-    private elementPools: Map<string, HTMLElement[]> = new Map();
-    private readonly POOL_SIZE = 10;
 
     // Event delegation handlers for better performance
     private containerClickHandler: ((e: Event) => void) | null = null;
@@ -245,14 +242,14 @@ export class UIManager {
      * 
      * **Memory Cleanup Pattern:**
      * - Clears WeakMap-based DOM cache
-     * - Empties element pools to free memory
+     * - Clears centralized element pools to free memory
      * - Called during major UI state changes
      */
     private clearDOMCache(): void {
         domCache.clear();
         
-        // Clear element pools for memory optimization
-        this.elementPools.clear();
+        // Clear centralized element pools for memory optimization
+        elementPool.clear();
     }
 
     /**
@@ -697,66 +694,10 @@ export class UIManager {
     }
 
     /**
-     * Get a pooled DOM element or create a new one for performance optimization
-     */
-    private getPooledElement<T extends HTMLElement>(tagName: string): T {
-        const pool = this.elementPools.get(tagName) || [];
-        
-        if (pool.length > 0) {
-            const element = pool.pop()! as T;
-            // Reset element state
-            element.innerHTML = '';
-            element.className = '';
-            element.removeAttribute('style');
-            element.removeAttribute('draggable');
-            
-            // Remove all dataset attributes
-            Object.keys(element.dataset).forEach(key => {
-                delete element.dataset[key];
-            });
-            
-            return element;
-        }
-        return document.createElement(tagName) as T;
-    }
-
-    /**
-     * Return element to pool for reuse
-     */
-    private returnToPool(element: HTMLElement): void {
-        const tagName = element.tagName.toLowerCase();
-        let pool = this.elementPools.get(tagName);
-        
-        if (!pool) {
-            pool = [];
-            this.elementPools.set(tagName, pool);
-        }
-        
-        if (pool.length < this.POOL_SIZE) {
-            pool.push(element);
-        }
-    }
-
-    /**
-     * Create a DOM element using pooling for better performance
+     * Create a DOM element using centralized pooling for better performance
      */
     private createElement(tagName: string): HTMLElement {
-        switch (tagName.toLowerCase()) {
-            case 'div':
-                return this.getPooledElement('div');
-            case 'h3':
-                return this.getPooledElement('h3');
-            case 'ul':
-                return this.getPooledElement('ul');
-            case 'li':
-                return this.getPooledElement('li');
-            case 'p':
-                return this.getPooledElement('p');
-            case 'strong':
-                return this.getPooledElement('strong');
-            default:
-                return document.createElement(tagName);
-        }
+        return elementPool.get(tagName);
     }
 
     addPlayerRow(): void {

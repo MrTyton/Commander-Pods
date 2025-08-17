@@ -1,5 +1,6 @@
 import { Pod } from './types.js';
 import { calculateValidPowerRange, getCurrentLeniencyTolerance, formatPlayerPowerRangeWithBolding, getValidPowersArrayForPod, formatPlayerBracketRangeWithBolding } from './utils.js';
+import { elementPool } from './element-pool.js';
 
 export class DisplayModeManager {
     private isDisplayMode = false;
@@ -219,7 +220,7 @@ export class DisplayModeManager {
         const gridSize = Math.ceil(Math.sqrt(currentPods.length));
 
         // Create fullscreen container that replaces everything
-        const displayContainer = document.createElement('div');
+        const displayContainer = elementPool.get('div');
         displayContainer.className = 'display-mode-container';
         displayContainer.style.position = 'fixed';
         displayContainer.style.top = '0';
@@ -250,7 +251,7 @@ export class DisplayModeManager {
 
         // Render pods in grid layout
         const displayOutput = displayContainer.querySelector('#display-output')!;
-        const podsGrid = document.createElement('div');
+        const podsGrid = elementPool.get('div');
         podsGrid.style.display = 'grid';
         podsGrid.style.gap = '20px';
         podsGrid.style.height = '100%';
@@ -261,7 +262,7 @@ export class DisplayModeManager {
         const podColors = this.getShuffledColors(currentPods.length);
 
         currentPods.forEach((pod, index) => {
-            const podElement = document.createElement('div');
+            const podElement = elementPool.get('div');
             podElement.style.display = 'flex';
             podElement.style.flexDirection = 'column';
             podElement.style.background = '#2a2a2a';
@@ -273,7 +274,7 @@ export class DisplayModeManager {
             podElement.style.boxShadow = `0 0 10px ${podColors[index]}40`; // Add subtle glow effect
             podElement.classList.add('pod', `pod-color-${index % 10}`);
 
-            const title = document.createElement('h3');
+            const title = elementPool.get('h3');
 
             // Check if we're in bracket mode (same logic as ui-manager.ts)
             const titleBracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
@@ -329,7 +330,7 @@ export class DisplayModeManager {
                 }
             });
 
-            const list = document.createElement('ul');
+            const list = elementPool.get('ul');
             list.style.flexGrow = '1';
             list.style.display = 'flex';
             // Calculate grid dimensions based on player count
@@ -365,14 +366,14 @@ export class DisplayModeManager {
             const playerIsBracketMode = playerBracketRadio && playerBracketRadio.checked;
 
             allPlayers.forEach((player, playerIndex) => {
-                const playerItem = document.createElement('li');
+                const playerItem = elementPool.get('li');
 
                 // Create structured layout with name and power/bracket on separate lines
-                const nameDiv = document.createElement('div');
+                const nameDiv = elementPool.get('div');
                 nameDiv.textContent = player.name;
                 nameDiv.className = 'player-name';
 
-                const powerDiv = document.createElement('div');
+                const powerDiv = elementPool.get('div');
                 if (playerIsBracketMode && player.bracketRange) {
                     // Use the bracket highlighting function for bracket levels in display mode
                     const validBracketsForPod = this.getValidBracketsArrayForPod(pod);

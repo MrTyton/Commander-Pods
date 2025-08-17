@@ -1,4 +1,5 @@
 import { UIManager } from './ui-manager.js';
+import { elementPool } from './element-pool.js';
 
 /**
  * Dynamically generates CSS rules for group colors
@@ -45,7 +46,7 @@ function generateGroupColorCSS(): void {
     }
 
     // Create and inject the style element
-    const styleElement = document.createElement('style');
+    const styleElement = elementPool.get('style');
     styleElement.id = 'dynamic-group-colors';
     styleElement.textContent = css;
     document.head.appendChild(styleElement);

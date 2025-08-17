@@ -3,6 +3,8 @@
  * Provides consistent loading experience across lazy-loaded features
  */
 
+import { elementPool } from './element-pool.js';
+
 interface LoadingState {
     isLoading: boolean;
     error: string | null;
@@ -132,7 +134,7 @@ class ModuleLoader {
         // Remove any existing loading message
         this.hideLoadingMessage();
 
-        const loadingElement = document.createElement('div');
+        const loadingElement = elementPool.get('div');
         loadingElement.id = 'module-loading-message';
         loadingElement.textContent = message;
         loadingElement.style.cssText = `
@@ -167,7 +169,7 @@ class ModuleLoader {
     private showErrorMessage(message: string): void {
         console.error(message);
 
-        const errorElement = document.createElement('div');
+        const errorElement = elementPool.get('div');
         errorElement.textContent = message;
         errorElement.style.cssText = `
             position: fixed;
