@@ -2,7 +2,7 @@
  * Centralized button text management for power and bracket selectors
  */
 
-import { ValidationUtils, ButtonTextUtils, DOMUtils } from './shared-utils-minimal.js';
+import { ValidationUtils, ButtonTextUtils, DOMUtils } from './shared-utils.js';
 
 export class ButtonTextManager {
     /**

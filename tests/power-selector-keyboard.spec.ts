@@ -52,7 +52,7 @@ test.describe('Power Selector Keyboard Functionality', () => {
         await page.keyboard.press('Enter');
 
         // Verify that only whole number power levels were selected (no 7.5, 8.5)
-        await expect(powerBtn).toContainText('Power: 7, 8, 9');
+        await expect(powerBtn).toContainText('Power: 7-9');
 
         // Verify the correct checkboxes are checked
         const checkbox7 = page.locator('.player-row:first-child .power-checkbox input[value="7"]');
@@ -88,7 +88,7 @@ test.describe('Power Selector Keyboard Functionality', () => {
         await page.keyboard.press('Enter');
 
         // Verify that decimal power levels are included
-        await expect(powerBtn).toContainText('4 Powers Selected');
+        await expect(powerBtn).toContainText('Power: 6.5-8');
 
         // Verify the checkboxes are actually checked
         const checkbox65 = page.locator('.player-row:first-child .power-checkbox input[value="6.5"]');

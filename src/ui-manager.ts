@@ -26,7 +26,7 @@
  * **Bundle Impact:** +12.1% size for significantly enhanced functionality
  */
 
-import { Player, Group, Pod } from './types.js';
+import { Player, Group, Pod, PlayerResetData, LeniencyResetData, ResetData } from './types.js';
 import { calculatePodSizes, calculatePodSizesAvoidFive, getPodOptimizationSetting, getLeniencySettings, calculateValidPowerRange, formatPlayerPowerRangeWithBolding, getValidPowersArrayForPod } from './utils.js';
 import { PlayerManager } from './player-manager.js';
 import { PodGenerator } from './pod-generator.js';
@@ -37,6 +37,7 @@ import { ValidationUtils, ButtonTextUtils, DOMUtils } from './shared-utils.js';
 import { ButtonTextManager } from './button-text-manager.js';
 import { domCache } from './dom-cache.js';
 import { realTimeValidator } from './real-time-validator.js';
+import { performanceMonitor } from './performance-monitor.js';
 import {
     isHTMLElement,
     isHTMLInputElement,
@@ -45,106 +46,6 @@ import {
     getEventTarget,
     assertExists
 } from './type-guards.js';
-
-interface PlayerResetData {
-    name: string;
-    groupValue: string;
-    createdGroupId?: string;
-    selectedPowers: string[];
-    selectedBrackets: string[];
-}
-
-interface LeniencyResetData {
-    noLeniency: boolean;
-    leniency: boolean;
-    superLeniency: boolean;
-    bracket: boolean;
-}
-
-interface PerformanceMetrics {
-    bundleSize: string;
-    memoryUsage: number;
-    domCacheHits: number;
-    validationTime: number;
-    podGenerationTime: number;
-    lastUpdated: Date;
-}
-
-/**
- * Performance monitoring utility with bundle size analysis
- * 
- * Bundle Growth Tracking:
- * - Baseline (pre-helper): 52.1kb
- * - ButtonTextManager: +2.7kb → 54.8kb (+5.2%)
- * - DOMCache: +1.2kb → 56.0kb (+2.2%) 
- * - RealTimeValidator: +1.5kb → 57.5kb (+2.7%)
- * - TypeGuards: +0.7kb → 58.2kb (+1.2%)
- * - PerformanceMonitor: +1.0kb → 59.2kb (+1.7%)
- * - Total Growth: +7.1kb (+13.6% from baseline)
- */
-class PerformanceMonitor {
-    private metrics: PerformanceMetrics = {
-        bundleSize: '59.2kb',
-        memoryUsage: 0,
-        domCacheHits: 0,
-        validationTime: 0,
-        podGenerationTime: 0,
-        lastUpdated: new Date()
-    };
-
-    updateMemoryUsage(): void {
-        if ('memory' in performance) {
-            // @ts-ignore - performance.memory might not be available in all browsers
-            this.metrics.memoryUsage = Math.round((performance.memory?.usedJSHeapSize || 0) / 1024 / 1024 * 100) / 100;
-        }
-        this.metrics.lastUpdated = new Date();
-    }
-
-    trackValidationTime(time: number): void {
-        this.metrics.validationTime = Math.round(time * 100) / 100;
-        this.metrics.lastUpdated = new Date();
-    }
-
-    trackPodGenerationTime(time: number): void {
-        this.metrics.podGenerationTime = Math.round(time * 100) / 100;
-        this.metrics.lastUpdated = new Date();
-    }
-
-    getMetrics(): PerformanceMetrics {
-        this.updateMemoryUsage();
-        return { ...this.metrics };
-    }
-
-    logMetrics(): void {
-        const metrics = this.getMetrics();
-        console.group('🔍 Performance Analysis');
-        console.log('📦 Bundle Size:', metrics.bundleSize, '(+7.1kb from 52.1kb baseline)');
-        console.log('📊 Growth Rate: +13.6% (efficient for added functionality)');
-        console.log('💾 Memory Usage:', `${metrics.memoryUsage}MB`);
-        console.log('⚡ Validation Time:', `${metrics.validationTime}ms`);
-        console.log('🎯 Pod Generation:', `${metrics.podGenerationTime}ms`);
-
-        console.group('📈 Helper Module Impact');
-        console.log('✅ ButtonTextManager: +2.7kb (display state management)');
-        console.log('✅ DOMCache: +1.2kb (query optimization)');
-        console.log('✅ RealTimeValidator: +1.5kb (instant feedback)');
-        console.log('✅ TypeGuards: +0.7kb (runtime type safety)');
-        console.log('✅ PerformanceMonitor: +1.0kb (metrics tracking)');
-        console.groupEnd();
-
-        console.log('🎯 Next: Validation consolidation & event optimization');
-        console.groupEnd();
-    }
-}
-
-const performanceMonitor = new PerformanceMonitor();
-
-interface ResetData {
-    players: PlayerResetData[];
-    leniencySettings: LeniencyResetData;
-    currentPods: Pod[];
-    currentUnassigned: (Player | Group)[];
-}
 
 /**
  * Main UI Manager for Commander Pairings application
@@ -206,13 +107,13 @@ export class UIManager {
     private reusablePlayerArray: Player[] = [];
     private reusableItemArray: (Player | Group)[] = [];
 
-    // Memory optimization: DOM element pools to reduce createElement calls
-    private elementPools: Map<string, HTMLElement[]> = new Map();
-    private readonly POOL_SIZE = 10;
-
     // Memory optimization: Reusable objects to reduce object creation
     private reusablePlayerObject: Partial<Player> = {};
     private reusableGroupObject: Partial<Group> = {};
+
+    // Element pooling for performance optimization
+    private elementPools: Map<string, HTMLElement[]> = new Map();
+    private readonly POOL_SIZE = 10;
 
     // Event delegation handlers for better performance
     private containerClickHandler: ((e: Event) => void) | null = null;
@@ -347,18 +248,10 @@ export class UIManager {
      * - Empties element pools to free memory
      * - Called during major UI state changes
      */
-    /**
-     * Clear DOM cache and element pools for memory optimization
-     * 
-     * **Memory Cleanup Pattern:**
-     * - Clears WeakMap-based DOM cache
-     * - Empties element pools to free memory
-     * - Called during major UI state changes
-     */
     private clearDOMCache(): void {
         domCache.clear();
-
-        // Clear element pools to free memory
+        
+        // Clear element pools for memory optimization
         this.elementPools.clear();
     }
 
@@ -442,13 +335,6 @@ export class UIManager {
         }
 
         return processedGroups;
-    }
-
-    /**
-     * Type-safe helper to get bracket radio element
-     */
-    private getBracketRadio(): HTMLInputElement | null {
-        return getElementByIdTyped('bracket-radio', isHTMLInputElement);
     }
 
     // Event Listener Cleanup optimization: Use eventManager
@@ -694,7 +580,7 @@ export class UIManager {
             }
         });
 
-        this.updatePowerButtonText(playerRow);
+        ButtonTextManager.updatePowerButton(playerRow);
     }
 
     private handleBracketRangeButtonClick(target: HTMLElement): void {
@@ -725,7 +611,7 @@ export class UIManager {
             });
         }
 
-        this.updateBracketButtonText(playerRow);
+        ButtonTextManager.updateBracketButton(playerRow);
     }
 
     private handleClearButtonClick(target: HTMLElement): void {
@@ -736,12 +622,12 @@ export class UIManager {
             // Clear power checkboxes
             const checkboxes = domCache.getAllFromRow<HTMLInputElement>(playerRow, '.power-checkbox input[type="checkbox"]');
             checkboxes.forEach(cb => cb.checked = false);
-            this.updatePowerButtonText(playerRow);
+            ButtonTextManager.updatePowerButton(playerRow);
         } else if (target.classList.contains('bracket-clear-btn')) {
             // Clear bracket checkboxes
             const checkboxes = domCache.getAllFromRow<HTMLInputElement>(playerRow, '.bracket-checkbox input[type="checkbox"]');
             checkboxes.forEach(cb => cb.checked = false);
-            this.updateBracketButtonText(playerRow);
+            ButtonTextManager.updateBracketButton(playerRow);
         }
     }
 
@@ -761,14 +647,14 @@ export class UIManager {
     private handlePowerCheckboxChange(target: HTMLElement): void {
         const playerRow = this.findPlayerRow(target);
         if (playerRow) {
-            this.updatePowerButtonText(playerRow);
+            ButtonTextManager.updatePowerButton(playerRow);
         }
     }
 
     private handleBracketCheckboxChange(target: HTMLElement): void {
         const playerRow = this.findPlayerRow(target);
         if (playerRow) {
-            this.updateBracketButtonText(playerRow);
+            ButtonTextManager.updateBracketButton(playerRow);
         }
     }
 
@@ -776,14 +662,6 @@ export class UIManager {
         // Real-time validation is now handled by RealTimeValidator with debouncing
         // This method is kept for backward compatibility with event delegation
         // The actual validation logic is in RealTimeValidator.setupNameValidation()
-    }
-
-    private updatePowerButtonText(playerRow: HTMLElement): void {
-        ButtonTextManager.updatePowerButton(playerRow);
-    }
-
-    private updateBracketButtonText(playerRow: HTMLElement): void {
-        ButtonTextManager.updateBracketButton(playerRow);
     }
 
     /**
@@ -819,74 +697,65 @@ export class UIManager {
     }
 
     /**
-     * Get a DOM element from the pool or create a new one
-     * Reduces DOM createElement calls for better performance
-     * 
-     * **Enhanced Error Handling:**
-     * - Validates tagName parameter
-     * - Falls back to document.createElement on pool failures
-     * - Logs errors for debugging
+     * Get a pooled DOM element or create a new one for performance optimization
      */
-    private getPooledElement(tagName: string): HTMLElement {
-        try {
-            if (!tagName || typeof tagName !== 'string') {
-                throw new Error(`Invalid tagName provided: ${tagName}`);
-            }
-
-            const pool = this.elementPools.get(tagName) || [];
-
-            if (pool.length > 0) {
-                const element = pool.pop()!;
-                // Reset element state safely
-                try {
-                    element.innerHTML = '';
-                    element.className = '';
-                    element.removeAttribute('style');
-                    element.removeAttribute('id');
-                } catch (resetError) {
-                    console.warn('Error resetting pooled element:', resetError);
-                    // Fall through to create new element
-                }
-                return element;
-            }
-
-            return document.createElement(tagName);
-
-        } catch (error) {
-            console.error('Error in getPooledElement:', error);
-            // Fallback to regular createElement
-            try {
-                return document.createElement(tagName || 'div');
-            } catch (fallbackError) {
-                console.error('Fallback createElement also failed:', fallbackError);
-                throw new Error('Unable to create DOM element');
-            }
+    private getPooledElement<T extends HTMLElement>(tagName: string): T {
+        const pool = this.elementPools.get(tagName) || [];
+        
+        if (pool.length > 0) {
+            const element = pool.pop()! as T;
+            // Reset element state
+            element.innerHTML = '';
+            element.className = '';
+            element.removeAttribute('style');
+            element.removeAttribute('draggable');
+            
+            // Remove all dataset attributes
+            Object.keys(element.dataset).forEach(key => {
+                delete element.dataset[key];
+            });
+            
+            return element;
         }
+        return document.createElement(tagName) as T;
     }
 
     /**
-     * Return a DOM element to the pool for reuse
-     * Maintains pool size limit to prevent memory leaks
+     * Return element to pool for reuse
      */
     private returnToPool(element: HTMLElement): void {
         const tagName = element.tagName.toLowerCase();
         let pool = this.elementPools.get(tagName);
-
+        
         if (!pool) {
             pool = [];
             this.elementPools.set(tagName, pool);
         }
-
+        
         if (pool.length < this.POOL_SIZE) {
-            // Clean element for reuse
-            element.innerHTML = '';
-            element.className = '';
-            element.removeAttribute('style');
-            element.removeAttribute('id');
+            pool.push(element);
+        }
+    }
 
-            // Remove all event listeners by cloning
-            const clonedElement = element.cloneNode(false) as HTMLElement;
-            pool.push(clonedElement);
+    /**
+     * Create a DOM element using pooling for better performance
+     */
+    private createElement(tagName: string): HTMLElement {
+        switch (tagName.toLowerCase()) {
+            case 'div':
+                return this.getPooledElement('div');
+            case 'h3':
+                return this.getPooledElement('h3');
+            case 'ul':
+                return this.getPooledElement('ul');
+            case 'li':
+                return this.getPooledElement('li');
+            case 'p':
+                return this.getPooledElement('p');
+            case 'strong':
+                return this.getPooledElement('strong');
+            default:
+                return document.createElement(tagName);
         }
     }
 
@@ -898,8 +767,8 @@ export class UIManager {
 
         // Event Listener Cleanup: No individual listeners needed - using delegation
         // Just initialize button text with helper function
-        this.updatePowerButtonText(newRow);
-        this.updateBracketButtonText(newRow);
+        ButtonTextManager.updatePowerButton(newRow);
+        ButtonTextManager.updateBracketButton(newRow);
 
         this.playerRowsContainer.appendChild(newRow);
 
@@ -920,7 +789,7 @@ export class UIManager {
         this.updatePlayerNumbers();
 
         // Apply current ranking mode to the new row
-        const bracketRadio = this.getBracketRadio();
+        const bracketRadio = getElementByIdTyped('bracket-radio', isHTMLInputElement);
         const isBracketMode = bracketRadio?.checked ?? false;
         const powerLevels = domCache.getFromRow<HTMLElement>(newRow, '.power-levels');
         const bracketLevels = domCache.getFromRow<HTMLElement>(newRow, '.bracket-levels');
@@ -1416,13 +1285,13 @@ export class UIManager {
 
         // DOM Performance: Use document fragment for batch DOM operations with element pooling
         const fragment = document.createDocumentFragment();
-        const podsContainer = this.getPooledElement('div');
+        const podsContainer = this.createElement('div');
         podsContainer.classList.add('pods-container');
         podsContainer.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
         podsContainer.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
 
         pods.forEach((pod, index) => {
-            const podElement = this.getPooledElement('div');
+            const podElement = this.createElement('div');
             podElement.classList.add('pod', `pod-color-${index % 10}`);
             podElement.dataset.podIndex = index.toString();
 
@@ -1431,7 +1300,7 @@ export class UIManager {
             podElement.addEventListener('drop', this.dragDropManager.handleDrop);
             podElement.addEventListener('dragleave', this.dragDropManager.handleDragLeave);
 
-            const title = this.getPooledElement('h3');
+            const title = this.createElement('h3');
 
             // Check if we're in bracket mode to display appropriate title
             const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
@@ -1449,11 +1318,11 @@ export class UIManager {
 
             podElement.appendChild(title);
 
-            const list = this.getPooledElement('ul');
+            const list = this.createElement('ul');
             pod.players.forEach((item, itemIndex) => {
                 if ('players' in item) {
                     // It's a group - DOM Performance: use pooled elements
-                    const groupItem = this.getPooledElement('li');
+                    const groupItem = this.createElement('li');
                     groupItem.classList.add('pod-group');
                     groupItem.draggable = true;
                     groupItem.dataset.itemType = 'group';
@@ -1470,7 +1339,7 @@ export class UIManager {
                     const isBracketMode = bracketRadio && bracketRadio.checked;
 
                     // DOM Performance: Use textContent instead of innerHTML when possible
-                    const groupTitle = this.getPooledElement('strong');
+                    const groupTitle = this.createElement('strong');
                     if (isBracketMode) {
                         groupTitle.textContent = `Group ${item.id.split('-')[1]}:`;
                     } else {
@@ -1478,9 +1347,9 @@ export class UIManager {
                     }
                     groupItem.appendChild(groupTitle);
 
-                    const subList = this.getPooledElement('ul');
+                    const subList = this.createElement('ul');
                     item.players.forEach(p => {
-                        const subItem = this.getPooledElement('li');
+                        const subItem = this.createElement('li');
                         if (isBracketMode && p.bracketRange) {
                             subItem.textContent = `${p.name} (B: ${p.bracketRange})`;
                         } else {
@@ -1495,7 +1364,7 @@ export class UIManager {
                     list.appendChild(groupItem);
                 } else {
                     // It's an individual player - DOM Performance: use pooled elements
-                    const playerItem = this.getPooledElement('li');
+                    const playerItem = this.createElement('li');
                     playerItem.classList.add('pod-player');
                     playerItem.draggable = true;
                     playerItem.dataset.itemType = 'player';
@@ -1529,7 +1398,7 @@ export class UIManager {
 
         // Add a "New Pod" drop target only if there are already some pods
         if (pods.length > 0) {
-            const newPodElement = this.getPooledElement('div');
+            const newPodElement = this.createElement('div');
             newPodElement.classList.add('pod', 'new-pod', 'new-pod-target');
             newPodElement.style.borderColor = '#4CAF50';
             newPodElement.style.backgroundColor = '#1f2a1f';
@@ -1541,12 +1410,12 @@ export class UIManager {
             newPodElement.addEventListener('drop', this.dragDropManager.handleDrop);
             newPodElement.addEventListener('dragleave', this.dragDropManager.handleDragLeave);
 
-            const newPodTitle = this.getPooledElement('h3');
+            const newPodTitle = this.createElement('h3');
             newPodTitle.textContent = 'Create New Pod';
             newPodTitle.style.color = '#4CAF50';
             newPodElement.appendChild(newPodTitle);
 
-            const newPodMessage = this.getPooledElement('p');
+            const newPodMessage = this.createElement('p');
             newPodMessage.textContent = 'Drag players or groups here to create a new pod';
             newPodMessage.style.color = '#999';
             newPodMessage.style.fontStyle = 'italic';
@@ -1559,7 +1428,7 @@ export class UIManager {
 
         // Display unassigned players if any
         if (unassignedPlayers.length > 0) {
-            const unassignedElement = this.getPooledElement('div');
+            const unassignedElement = this.createElement('div');
             unassignedElement.classList.add('pod', 'unassigned-pod');
             unassignedElement.style.borderColor = '#ff6b6b';
             unassignedElement.style.backgroundColor = '#2a1f1f';
@@ -1570,16 +1439,16 @@ export class UIManager {
             unassignedElement.addEventListener('drop', this.dragDropManager.handleDrop);
             unassignedElement.addEventListener('dragleave', this.dragDropManager.handleDragLeave);
 
-            const title = this.getPooledElement('h3');
+            const title = this.createElement('h3');
             title.textContent = 'Unassigned Players';
             title.style.color = '#ff6b6b';
             unassignedElement.appendChild(title);
 
-            const list = this.getPooledElement('ul');
+            const list = this.createElement('ul');
             unassignedPlayers.forEach((item, itemIndex) => {
                 if ('players' in item) {
                     // It's a group
-                    const groupItem = this.getPooledElement('li');
+                    const groupItem = this.createElement('li');
                     groupItem.classList.add('pod-group');
                     groupItem.draggable = true;
                     groupItem.dataset.itemType = 'group';
@@ -1601,9 +1470,9 @@ export class UIManager {
                         groupItem.innerHTML = `<strong>Group ${item.id.split('-')[1]} (Avg Power: ${item.averagePower}):</strong>`;
                     }
 
-                    const subList = this.getPooledElement('ul');
+                    const subList = this.createElement('ul');
                     item.players.forEach(p => {
-                        const subItem = this.getPooledElement('li');
+                        const subItem = this.createElement('li');
                         if (isBracketMode && p.bracketRange) {
                             subItem.textContent = `${p.name} (B: ${p.bracketRange})`;
                         } else {
@@ -1616,7 +1485,7 @@ export class UIManager {
                     list.appendChild(groupItem);
                 } else {
                     // It's an individual player
-                    const playerItem = this.getPooledElement('li');
+                    const playerItem = this.createElement('li');
                     playerItem.classList.add('pod-player');
                     playerItem.draggable = true;
                     playerItem.dataset.itemType = 'player';
@@ -1653,7 +1522,7 @@ export class UIManager {
         const helpSection = document.querySelector('.help-section');
         if (helpSection && helpSection.parentNode) {
             // Create a wrapper div to center the button
-            const buttonWrapper = this.getPooledElement('div');
+            const buttonWrapper = this.createElement('div');
             buttonWrapper.style.textAlign = 'center';
             buttonWrapper.style.marginTop = '20px';
             buttonWrapper.style.marginBottom = '20px';
@@ -1785,7 +1654,7 @@ export class UIManager {
         }
 
         // Create and show undo button
-        const undoBtn = this.getPooledElement('button');
+        const undoBtn = this.createElement('button');
         undoBtn.id = 'undo-reset-btn';
         undoBtn.textContent = 'Undo Reset';
         undoBtn.style.marginLeft = '10px';
@@ -2066,19 +1935,9 @@ export class UIManager {
         const bracketCheckboxes = row.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
         bracketCheckboxes.forEach(cb => cb.checked = false);
 
-        // Update button texts
-        const powerBtn = row.querySelector('.power-selector-btn') as HTMLButtonElement;
-        const bracketBtn = row.querySelector('.bracket-selector-btn') as HTMLButtonElement;
-
-        if (powerBtn) {
-            powerBtn.textContent = 'Select Power Levels';
-            powerBtn.classList.remove('has-selection');
-        }
-
-        if (bracketBtn) {
-            bracketBtn.textContent = 'Select Brackets';
-            bracketBtn.classList.remove('has-selection');
-        }
+        // Update button texts using the centralized ButtonTextManager
+        ButtonTextManager.updatePowerButton(row);
+        ButtonTextManager.updateBracketButton(row);
     }
 
     private initializeHelpModal(): void {
@@ -2211,73 +2070,8 @@ export class UIManager {
 
     // Helper method to manually update button texts for a row
     private updateButtonTextsForRow(row: Element): void {
-        // Update power selector button text
-        const powerCheckboxes = row.querySelectorAll('.power-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
-        const powerSelectorBtn = row.querySelector('.power-selector-btn') as HTMLButtonElement;
-
-        if (powerSelectorBtn) {
-            const selectedPowers: number[] = [];
-            powerCheckboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    selectedPowers.push(parseFloat(checkbox.value));
-                }
-            });
-
-            if (selectedPowers.length === 0) {
-                powerSelectorBtn.textContent = 'Select Power Levels';
-                powerSelectorBtn.classList.remove('has-selection');
-            } else {
-                selectedPowers.sort((a, b) => a - b);
-                let displayText: string;
-                if (selectedPowers.length === 1) {
-                    displayText = `Power: ${selectedPowers[0]}`;
-                } else {
-                    const min = selectedPowers[0];
-                    const max = selectedPowers[selectedPowers.length - 1];
-                    const isContiguous = selectedPowers.every((power, index) => {
-                        if (index === 0) return true;
-                        const diff = power - selectedPowers[index - 1];
-                        return diff === 0.5 || diff === 1;
-                    });
-                    if (isContiguous && selectedPowers.length > 2) {
-                        displayText = `Power: ${min}-${max}`;
-                    } else if (selectedPowers.length <= 4) {
-                        displayText = `Power: ${selectedPowers.join(', ')}`;
-                    } else {
-                        displayText = `Power: ${min}-${max} (${selectedPowers.length} levels)`;
-                    }
-                }
-                powerSelectorBtn.textContent = displayText;
-                powerSelectorBtn.classList.add('has-selection');
-            }
-        }
-
-        // Update bracket selector button text
-        const bracketCheckboxes = row.querySelectorAll('.bracket-checkbox input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
-        const bracketSelectorBtn = row.querySelector('.bracket-selector-btn') as HTMLButtonElement;
-
-        if (bracketSelectorBtn) {
-            const selectedBrackets: string[] = [];
-            bracketCheckboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    selectedBrackets.push(checkbox.value);
-                }
-            });
-
-            if (selectedBrackets.length === 0) {
-                bracketSelectorBtn.textContent = 'Select Brackets';
-                bracketSelectorBtn.classList.remove('has-selection');
-            } else {
-                let displayText: string;
-                if (selectedBrackets.length === 1) {
-                    displayText = `Bracket: ${selectedBrackets[0]}`;
-                } else {
-                    displayText = `Brackets: ${selectedBrackets.join(', ')}`;
-                }
-                bracketSelectorBtn.textContent = displayText;
-                bracketSelectorBtn.classList.add('has-selection');
-            }
-        }
+        // Use the centralized ButtonTextManager instead of duplicating logic
+        ButtonTextManager.updateAllButtonsForRow(row);
     }
 
     /**
@@ -2293,3 +2087,4 @@ export class UIManager {
         });
     }
 }
+
