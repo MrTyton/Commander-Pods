@@ -103,8 +103,8 @@ The tool offers two pod generation strategies:
 
 Found a bug or have a feature request? We'd love to hear from you!
 
-- **Report Issues**: [Submit a bug report](https://github.com/MrTyton/Commander-Pods/issues/new) on GitHub
-- **Feature Requests**: [Request a new feature](https://github.com/MrTyton/Commander-Pods/issues/new) on GitHub
+- **Report Issues**: [Submit a bug report](https://github.com/MrTyton/Commander-Pods/issues/new?template=bug_report.md) on GitHub
+- **Feature Requests**: [Request a new feature](https://github.com/MrTyton/Commander-Pods/issues/new?template=feature_request.md) on GitHub
 - **General Feedback**: Use GitHub Issues for any suggestions or improvements
 
 When reporting bugs, please include:
