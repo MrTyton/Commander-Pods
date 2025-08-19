@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discussion Forum
+    url: https://github.com/MrTyton/Commander-Pods/discussions
+    about: For questions, ideas, and general discussion about Commander Pairings
+  - name: Documentation
+    url: https://github.com/MrTyton/Commander-Pods/blob/main/README.md
+    about: Check the README for setup instructions and basic usage
