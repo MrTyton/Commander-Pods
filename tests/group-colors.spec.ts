@@ -119,8 +119,8 @@ test.describe('Group Color Functionality', () => {
         expect(finalClassName).toBe('group-select');
 
         // Should have default styling
-        await expect(groupSelect).toHaveCSS('border-color', 'rgb(68, 68, 68)');
-        await expect(groupSelect).toHaveCSS('background-color', 'rgb(51, 51, 51)');
+        await expect(groupSelect).toHaveCSS('border-color', 'rgb(64, 64, 64)');
+        await expect(groupSelect).toHaveCSS('background-color', 'rgb(45, 45, 45)');
     });
 
     test('group colors should persist through dropdown updates', async ({ page }) => {
@@ -260,8 +260,8 @@ test.describe('Group Color Functionality', () => {
         await expect(powerBtn).toHaveText('Select Power Levels');
 
         // Check default button styling
-        await expect(powerBtn).toHaveCSS('background-color', 'rgb(51, 51, 51)');
-        await expect(powerBtn).toHaveCSS('border-color', 'rgb(68, 68, 68)');
+        await expect(powerBtn).toHaveCSS('background-color', 'rgb(45, 45, 45)');
+        await expect(powerBtn).toHaveCSS('border-color', 'rgb(64, 64, 64)');
 
         // Verify power selector has modern styling (not the old simple dropdown)
         await expect(powerBtn).toHaveCSS('border-radius', '8px');
