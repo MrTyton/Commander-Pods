@@ -138,7 +138,11 @@ export class TourManager {
                 target: 'fieldset:nth-of-type(2)',
                 position: 'top',
                 action: 'none',
-                beforeStep: () => this.ensurePowerMode()
+                beforeStep: () => {
+                    this.ensurePowerMode();
+                    this.openSettingsForTour();
+                },
+                afterStep: () => this.closeSettingsAfterTour()
             },
             {
                 id: 'pod-size-preference',
@@ -146,7 +150,9 @@ export class TourManager {
                 content: 'Pod size preference determines how pods are organized. "Balanced" allows 3-5 player pods for flexibility, while "Avoid Large Pods" prefers smaller 3-4 player pods for more intimate games.',
                 target: 'fieldset:nth-of-type(3)',
                 position: 'top',
-                action: 'none'
+                action: 'none',
+                beforeStep: () => this.openSettingsForTour(),
+                afterStep: () => this.closeSettingsAfterTour()
             },
             {
                 id: 'generate',
@@ -519,12 +525,30 @@ export class TourManager {
         this.tourHighlight.style.width = `${rect.width + 10}px`;
         this.tourHighlight.style.height = `${rect.height + 10}px`;
 
-        // Scroll element into view if needed
-        targetElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center',
-            inline: 'center'
-        });
+        // Check if the target element is inside the settings sidebar
+        const isInSidebar = targetElement.closest('#settings-sidebar') !== null;
+        
+        // Only scroll into view if not in sidebar (to prevent weird horizontal scrolling)
+        if (!isInSidebar) {
+            targetElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+                inline: 'center'
+            });
+        } else {
+            // For sidebar elements, just ensure vertical centering without horizontal scrolling
+            const centerY = rect.top + rect.height / 2;
+            const windowCenterY = window.innerHeight / 2;
+            const shouldScroll = centerY < 100 || centerY > window.innerHeight - 100;
+            
+            if (shouldScroll) {
+                window.scrollTo({
+                    left: 0, // Keep horizontal position at 0
+                    top: window.scrollY + (centerY - windowCenterY),
+                    behavior: 'smooth'
+                });
+            }
+        }
     }
 
     private showTooltip(step: TourStep): void {
@@ -948,12 +972,24 @@ export class TourManager {
     }
 
     private openSettingsForTour(): void {
-        // Directly open the settings sidebar for the tour
-        // Use a small timeout to ensure DOM is ready
+        // Directly open the settings sidebar for the tour and ensure it's visible
         setTimeout(() => {
             const settingsSidebar = document.getElementById('settings-sidebar');
             if (settingsSidebar) {
                 settingsSidebar.classList.add('open');
+                
+                // Scroll to make sure the sidebar area is in view
+                // This prevents the weird off-screen highlighting issue
+                window.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
+                
+                // Wait for the CSS transition and scroll to complete, then refresh the highlight positioning
+                setTimeout(() => {
+                    // Force a re-positioning of the current tour step highlight
+                    const currentStep = this.tourSteps[this.currentStep];
+                    if (currentStep) {
+                        this.positionHighlight(currentStep);
+                    }
+                }, 400); // Increased wait time for animations to complete
             }
         }, 50);
     }
