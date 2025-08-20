@@ -10,71 +10,126 @@
 </head>
 
 <body>
-    <div class="container">
-        <h1>MTG Commander Pod Generator</h1>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>🎲 MTG Commander Pod Generator</h1>
+            <p class="app-subtitle">Create balanced pods for your Commander games</p>
+        </header>
 
-        <div id="player-rows">
-            <!-- Player rows will be dynamically inserted here -->
-        </div>
+        <!-- Players Section Card -->
+        <section class="card players-card">
+            <div class="card-header">
+                <h2>👥 Players</h2>
+                <div class="card-actions">
+                    <button id="add-player-btn" class="btn btn-primary">
+                        <span class="btn-icon">➕</span>
+                        Add Player
+                    </button>
+                    <button id="bulk-add-btn" class="btn btn-secondary">
+                        <span class="btn-icon">👥</span>
+                        Add 4 Players
+                    </button>
+                </div>
+            </div>
+            <div class="card-content">
+                <div id="player-rows">
+                    <!-- Player rows will be dynamically inserted here -->
+                </div>
+            </div>
+        </section>
 
-        <div class="controls">
-            <button id="add-player-btn">Add Player</button>
-            <button id="bulk-add-btn">Add 4 Players</button>
-        </div>
+        <!-- Settings Section Card -->
+        <section class="card settings-card">
+            <div class="card-header">
+                <h2>⚙️ Settings</h2>
+            </div>
+            <div class="card-content">
+                <div class="settings-grid">
+                    <fieldset class="setting-group">
+                        <legend>🎯 Ranking System</legend>
+                        <label class="radio-option">
+                            <input type="radio" name="ranking-mode" value="power-level" id="power-level-radio" checked>
+                            <span class="radio-label">Power Level (1-10 scale)</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="ranking-mode" value="bracket" id="bracket-radio">
+                            <span class="radio-label">Bracket System (1, 2, 3, 4, cEDH)</span>
+                        </label>
+                    </fieldset>
+                    
+                    <fieldset class="setting-group">
+                        <legend>🎚️ Power Level Tolerance</legend>
+                        <label class="radio-option">
+                            <input type="radio" name="leniency" value="none" id="no-leniency-radio" checked>
+                            <span class="radio-label">No Leniency (Exact Match)</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="leniency" value="regular" id="leniency-radio">
+                            <span class="radio-label">Regular Leniency (±0.5)</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="leniency" value="super" id="super-leniency-radio">
+                            <span class="radio-label">Super Leniency (±1.0)</span>
+                        </label>
+                    </fieldset>
+                    
+                    <fieldset class="setting-group">
+                        <legend>🎲 Pod Size Preference</legend>
+                        <label class="radio-option">
+                            <input type="radio" name="pod-optimization" value="balanced" id="balanced-pods-radio" checked>
+                            <span class="radio-label">Balanced (3-5 players per pod)</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="pod-optimization" value="avoid-five" id="avoid-five-pods-radio">
+                            <span class="radio-label">Avoid Large Pods (Prefer pods of 3)</span>
+                        </label>
+                    </fieldset>
+                </div>
+            </div>
+        </section>
 
-        <div class="settings">
-            <h2>Settings</h2>
-            <fieldset>
-                <legend>Ranking System</legend>
-                <label>
-                    <input type="radio" name="ranking-mode" value="power-level" id="power-level-radio" checked>
-                    Power Level (1-10 scale)
-                </label>
-                <label>
-                    <input type="radio" name="ranking-mode" value="bracket" id="bracket-radio">
-                    Bracket System (1, 2, 3, 4, cEDH)
-                </label>
-            </fieldset>
-            <fieldset>
-                <legend>Power Level Tolerance</legend>
-                <label>
-                    <input type="radio" name="leniency" value="none" id="no-leniency-radio" checked>
-                    No Leniency (Exact Match)
-                </label>
-                <label>
-                    <input type="radio" name="leniency" value="regular" id="leniency-radio">
-                    Regular Leniency (±0.5)
-                </label>
-                <label>
-                    <input type="radio" name="leniency" value="super" id="super-leniency-radio">
-                    Super Leniency (±1.0)
-                </label>
-            </fieldset>
-            <fieldset>
-                <legend>Pod Size Preference</legend>
-                <label>
-                    <input type="radio" name="pod-optimization" value="balanced" id="balanced-pods-radio" checked>
-                    Balanced (Allows pods of 3, 4, and 5)
-                </label>
-                <label>
-                    <input type="radio" name="pod-optimization" value="avoid-five" id="avoid-five-pods-radio">
-                    Avoid Large Pods (Never pods of 5, prefer pods of 3)
-                </label>
-            </fieldset>
-        </div>
+        <!-- Actions Section Card -->
+        <section class="card actions-card">
+            <div class="card-content">
+                <div class="main-actions">
+                    <button id="generate-pods-btn" class="btn btn-success btn-large">
+                        <span class="btn-icon">🎯</span>
+                        Generate Pods
+                    </button>
+                    <button id="reset-all-btn" class="btn btn-danger">
+                        <span class="btn-icon">🔄</span>
+                        Reset All
+                    </button>
+                    <button id="display-mode-btn" class="btn btn-info" style="display: none;">
+                        <span class="btn-icon">📺</span>
+                        Display Mode
+                    </button>
+                </div>
+            </div>
+        </section>
 
-        <div class="main-actions">
-            <button id="generate-pods-btn">Generate Pods</button>
-            <button id="reset-all-btn">Reset All</button>
-            <button id="display-mode-btn" style="display: none;">Display Mode</button>
-        </div>
+        <!-- Results Section Card -->
+        <section class="card results-card">
+            <div id="output-section">
+                <!-- Pods will be displayed here -->
+            </div>
+        </section>
 
-        <div id="output-section">
-            <!-- Pods will be displayed here -->
-        </div>
+        <!-- Help Section Card -->
+        <section class="card help-card">
+            <div class="card-content">
+                <button id="help-btn" class="btn btn-help">
+                    <span class="btn-icon">❓</span>
+                    How to Use This Tool
+                </button>
+            </div>
+        </section>
 
-        <div class="help-section">
-            <button id="help-btn" class="help-button">❓ How to Use This Tool</button>
+        <!-- Floating Action Button -->
+        <div class="fab-container">
+            <button id="fab-generate" class="fab" title="Generate Pods">
+                <span class="fab-icon">🎯</span>
+            </button>
         </div>
     </div>
 
@@ -431,7 +486,8 @@
     </div>
 
     <script src="script.js"></script>
-    <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
+    <!-- Temporarily disabled for testing -->
+    <!-- <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
     <script>
         kofiWidgetOverlay.draw('mrtyton', {
             'type': 'floating-chat',
@@ -439,7 +495,7 @@
             'floating-chat.donateButton.background-color': '#f45d22',
             'floating-chat.donateButton.text-color': '#fff'
         });
-    </script>
+    </script> -->
 </body>
 
 </html>
