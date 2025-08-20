@@ -250,7 +250,11 @@ export class UIManager {
             'settings-sidebar is required'
         );
 
-        sidebarToggle.addEventListener('click', () => this.toggleSidebar(true));
+        sidebarToggle.addEventListener('click', () => {
+            // Check if sidebar is currently open and toggle accordingly
+            const isOpen = settingsSidebar.classList.contains('open');
+            this.toggleSidebar(!isOpen);
+        });
         sidebarClose.addEventListener('click', () => this.toggleSidebar(false));
 
         // Close sidebar when clicking outside
