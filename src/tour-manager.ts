@@ -39,12 +39,22 @@ export class TourManager {
                 action: 'none'
             },
             {
+                id: 'settings-button',
+                title: '⚙️ Settings Button',
+                content: 'This gear icon opens the settings panel where you can configure your ranking system (Power Level vs Bracket), manage players, and access help resources. Click it to access all configuration options.',
+                target: '#settings-toggle',
+                position: 'bottom',
+                action: 'none'
+            },
+            {
                 id: 'ranking-system',
                 title: '⚙️ Choose Your Ranking System',
                 content: 'First, choose between Power Level (1-10 scale) or Bracket (1,2,3,4,cEDH) system. Power Level gives more granular control, while Brackets are simpler and tournament-friendly.',
                 target: 'fieldset:first-of-type',
                 position: 'bottom',
-                action: 'none'
+                action: 'none',
+                beforeStep: () => this.openSettingsForTour(),
+                afterStep: () => this.closeSettingsAfterTour()
             },
             {
                 id: 'add-players',
@@ -934,6 +944,25 @@ export class TourManager {
                     }, 800); // Further increased timeout to ensure all updates complete
                 }
             }
+        }
+    }
+
+    private openSettingsForTour(): void {
+        // Directly open the settings sidebar for the tour
+        // Use a small timeout to ensure DOM is ready
+        setTimeout(() => {
+            const settingsSidebar = document.getElementById('settings-sidebar');
+            if (settingsSidebar) {
+                settingsSidebar.classList.add('open');
+            }
+        }, 50);
+    }
+
+    private closeSettingsAfterTour(): void {
+        // Directly close the settings sidebar after the tour step
+        const settingsSidebar = document.getElementById('settings-sidebar');
+        if (settingsSidebar) {
+            settingsSidebar.classList.remove('open');
         }
     }
 }

@@ -1971,7 +1971,7 @@ export class UIManager {
     /**
      * Toggle the settings sidebar
      */
-    private toggleSidebar(open: boolean): void {
+    public toggleSidebar(open: boolean): void {
         const settingsSidebar = assertExists(
             getElementByIdTyped('settings-sidebar', isHTMLElement),
             'settings-sidebar is required'

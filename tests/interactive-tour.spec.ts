@@ -57,15 +57,37 @@ test.describe('Interactive Tour', () => {
         // First step should be welcome
         await expect(page.locator('.tour-tooltip h3')).toContainText('Welcome to Commander Pod Generator');
 
-        // Click next to go to second step
+        // Click next to go to second step (Settings Button)
         await page.click('.tour-btn-primary');
         await page.waitForTimeout(100);
 
-        // Should advance to ranking system step
-        await expect(page.locator('.tour-tooltip h3')).toContainText('Choose Your Ranking System');
+        // Should advance to settings button step
+        await expect(page.locator('.tour-tooltip h3')).toContainText('Settings Button');
         await expect(page.locator('.tour-progress')).toContainText('Step 2 of');
 
+        // Click next to go to third step (Ranking System)
+        await page.click('.tour-btn-primary');
+        await page.waitForTimeout(100);
+
+        // Should advance to ranking system step and settings should be open
+        await expect(page.locator('.tour-tooltip h3')).toContainText('Choose Your Ranking System');
+        await expect(page.locator('.tour-progress')).toContainText('Step 3 of');
+        
+        // Wait for the beforeStep function to execute and DOM to update
+        await page.waitForTimeout(300);
+        
+        // Settings sidebar should be open during this step
+        await expect(page.locator('#settings-sidebar')).toHaveClass(/open/);
+
         // Test previous button
+        await page.click('.tour-btn-secondary:has-text("Previous")');
+        await page.waitForTimeout(100);
+
+        // Should go back to settings button step
+        await expect(page.locator('.tour-tooltip h3')).toContainText('Settings Button');
+        await expect(page.locator('.tour-progress')).toContainText('Step 2 of');
+        
+        // Go back one more time to welcome step  
         await page.click('.tour-btn-secondary:has-text("Previous")');
         await page.waitForTimeout(100);
 
@@ -107,8 +129,8 @@ test.describe('Interactive Tour', () => {
         await page.click('#help-btn');
         await page.click('#start-tour-btn');
 
-        // Navigate to the player name step (step 3)
-        for (let i = 0; i < 2; i++) {
+        // Navigate to the player name step (step 4)
+        for (let i = 0; i < 3; i++) {
             await page.click('.tour-btn-primary');
             await page.waitForTimeout(200);
         }
@@ -144,10 +166,10 @@ test.describe('Interactive Tour', () => {
         await page.click('#help-btn');
         await page.click('#start-tour-btn');
 
-        // Track progress through all steps (21 total: 0-20)
+        // Track progress through all steps (22 total: 0-21)
         let currentStep = 1;
 
-        while (currentStep < 21) { // Go through steps 1-20
+        while (currentStep < 22) { // Go through steps 1-21
             await expect(page.locator('.tour-progress')).toContainText(`Step ${currentStep} of`);
 
             // Click next button
@@ -158,8 +180,8 @@ test.describe('Interactive Tour', () => {
             currentStep++;
         }
 
-        // Now we should be at step 21 (index 20, the final step)
-        await expect(page.locator('.tour-progress')).toContainText('Step 21 of');
+        // Now we should be at step 22 (index 21, the final step)
+        await expect(page.locator('.tour-progress')).toContainText('Step 22 of');
 
         // Final step should have "Finish Tour" button
         await expect(page.locator('.tour-btn-primary')).toContainText('Finish Tour');
