@@ -269,6 +269,10 @@ test.describe('Group Color Functionality', () => {
     });
 
     test('bracket checkboxes should work correctly', async ({ page }) => {
+        // Open the sidebar to access settings
+        await page.click('#settings-toggle');
+        await page.waitForSelector('#settings-sidebar.open', { state: 'visible' });
+
         // Switch to bracket mode
         await page.check('#bracket-radio');
 

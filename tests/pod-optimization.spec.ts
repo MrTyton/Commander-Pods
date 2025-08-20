@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import TestHelper from './test-helpers';
+import TestHelper, { TestSetup } from './test-helpers';
 
 test.describe('Pod Optimization Settings', () => {
     let helper: TestHelper;
@@ -64,8 +64,9 @@ test.describe('Pod Optimization Settings', () => {
 
     test.describe('Avoid Five Pod Optimization', () => {
         test.beforeEach(async ({ page }) => {
+            const setup = new TestSetup(page);
             // Select the avoid-five optimization option
-            await page.check('#avoid-five-pods-radio');
+            await setup.setOptimization(true);
         });
 
         test('should fall back to balanced for 5 players (avoid-five not possible)', async ({ page }) => {
@@ -167,7 +168,8 @@ test.describe('Pod Optimization Settings', () => {
 
     test.describe('Pod Optimization with Power Levels', () => {
         test('should respect avoid-five setting with mixed power levels', async ({ page }) => {
-            await page.check('#avoid-five-pods-radio');
+            const setup = new TestSetup(page);
+            await setup.setOptimization(true);
 
             await helper.players.createPlayers([
                 { name: 'Player1', power: [6] },
@@ -186,8 +188,9 @@ test.describe('Pod Optimization Settings', () => {
         });
 
         test('should respect avoid-five setting with leniency', async ({ page }) => {
-            await page.check('#avoid-five-pods-radio');
-            await page.check('#leniency-radio'); // Enable regular leniency
+            const setup = new TestSetup(page);
+            await setup.setOptimization(true);
+            await setup.setTolerance('regular'); // Enable regular leniency
 
             await helper.players.createPlayers([
                 { name: 'Player1', power: [6] },
@@ -215,7 +218,8 @@ test.describe('Pod Optimization Settings', () => {
 
     test.describe('Display Mode with Pod Optimization', () => {
         test('should work correctly in display mode with avoid-five setting', async ({ page }) => {
-            await page.check('#avoid-five-pods-radio');
+            const setup = new TestSetup(page);
+            await setup.setOptimization(true);
 
             const players: { name: string; power: number[] }[] = [];
             for (let i = 1; i <= 10; i++) {
@@ -245,7 +249,8 @@ test.describe('Pod Optimization Settings', () => {
 
     test.describe('UI State Management', () => {
         test('should remember pod optimization setting across generations', async ({ page }) => {
-            await page.check('#avoid-five-pods-radio');
+            const setup = new TestSetup(page);
+            await setup.setOptimization(true);
 
             await helper.players.createPlayers([
                 { name: 'Player1', power: [6] },
@@ -274,6 +279,8 @@ test.describe('Pod Optimization Settings', () => {
         });
 
         test('should switch between optimization modes correctly', async ({ page }) => {
+            const setup = new TestSetup(page);
+
             const players: { name: string; power: number[] }[] = [];
             for (let i = 1; i <= 10; i++) {
                 players.push({ name: `Player${i}`, power: [6] });
@@ -286,13 +293,13 @@ test.describe('Pod Optimization Settings', () => {
             expect(podPlayerCounts.sort()).toEqual([5, 5]);
 
             // Switch to avoid-five mode
-            await page.check('#avoid-five-pods-radio');
+            await setup.setOptimization(true);
             await helper.pods.generatePods();
             podPlayerCounts = await helper.pods.getAllPodPlayerCounts();
             expect(podPlayerCounts.sort()).toEqual([3, 3, 4]);
 
             // Switch back to balanced mode
-            await page.check('#balanced-pods-radio');
+            await setup.setOptimization(false);
             await helper.pods.generatePods();
             podPlayerCounts = await helper.pods.getAllPodPlayerCounts();
             expect(podPlayerCounts.sort()).toEqual([5, 5]);
@@ -306,7 +313,8 @@ test.describe('Pod Optimization Settings', () => {
         });
 
         test('should handle 4 players correctly with avoid-five setting', async ({ page }) => {
-            await page.check('#avoid-five-pods-radio');
+            const setup = new TestSetup(page);
+            await setup.setOptimization(true);
 
             await helper.players.createPlayers([
                 { name: 'Player1', power: [6] },
@@ -324,7 +332,8 @@ test.describe('Pod Optimization Settings', () => {
         });
 
         test('should handle very large groups with avoid-five setting', async ({ page }) => {
-            await page.check('#avoid-five-pods-radio');
+            const setup = new TestSetup(page);
+            await setup.setOptimization(true);
 
             const players: { name: string; power: number[] }[] = [];
             for (let i = 1; i <= 20; i++) {

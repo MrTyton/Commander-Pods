@@ -4,6 +4,10 @@ test.describe('Bracket Mode Fixes', () => {
     test('should fix bracket mode display issues', async ({ page }) => {
         await page.goto('file://' + __dirname.replace('tests', 'index.html'));
 
+        // Open sidebar to access settings
+        await page.click('#settings-toggle');
+        await page.waitForTimeout(100);
+
         // Start in power level mode - verify tolerance settings are visible
         const toleranceFieldset = page.locator('.settings-grid fieldset:nth-child(2)'); // Power Level Tolerance is now 2nd fieldset
         await expect(toleranceFieldset).toBeVisible();
@@ -89,6 +93,10 @@ test.describe('Bracket Mode Fixes', () => {
 
     test('should treat groups with mixed bracket levels as highest bracket', async ({ page }) => {
         await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Open sidebar to access settings
+        await page.click('#settings-toggle');
+        await page.waitForTimeout(100);
 
         // Switch to bracket mode
         const bracketRadio = page.locator('#bracket-radio');
@@ -218,6 +226,10 @@ test.describe('Bracket Mode Fixes', () => {
     test('should display bracket ranges correctly', async ({ page }) => {
         await page.goto('file://' + __dirname.replace('tests', 'index.html'));
 
+        // Open sidebar to access settings
+        await page.click('#settings-toggle');
+        await page.waitForTimeout(100);
+
         // Switch to bracket mode
         const bracketRadio = page.locator('#bracket-radio');
         await bracketRadio.check();
@@ -273,6 +285,10 @@ test.describe('Bracket Mode Fixes', () => {
 
     test('should support cEDH hotfix button and keyboard shortcut 5', async ({ page }) => {
         await page.goto('file://' + __dirname.replace('tests', 'index.html'));
+
+        // Open sidebar to access settings
+        await page.click('#settings-toggle');
+        await page.waitForTimeout(100);
 
         // Switch to bracket mode
         const bracketRadio = page.locator('#bracket-radio');

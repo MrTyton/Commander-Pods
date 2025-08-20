@@ -53,6 +53,13 @@ class TestSetup {
      * Set the ranking system mode
      */
     async setMode(mode: 'power' | 'bracket') {
+        // Only open the sidebar if it's not already open
+        const sidebarOpen = await this.page.locator('#settings-sidebar.open').isVisible();
+        if (!sidebarOpen) {
+            await this.page.click('#settings-toggle');
+            await this.page.waitForSelector('#settings-sidebar.open', { state: 'visible' });
+        }
+
         const radioSelector = mode === 'power' ? '#power-level-radio' : '#bracket-radio';
         await this.page.check(radioSelector);
         // Wait for the mode to actually change by checking if the radio is checked
@@ -66,6 +73,13 @@ class TestSetup {
      * Set tolerance level (only for power mode)
      */
     async setTolerance(level: 'none' | 'regular' | 'super') {
+        // Only open the sidebar if it's not already open
+        const sidebarOpen = await this.page.locator('#settings-sidebar.open').isVisible();
+        if (!sidebarOpen) {
+            await this.page.click('#settings-toggle');
+            await this.page.waitForSelector('#settings-sidebar.open', { state: 'visible' });
+        }
+
         const radioMap = {
             'none': '#no-leniency-radio',
             'regular': '#leniency-radio',
@@ -74,6 +88,26 @@ class TestSetup {
         const selector = radioMap[level];
         await this.page.check(selector);
         // Wait for the tolerance to actually change
+        await this.page.waitForFunction((selector) => {
+            const radio = document.querySelector(selector) as HTMLInputElement;
+            return radio && radio.checked;
+        }, selector);
+    }
+
+    /**
+     * Set optimization mode (avoid five pods)
+     */
+    async setOptimization(avoidFivePods: boolean) {
+        // Only open the sidebar if it's not already open
+        const sidebarOpen = await this.page.locator('#settings-sidebar.open').isVisible();
+        if (!sidebarOpen) {
+            await this.page.click('#settings-toggle');
+            await this.page.waitForSelector('#settings-sidebar.open', { state: 'visible' });
+        }
+
+        const selector = avoidFivePods ? '#avoid-five-pods-radio' : '#balanced-pods-radio';
+        await this.page.check(selector);
+        // Wait for the optimization setting to actually change
         await this.page.waitForFunction((selector) => {
             const radio = document.querySelector(selector) as HTMLInputElement;
             return radio && radio.checked;
@@ -96,6 +130,25 @@ class TestSetup {
         };
 
         this.page.on('dialog', dialogHandler);
+
+        // Close any open dropdowns before clicking reset to prevent z-index interference
+        await this.page.evaluate(() => {
+            // Force close all dropdowns
+            const dropdowns = document.querySelectorAll('.bracket-selector-dropdown, .power-selector-dropdown');
+            dropdowns.forEach(dropdown => {
+                (dropdown as HTMLElement).style.display = 'none';
+                dropdown.classList.remove('show');
+            });
+            const buttons = document.querySelectorAll('.power-selector-btn, .bracket-selector-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('open');
+            });
+            // Remove dropdown-open class from all player rows
+            const playerRows = document.querySelectorAll('.player-row');
+            playerRows.forEach(row => {
+                row.classList.remove('dropdown-open');
+            });
+        });
 
         await resetBtn.click();
         await this.page.waitForTimeout(100); // Simple timeout for teardown reliability
@@ -136,7 +189,11 @@ class TestSetup {
      * Check current mode
      */
     async getCurrentMode(): Promise<'power' | 'bracket'> {
-        const powerRadio = this.page.locator('#power-radio');
+        // Ensure sidebar is accessible for reading settings
+        await this.page.click('#sidebar-toggle');
+        await this.page.waitForSelector('#settings-sidebar.open', { state: 'visible' });
+
+        const powerRadio = this.page.locator('#power-level-radio');
         const isChecked = await powerRadio.isChecked();
         return isChecked ? 'power' : 'bracket';
     }
@@ -145,6 +202,10 @@ class TestSetup {
      * Check current tolerance level
      */
     async getCurrentTolerance(): Promise<'none' | 'regular' | 'super'> {
+        // Ensure sidebar is accessible for reading settings
+        await this.page.click('#sidebar-toggle');
+        await this.page.waitForSelector('#settings-sidebar.open', { state: 'visible' });
+
         if (await this.page.locator('#no-leniency-radio').isChecked()) return 'none';
         if (await this.page.locator('#leniency-radio').isChecked()) return 'regular';
         if (await this.page.locator('#super-leniency-radio').isChecked()) return 'super';

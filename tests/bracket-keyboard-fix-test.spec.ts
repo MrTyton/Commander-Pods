@@ -14,6 +14,10 @@ test.describe('Bracket Keyboard Fix Test', () => {
     });
 
     test('should allow typing bracket ranges without closing dropdown prematurely', async ({ page }) => {
+        // Open sidebar to access settings
+        await page.click('#settings-toggle');
+        await page.waitForTimeout(100);
+
         // Switch to bracket mode
         await page.click('#bracket-radio');
 
@@ -49,6 +53,10 @@ test.describe('Bracket Keyboard Fix Test', () => {
     });
 
     test('should close bracket dropdown when using escape', async ({ page }) => {
+        // Open sidebar to access settings
+        await page.click('#settings-toggle');
+        await page.waitForTimeout(100);
+
         // Switch to bracket mode
         await page.click('#bracket-radio');
 
@@ -71,6 +79,10 @@ test.describe('Bracket Keyboard Fix Test', () => {
     });
 
     test('should handle single bracket selection', async ({ page }) => {
+        // Open sidebar to access settings
+        await page.click('#settings-toggle');
+        await page.waitForTimeout(100);
+
         // Switch to bracket mode
         await page.click('#bracket-radio');
 
@@ -95,6 +107,10 @@ test.describe('Bracket Keyboard Fix Test', () => {
     });
 
     test('should handle cEDH selection with c key', async ({ page }) => {
+        // Open sidebar to access settings
+        await page.click('#settings-toggle');
+        await page.waitForTimeout(100);
+
         // Switch to bracket mode
         await page.click('#bracket-radio');
 

@@ -29,6 +29,10 @@ test.describe('Keyboard Functionality Tests', () => {
     test('should not display keyboard hints in bracket selector dropdown', async ({ page }) => {
         helper = await setupBasicTest(page);
 
+        // Open sidebar to access settings
+        await page.click('#settings-toggle');
+        await page.waitForTimeout(100);
+
         // Switch to bracket mode
         await page.click('#bracket-radio');
         await page.waitForTimeout(100);

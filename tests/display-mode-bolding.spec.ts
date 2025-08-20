@@ -80,6 +80,10 @@ test.describe('Display Mode Power Level Bolding', () => {
     test('should show bolded power levels in bracket mode display', async ({ page }) => {
         helper = await setupBasicTest(page);
 
+        // Open sidebar to access settings
+        await page.click('#settings-toggle');
+        await page.waitForTimeout(100);
+
         // Switch to bracket mode
         await page.check('#bracket-radio');
 

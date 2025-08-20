@@ -81,6 +81,19 @@ body {
 .app-header {
     text-align: center;
     margin-bottom: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.header-content {
+    flex: 1;
+}
+
+.sidebar-toggle {
+    flex-shrink: 0;
+    margin-top: 10px;
 }
 
 .app-header h1 {
@@ -101,6 +114,85 @@ body {
     margin: 12px 0 0 0;
     font-weight: 400;
     letter-spacing: -0.005em;
+}
+
+/* Main Layout Styles */
+.main-layout {
+    display: flex;
+    gap: 24px;
+    position: relative;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Settings Sidebar */
+.settings-sidebar {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 380px;
+    height: 100vh;
+    background: var(--card-background);
+    border-left: 1px solid var(--border-color);
+    box-shadow: var(--shadow-xl);
+    z-index: 1000;
+    transition: right var(--transition-normal);
+    overflow-y: auto;
+}
+
+.settings-sidebar.open {
+    right: 0;
+}
+
+.sidebar-header {
+    padding: var(--padding-large);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    background: var(--card-background);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 100;
+}
+
+.sidebar-header h2 {
+    margin: 0;
+    font-size: 1.375rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar-close {
+    padding: 8px;
+    min-height: auto;
+    width: auto;
+}
+
+.sidebar-content {
+    padding: var(--padding-large);
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-color-secondary);
+    border: 1px solid transparent;
+}
+
+.btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-color);
+    border-color: var(--border-color);
 }
 
 /* Card Styles */
@@ -181,8 +273,12 @@ body {
 }
 
 .btn-icon {
-    font-size: 1rem;
+    font-size: 1.1rem;
     line-height: 1;
+    margin-right: 2px;
+    display: inline-flex;
+    align-items: center;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 }
 
 .btn:before {
@@ -283,9 +379,16 @@ body {
 }
 
 .btn-large {
-    padding: var(--padding-large);
-    font-size: 1.1rem;
+    padding: var(--padding-xl);
+    font-size: 1.2rem;
     font-weight: 600;
+    min-height: 48px;
+    box-shadow: var(--shadow-medium);
+}
+
+.btn-large .btn-icon {
+    font-size: 1.3rem;
+    margin-right: 6px;
 }
 
 /* Settings Grid */

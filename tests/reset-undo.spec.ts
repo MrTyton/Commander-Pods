@@ -78,7 +78,7 @@ test.describe('Reset All with Confirmation and Undo', () => {
         ]);
 
         // Change leniency setting
-        await page.check('#leniency-radio');
+        await helper.setup.setTolerance('regular');
 
         // Accept reset dialog
         page.on('dialog', dialog => {
@@ -275,7 +275,7 @@ test.describe('Reset All with Confirmation and Undo', () => {
         await helper.players.setPowerLevels(2, [6, 7]);
 
         // Set leniency
-        await page.check('#super-leniency-radio');
+        await helper.setup.setTolerance('super');
 
         // Reset and undo
         page.on('dialog', dialog => {

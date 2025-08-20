@@ -12,471 +12,514 @@
 <body>
     <div class="app-container container">
         <header class="app-header">
-            <h1>MTG Commander Pod Generator</h1>
-            <p class="app-subtitle">Create balanced pods for your Commander games</p>
+            <div class="header-content">
+                <h1>MTG Commander Pod Generator</h1>
+                <p class="app-subtitle">Create balanced pods for your Commander games</p>
+            </div>
+            <button id="settings-toggle" class="btn btn-secondary sidebar-toggle">
+                <span class="btn-icon">⚙️</span>
+                Settings
+            </button>
         </header>
 
-        <!-- Players Section Card -->
-        <section class="card players-card">
-            <div class="card-header">
-                <h2>👥 Players</h2>
-                <div class="card-actions">
-                    <button id="add-player-btn" class="btn btn-primary">
-                        <span class="btn-icon">➕</span>
-                        Add Player
-                    </button>
-                    <button id="bulk-add-btn" class="btn btn-secondary">
-                        <span class="btn-icon">👥</span>
-                        Add 4 Players
+        <!-- Main Layout Container -->
+        <div class="main-layout">
+            <!-- Settings Sidebar -->
+            <aside id="settings-sidebar" class="settings-sidebar">
+                <div class="sidebar-header">
+                    <h2>⚙️ Settings</h2>
+                    <button id="sidebar-close" class="btn btn-ghost sidebar-close">
+                        <span class="btn-icon">✖️</span>
                     </button>
                 </div>
-            </div>
-            <div class="card-content">
-                <div id="player-rows">
-                    <!-- Player rows will be dynamically inserted here -->
-                </div>
-            </div>
-        </section>
+                <div class="sidebar-content">
+                    <div class="settings-grid">
+                        <fieldset class="setting-group">
+                            <legend>🎯 Ranking System</legend>
+                            <label class="radio-option">
+                                <input type="radio" name="ranking-mode" value="power-level" id="power-level-radio"
+                                    checked>
+                                <span class="radio-label">Power Level (1-10 scale)</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="ranking-mode" value="bracket" id="bracket-radio">
+                                <span class="radio-label">Bracket System (1, 2, 3, 4, cEDH)</span>
+                            </label>
+                        </fieldset>
 
-        <!-- Settings Section Card -->
-        <section class="card settings-card">
-            <div class="card-header">
-                <h2>⚙️ Settings</h2>
-            </div>
-            <div class="card-content">
-                <div class="settings-grid">
-                    <fieldset class="setting-group">
-                        <legend>🎯 Ranking System</legend>
-                        <label class="radio-option">
-                            <input type="radio" name="ranking-mode" value="power-level" id="power-level-radio" checked>
-                            <span class="radio-label">Power Level (1-10 scale)</span>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="ranking-mode" value="bracket" id="bracket-radio">
-                            <span class="radio-label">Bracket System (1, 2, 3, 4, cEDH)</span>
-                        </label>
-                    </fieldset>
+                        <fieldset class="setting-group">
+                            <legend>🎚️ Power Level Tolerance</legend>
+                            <label class="radio-option">
+                                <input type="radio" name="leniency" value="none" id="no-leniency-radio" checked>
+                                <span class="radio-label">No Leniency (Exact Match)</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="leniency" value="regular" id="leniency-radio">
+                                <span class="radio-label">Regular Leniency (±0.5)</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="leniency" value="super" id="super-leniency-radio">
+                                <span class="radio-label">Super Leniency (±1.0)</span>
+                            </label>
+                        </fieldset>
 
-                    <fieldset class="setting-group">
-                        <legend>🎚️ Power Level Tolerance</legend>
-                        <label class="radio-option">
-                            <input type="radio" name="leniency" value="none" id="no-leniency-radio" checked>
-                            <span class="radio-label">No Leniency (Exact Match)</span>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="leniency" value="regular" id="leniency-radio">
-                            <span class="radio-label">Regular Leniency (±0.5)</span>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="leniency" value="super" id="super-leniency-radio">
-                            <span class="radio-label">Super Leniency (±1.0)</span>
-                        </label>
-                    </fieldset>
-
-                    <fieldset class="setting-group">
-                        <legend>🎲 Pod Size Preference</legend>
-                        <label class="radio-option">
-                            <input type="radio" name="pod-optimization" value="balanced" id="balanced-pods-radio"
-                                checked>
-                            <span class="radio-label">Balanced (3-5 players per pod)</span>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="pod-optimization" value="avoid-five" id="avoid-five-pods-radio">
-                            <span class="radio-label">Avoid Large Pods (Prefer pods of 3)</span>
-                        </label>
-                    </fieldset>
-                </div>
-            </div>
-        </section>
-
-        <!-- Actions Section Card -->
-        <section class="card actions-card">
-            <div class="card-content">
-                <div class="main-actions">
-                    <button id="generate-pods-btn" class="btn btn-success btn-large">
-                        <span class="btn-icon">🎯</span>
-                        Generate Pods
-                    </button>
-                    <button id="reset-all-btn" class="btn btn-danger">
-                        <span class="btn-icon">🔄</span>
-                        Reset All
-                    </button>
-                    <button id="display-mode-btn" class="btn btn-info" style="display: none;">
-                        <span class="btn-icon">📺</span>
-                        Display Mode
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Results Section Card -->
-        <section class="card results-card">
-            <div id="output-section">
-                <!-- Pods will be displayed here -->
-            </div>
-        </section>
-
-        <!-- Help Section Card -->
-        <section class="card help-card help-section">
-            <div class="card-content">
-                <button id="help-btn" class="btn btn-help">
-                    <span class="btn-icon">❓</span>
-                    How to Use This Tool
-                </button>
-            </div>
-        </section>
-
-    </div>
-
-    <template id="player-row-template">
-        <div class="player-row">
-            <span class="player-number">1</span>
-            <input type="text" class="player-name" placeholder="Player Name">
-            <div class="power-levels">
-                <button type="button" class="power-selector-btn">Select Power Levels</button>
-                <div class="power-selector-dropdown" style="display: none;">
-                    <div class="power-range-buttons">
-                        <button type="button" class="range-btn" data-range="6-7">6-7</button>
-                        <button type="button" class="range-btn" data-range="7-8">7-8</button>
-                        <button type="button" class="range-btn" data-range="8-9">8-9</button>
-                        <button type="button" class="clear-btn">Clear All</button>
-                    </div>
-                    <div class="power-checkboxes">
-                        <label class="power-checkbox"><input type="checkbox" value="1"> 1</label>
-                        <label class="power-checkbox"><input type="checkbox" value="1.5"> 1.5</label>
-                        <label class="power-checkbox"><input type="checkbox" value="2"> 2</label>
-                        <label class="power-checkbox"><input type="checkbox" value="2.5"> 2.5</label>
-                        <label class="power-checkbox"><input type="checkbox" value="3"> 3</label>
-                        <label class="power-checkbox"><input type="checkbox" value="3.5"> 3.5</label>
-                        <label class="power-checkbox"><input type="checkbox" value="4"> 4</label>
-                        <label class="power-checkbox"><input type="checkbox" value="4.5"> 4.5</label>
-                        <label class="power-checkbox"><input type="checkbox" value="5"> 5</label>
-                        <label class="power-checkbox"><input type="checkbox" value="5.5"> 5.5</label>
-                        <label class="power-checkbox"><input type="checkbox" value="6"> 6</label>
-                        <label class="power-checkbox"><input type="checkbox" value="6.5"> 6.5</label>
-                        <label class="power-checkbox"><input type="checkbox" value="7"> 7</label>
-                        <label class="power-checkbox"><input type="checkbox" value="7.5"> 7.5</label>
-                        <label class="power-checkbox"><input type="checkbox" value="8"> 8</label>
-                        <label class="power-checkbox"><input type="checkbox" value="8.5"> 8.5</label>
-                        <label class="power-checkbox"><input type="checkbox" value="9"> 9</label>
-                        <label class="power-checkbox"><input type="checkbox" value="9.5"> 9.5</label>
-                        <label class="power-checkbox"><input type="checkbox" value="10"> 10</label>
+                        <fieldset class="setting-group">
+                            <legend>🎲 Pod Size Preference</legend>
+                            <label class="radio-option">
+                                <input type="radio" name="pod-optimization" value="balanced" id="balanced-pods-radio"
+                                    checked>
+                                <span class="radio-label">Balanced (3-5 players per pod)</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="pod-optimization" value="avoid-five"
+                                    id="avoid-five-pods-radio">
+                                <span class="radio-label">Avoid Large Pods (Prefer pods of 3)</span>
+                            </label>
+                        </fieldset>
                     </div>
                 </div>
-            </div>
-            <div class="bracket-levels" style="display: none;">
-                <button type="button" class="bracket-selector-btn">Select Brackets</button>
-                <div class="bracket-selector-dropdown" style="display: none;">
-                    <div class="bracket-range-buttons">
-                        <button type="button" class="bracket-range-btn" data-range="1-2">1-2</button>
-                        <button type="button" class="bracket-range-btn" data-range="2-3">2-3</button>
-                        <button type="button" class="bracket-range-btn" data-range="3-4">3-4</button>
-                        <button type="button" class="bracket-range-btn" data-range="cedh">cEDH</button>
-                        <button type="button" class="bracket-clear-btn">Clear All</button>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="main-content">
+                <!-- Players Section Card -->
+                <section class="card players-card">
+                    <div class="card-header">
+                        <h2>👥 Players</h2>
+                        <div class="card-actions">
+                            <button id="add-player-btn" class="btn btn-primary">
+                                <span class="btn-icon">➕</span>
+                                Add Player
+                            </button>
+                            <button id="bulk-add-btn" class="btn btn-secondary">
+                                <span class="btn-icon">👥</span>
+                                Add 4 Players
+                            </button>
+                        </div>
                     </div>
-                    <div class="bracket-checkboxes">
-                        <label class="bracket-checkbox"><input type="checkbox" value="1"> 1</label>
-                        <label class="bracket-checkbox"><input type="checkbox" value="2"> 2</label>
-                        <label class="bracket-checkbox"><input type="checkbox" value="3"> 3</label>
-                        <label class="bracket-checkbox"><input type="checkbox" value="4"> 4</label>
-                        <label class="bracket-checkbox"><input type="checkbox" value="cedh"> cEDH</label>
+                    <div class="card-content">
+                        <div id="player-rows">
+                            <!-- Player rows will be dynamically inserted here -->
+                        </div>
                     </div>
-                </div>
-            </div>
-            <select class="group-select">
-                <option value="no-group">No Group</option>
-                <option value="new-group">Start a New Group</option>
-            </select>
-            <button class="remove-player-btn">Remove</button>
+                </section>
+
+                <!-- Actions Section Card -->
+                <section class="card actions-card">
+                    <div class="card-content">
+                        <div class="main-actions">
+                            <button id="generate-pods-btn" class="btn btn-success btn-large">
+                                <span class="btn-icon">🎯</span>
+                                Generate Pods
+                            </button>
+                            <button id="reset-all-btn" class="btn btn-danger">
+                                <span class="btn-icon">🔄</span>
+                                Reset All
+                            </button>
+                            <button id="display-mode-btn" class="btn btn-info" style="display: none;">
+                                <span class="btn-icon">📺</span>
+                                Display Mode
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Results Section Card -->
+                <section class="card results-card">
+                    <div id="output-section">
+                        <!-- Pods will be displayed here -->
+                    </div>
+                </section>
+
+                <!-- Help Section Card -->
+                <section class="card help-card help-section">
+                    <div class="card-content">
+                        <button id="help-btn" class="btn btn-help">
+                            <span class="btn-icon">❓</span>
+                            How to Use This Tool
+                        </button>
+                    </div>
+                </section>
+
         </div>
-    </template>
 
-    <!-- Help Modal -->
-    <div id="help-modal" class="help-modal">
-        <div class="help-modal-content">
-            <div class="help-modal-header">
-                <h2>How to Use the MTG Commander Pod Generator</h2>
-                <button class="help-close">&times;</button>
+        <template id="player-row-template">
+            <div class="player-row">
+                <span class="player-number">1</span>
+                <input type="text" class="player-name" placeholder="Player Name">
+                <div class="power-levels">
+                    <button type="button" class="power-selector-btn">Select Power Levels</button>
+                    <div class="power-selector-dropdown" style="display: none;">
+                        <div class="power-range-buttons">
+                            <button type="button" class="range-btn" data-range="6-7">6-7</button>
+                            <button type="button" class="range-btn" data-range="7-8">7-8</button>
+                            <button type="button" class="range-btn" data-range="8-9">8-9</button>
+                            <button type="button" class="clear-btn">Clear All</button>
+                        </div>
+                        <div class="power-checkboxes">
+                            <label class="power-checkbox"><input type="checkbox" value="1"> 1</label>
+                            <label class="power-checkbox"><input type="checkbox" value="1.5"> 1.5</label>
+                            <label class="power-checkbox"><input type="checkbox" value="2"> 2</label>
+                            <label class="power-checkbox"><input type="checkbox" value="2.5"> 2.5</label>
+                            <label class="power-checkbox"><input type="checkbox" value="3"> 3</label>
+                            <label class="power-checkbox"><input type="checkbox" value="3.5"> 3.5</label>
+                            <label class="power-checkbox"><input type="checkbox" value="4"> 4</label>
+                            <label class="power-checkbox"><input type="checkbox" value="4.5"> 4.5</label>
+                            <label class="power-checkbox"><input type="checkbox" value="5"> 5</label>
+                            <label class="power-checkbox"><input type="checkbox" value="5.5"> 5.5</label>
+                            <label class="power-checkbox"><input type="checkbox" value="6"> 6</label>
+                            <label class="power-checkbox"><input type="checkbox" value="6.5"> 6.5</label>
+                            <label class="power-checkbox"><input type="checkbox" value="7"> 7</label>
+                            <label class="power-checkbox"><input type="checkbox" value="7.5"> 7.5</label>
+                            <label class="power-checkbox"><input type="checkbox" value="8"> 8</label>
+                            <label class="power-checkbox"><input type="checkbox" value="8.5"> 8.5</label>
+                            <label class="power-checkbox"><input type="checkbox" value="9"> 9</label>
+                            <label class="power-checkbox"><input type="checkbox" value="9.5"> 9.5</label>
+                            <label class="power-checkbox"><input type="checkbox" value="10"> 10</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="bracket-levels" style="display: none;">
+                    <button type="button" class="bracket-selector-btn">Select Brackets</button>
+                    <div class="bracket-selector-dropdown" style="display: none;">
+                        <div class="bracket-range-buttons">
+                            <button type="button" class="bracket-range-btn" data-range="1-2">1-2</button>
+                            <button type="button" class="bracket-range-btn" data-range="2-3">2-3</button>
+                            <button type="button" class="bracket-range-btn" data-range="3-4">3-4</button>
+                            <button type="button" class="bracket-range-btn" data-range="cedh">cEDH</button>
+                            <button type="button" class="bracket-clear-btn">Clear All</button>
+                        </div>
+                        <div class="bracket-checkboxes">
+                            <label class="bracket-checkbox"><input type="checkbox" value="1"> 1</label>
+                            <label class="bracket-checkbox"><input type="checkbox" value="2"> 2</label>
+                            <label class="bracket-checkbox"><input type="checkbox" value="3"> 3</label>
+                            <label class="bracket-checkbox"><input type="checkbox" value="4"> 4</label>
+                            <label class="bracket-checkbox"><input type="checkbox" value="cedh"> cEDH</label>
+                        </div>
+                    </div>
+                </div>
+                <select class="group-select">
+                    <option value="no-group">No Group</option>
+                    <option value="new-group">Start a New Group</option>
+                </select>
+                <button class="remove-player-btn">Remove</button>
             </div>
-            <div class="help-content">
-                <div class="help-section-title">🎯 What This Tool Does</div>
-                <p>This tool helps you create balanced pods for Magic: The Gathering Commander games by grouping players
-                    based on their deck power levels and preferences.</p>
+        </template>
 
-                <div class="feature-highlight">
-                    <strong>🚀 First Time Here?</strong>
-                    <p>Take our interactive tour to learn all the features step-by-step with hands-on guidance!</p>
-                    <button id="start-tour-btn" class="tour-start-button">
-                        🎯 Start Interactive Tour
-                    </button>
+        <!-- Help Modal -->
+        <div id="help-modal" class="help-modal">
+            <div class="help-modal-content">
+                <div class="help-modal-header">
+                    <h2>How to Use the MTG Commander Pod Generator</h2>
+                    <button class="help-close">&times;</button>
                 </div>
+                <div class="help-content">
+                    <div class="help-section-title">🎯 What This Tool Does</div>
+                    <p>This tool helps you create balanced pods for Magic: The Gathering Commander games by grouping
+                        players
+                        based on their deck power levels and preferences.</p>
 
-                <div class="help-section-title">👥 Adding Players</div>
-                <ul>
-                    <li>Enter player names in the text fields</li>
-                    <li>Click "Add Player" to add more rows</li>
-                    <li>Use "Remove" to delete players you no longer need</li>
-                </ul>
+                    <div class="feature-highlight">
+                        <strong>🚀 First Time Here?</strong>
+                        <p>Take our interactive tour to learn all the features step-by-step with hands-on guidance!</p>
+                        <button id="start-tour-btn" class="tour-start-button">
+                            🎯 Start Interactive Tour
+                        </button>
+                    </div>
 
-                <div class="help-section-title">⚙️ Ranking Systems</div>
-                <p>Choose between two ranking systems in the Settings section:</p>
-                <div class="feature-highlight">
-                    <strong>🔢 Power Level System (1-10 scale):</strong>
+                    <div class="help-section-title">👥 Adding Players</div>
                     <ul>
-                        <li><strong>Range:</strong> 1-10 with half-step increments (e.g., 6.5, 7, 7.5)</li>
-                        <li><strong>Best for:</strong> Fine-grained power level assessment</li>
-                        <li><strong>Tolerance:</strong> Can use leniency settings for ±0.5 or ±1.0 matching</li>
-                        <li><strong>Guidelines:</strong> 1-3 (precon), 4-6 (upgraded), 7-8 (optimized), 9-10 (cEDH)</li>
+                        <li>Enter player names in the text fields</li>
+                        <li>Click "Add Player" to add more rows</li>
+                        <li>Use "Remove" to delete players you no longer need</li>
                     </ul>
-                </div>
-                <div class="feature-highlight">
-                    <strong>🏆 Bracket System:</strong>
+
+                    <div class="help-section-title">⚙️ Ranking Systems</div>
+                    <p>Choose between two ranking systems in the Settings section:</p>
+                    <div class="feature-highlight">
+                        <strong>🔢 Power Level System (1-10 scale):</strong>
+                        <ul>
+                            <li><strong>Range:</strong> 1-10 with half-step increments (e.g., 6.5, 7, 7.5)</li>
+                            <li><strong>Best for:</strong> Fine-grained power level assessment</li>
+                            <li><strong>Tolerance:</strong> Can use leniency settings for ±0.5 or ±1.0 matching</li>
+                            <li><strong>Guidelines:</strong> 1-3 (precon), 4-6 (upgraded), 7-8 (optimized), 9-10 (cEDH)
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="feature-highlight">
+                        <strong>🏆 Bracket System:</strong>
+                        <ul>
+                            <li><strong>Brackets:</strong> 1, 2, 3, 4, and cEDH</li>
+                            <li><strong>Best for:</strong> Simple, tournament-style classification</li>
+                            <li><strong>Matching:</strong> Always uses exact bracket matching (no leniency)</li>
+                            <li><strong>Algorithm:</strong> Pods matched by "highest bracket in group" logic</li>
+                            <li><strong>Learn more:</strong> <a
+                                    href="https://magic.wizards.com/en/news/announcements/commander-brackets-beta-update-april-22-2025"
+                                    target="_blank" rel="noopener noreferrer">Official WotC Bracket System
+                                    Announcement</a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="help-section-title">⚡ Setting Power Levels</div>
+                    <p><strong>Power Level Mode:</strong> Click "Select Power Levels" for each player:</p>
                     <ul>
-                        <li><strong>Brackets:</strong> 1, 2, 3, 4, and cEDH</li>
-                        <li><strong>Best for:</strong> Simple, tournament-style classification</li>
-                        <li><strong>Matching:</strong> Always uses exact bracket matching (no leniency)</li>
-                        <li><strong>Algorithm:</strong> Pods matched by "highest bracket in group" logic</li>
-                        <li><strong>Learn more:</strong> <a
-                                href="https://magic.wizards.com/en/news/announcements/commander-brackets-beta-update-april-22-2025"
-                                target="_blank" rel="noopener noreferrer">Official WotC Bracket System Announcement</a>
+                        <li><strong>Single Level:</strong> Select one checkbox for a specific power level</li>
+                        <li><strong>Range Selection:</strong> Select multiple checkboxes for flexible power levels</li>
+                        <li><strong>Quick Range Buttons:</strong> Use 6-7, 7-8, 8-9 buttons for common ranges</li>
+                        <li><strong>Clear All:</strong> Removes all selections</li>
+                    </ul>
+
+                    <div class="feature-highlight">
+                        <strong>🚀 Power Level Keyboard Shortcuts:</strong>
+                        <ul>
+                            <li>Tab to a power level button and type a number (e.g., <code>7</code>) to select that
+                                level
+                            </li>
+                            <li>Type a range (e.g., <code>7-9</code>) to select multiple levels</li>
+                            <li>Include decimals (e.g., <code>6.5-8</code>) to include half-steps</li>
+                            <li>Press <code>Escape</code> to close an open dropdown</li>
+                        </ul>
+                    </div>
+
+                    <div class="help-section-title">🏆 Setting Brackets</div>
+                    <p><strong>Bracket Mode:</strong> Click "Select Brackets" for each player:</p>
+                    <ul>
+                        <li><strong>Single Bracket:</strong> Select one checkbox for a specific bracket</li>
+                        <li><strong>Multiple Brackets:</strong> Select multiple checkboxes if player has decks in
+                            different
+                            brackets</li>
+                        <li><strong>Quick Range Buttons:</strong> Use 1-2, 2-3, 3-4, or cEDH buttons for common ranges
                         </li>
+                        <li><strong>Clear All:</strong> Removes all selections</li>
                     </ul>
-                </div>
 
-                <div class="help-section-title">⚡ Setting Power Levels</div>
-                <p><strong>Power Level Mode:</strong> Click "Select Power Levels" for each player:</p>
-                <ul>
-                    <li><strong>Single Level:</strong> Select one checkbox for a specific power level</li>
-                    <li><strong>Range Selection:</strong> Select multiple checkboxes for flexible power levels</li>
-                    <li><strong>Quick Range Buttons:</strong> Use 6-7, 7-8, 8-9 buttons for common ranges</li>
-                    <li><strong>Clear All:</strong> Removes all selections</li>
-                </ul>
+                    <div class="feature-highlight">
+                        <strong>� Bracket Keyboard Shortcuts:</strong>
+                        <ul>
+                            <li>Tab to a bracket button and type <code>1</code>, <code>2</code>, <code>3</code>, or
+                                <code>4</code> to select that bracket
+                            </li>
+                            <li>Type <code>5</code> or <code>c</code> to select cEDH bracket</li>
+                            <li>Press <code>Escape</code> to close an open dropdown</li>
+                        </ul>
+                    </div>
 
-                <div class="feature-highlight">
-                    <strong>🚀 Power Level Keyboard Shortcuts:</strong>
+                    <div class="help-section-title">�👥 Creating Groups</div>
+                    <p>Use the group dropdown to create groups of players who want to stay together:</p>
                     <ul>
-                        <li>Tab to a power level button and type a number (e.g., <code>7</code>) to select that level
+                        <li><strong>No Group:</strong> Player will be assigned individually</li>
+                        <li><strong>Start a New Group:</strong> Creates a new group for this player</li>
+                        <li><strong>Join Group:</strong> Adds player to an existing group</li>
+                    </ul>
+
+                    <div class="help-section-title">⚙️ Settings</div>
+                    <p><strong>Ranking System:</strong> Choose between Power Level (1-10) or Bracket (1,2,3,4,cEDH)
+                        systems.
+                    </p>
+                    <p><strong>Power Level Tolerance</strong> (Power Level mode only):</p>
+                    <ul>
+                        <li><strong>No Leniency:</strong> Players must have overlapping power levels</li>
+                        <li><strong>Regular Leniency:</strong> Allows ±0.5 power level difference</li>
+                        <li><strong>Super Leniency:</strong> Allows ±1.0 power level difference</li>
+                    </ul>
+                    <p><em>Note: Bracket mode always uses exact matching with no leniency.</em></p>
+
+                    <div class="feature-highlight">
+                        <strong>🎯 Pod Size Preference:</strong>
+                        <ul>
+                            <li><strong>Balanced:</strong> Uses the most mathematically balanced distribution possible,
+                                may
+                                create pods of 3, 4, or 5 players</li>
+                            <li><strong>Avoid Large Pods:</strong> Prioritizes pods of 3 players and avoids creating
+                                pods of
+                                5 when possible</li>
+                            <li><strong>Mathematical Constraint:</strong> "Avoid Large Pods" only applies with 9+
+                                players
+                                (otherwise balanced mode is used automatically)</li>
+                            <li><strong>Examples:</strong> With 10 players, creates [4,3,3] instead of [5,5]; with 13
+                                players, creates [4,3,3,3] instead of [5,4,4]</li>
+                        </ul>
+                    </div>
+
+                    <div class="help-section-title">🎲 Generating Pods</div>
+                    <p>Click "Generate Pods" to create balanced groups. The tool will:</p>
+                    <ul>
+                        <li>Validate all player information</li>
+                        <li>Check for duplicate names (highlighted in different colors)</li>
+                        <li>Create pods of 3-4 players with similar power levels</li>
+                        <li>Keep grouped players together</li>
+                        <li>Show unassigned players if perfect matches aren't possible</li>
+                    </ul>
+
+                    <div class="help-section-title">⚠️ Common Errors & Troubleshooting</div>
+                    <p>If pod generation fails, check for these common issues:</p>
+                    <ul>
+                        <li><strong>Duplicate Player Names:</strong> Each player must have a unique name. Duplicates are
+                            highlighted in matching colors - simply change one of the names to fix this error.</li>
+                        <li><strong>Missing Player Names:</strong> All players must have a name entered before
+                            generating
+                            pods.</li>
+                        <li><strong>No Power Levels/Brackets Selected:</strong> Each player must have at least one power
+                            level or bracket
+                            checked. Use the dropdown or keyboard shortcuts to make selections.</li>
+                        <li><strong>Incompatible Power Levels:</strong> (Power Level mode) If players have very
+                            different
+                            power levels and no
+                            leniency is set, they may be left unassigned. Try increasing the leniency setting or
+                            adjusting
+                            power levels.</li>
+                        <li><strong>Incompatible Brackets:</strong> (Bracket mode) If players have different brackets
+                            with
+                            no overlap,
+                            they may be left unassigned. Consider adjusting bracket selections or grouping players
+                            manually.
                         </li>
-                        <li>Type a range (e.g., <code>7-9</code>) to select multiple levels</li>
-                        <li>Include decimals (e.g., <code>6.5-8</code>) to include half-steps</li>
-                        <li>Press <code>Escape</code> to close an open dropdown</li>
+                        <li><strong>Too Few Players:</strong> You need at least 3 players to generate pods. Add more
+                            players
+                            using the "Add Player" button.</li>
+                        <li><strong>Group Conflicts:</strong> If a group has incompatible power levels or brackets, the
+                            entire group may
+                            be unassigned. Consider splitting the group or adjusting selections within the group.</li>
                     </ul>
-                </div>
+                    <p><strong>Real-time Validation:</strong> Duplicate names are highlighted automatically as you type.
+                        The
+                        Generate Pods button will show an error dialog if any validation issues are found.</p>
 
-                <div class="help-section-title">🏆 Setting Brackets</div>
-                <p><strong>Bracket Mode:</strong> Click "Select Brackets" for each player:</p>
-                <ul>
-                    <li><strong>Single Bracket:</strong> Select one checkbox for a specific bracket</li>
-                    <li><strong>Multiple Brackets:</strong> Select multiple checkboxes if player has decks in different
-                        brackets</li>
-                    <li><strong>Quick Range Buttons:</strong> Use 1-2, 2-3, 3-4, or cEDH buttons for common ranges</li>
-                    <li><strong>Clear All:</strong> Removes all selections</li>
-                </ul>
-
-                <div class="feature-highlight">
-                    <strong>� Bracket Keyboard Shortcuts:</strong>
+                    <div class="help-section-title">🔄 Managing Results</div>
                     <ul>
-                        <li>Tab to a bracket button and type <code>1</code>, <code>2</code>, <code>3</code>, or
-                            <code>4</code> to select that bracket
+                        <li><strong>Drag & Drop:</strong> Move players between pods after generation</li>
+                        <li><strong>Create New Pod:</strong> Drag players to the "Create New Pod" area</li>
+                        <li><strong>Display Mode:</strong> Clean view for showing results to players</li>
+                        <li><strong>Reset All:</strong> Clear everything and start over with confirmation dialog and
+                            undo
+                            option - you can safely reset and undo within 30 seconds if needed</li>
+                    </ul>
+
+                    <div class="help-section-title">🔄 Reset & Undo System</div>
+                    <ul>
+                        <li><strong>Smart Reset:</strong> The Reset All button only shows a confirmation if you have
+                            data to
+                            lose</li>
+                        <li><strong>Safe Reset:</strong> After confirming a reset, an "Undo Reset" button appears for 30
+                            seconds</li>
+                        <li><strong>Complete Restoration:</strong> Undo restores all player data, power levels, groups,
+                            generated pods, and settings</li>
+                        <li><strong>Bracket Mode Support:</strong> Both power level and bracket mode data are fully
+                            restored
                         </li>
-                        <li>Type <code>5</code> or <code>c</code> to select cEDH bracket</li>
-                        <li>Press <code>Escape</code> to close an open dropdown</li>
+                        <li><strong>Auto-Hide:</strong> The undo button automatically disappears after 30 seconds or
+                            after
+                            being used</li>
                     </ul>
-                </div>
 
-                <div class="help-section-title">�👥 Creating Groups</div>
-                <p>Use the group dropdown to create groups of players who want to stay together:</p>
-                <ul>
-                    <li><strong>No Group:</strong> Player will be assigned individually</li>
-                    <li><strong>Start a New Group:</strong> Creates a new group for this player</li>
-                    <li><strong>Join Group:</strong> Adds player to an existing group</li>
-                </ul>
+                    <div class="help-section-title">⌨️ Keyboard Shortcuts</div>
+                    <p>Speed up your workflow with these keyboard shortcuts:</p>
 
-                <div class="help-section-title">⚙️ Settings</div>
-                <p><strong>Ranking System:</strong> Choose between Power Level (1-10) or Bracket (1,2,3,4,cEDH) systems.
-                </p>
-                <p><strong>Power Level Tolerance</strong> (Power Level mode only):</p>
-                <ul>
-                    <li><strong>No Leniency:</strong> Players must have overlapping power levels</li>
-                    <li><strong>Regular Leniency:</strong> Allows ±0.5 power level difference</li>
-                    <li><strong>Super Leniency:</strong> Allows ±1.0 power level difference</li>
-                </ul>
-                <p><em>Note: Bracket mode always uses exact matching with no leniency.</em></p>
+                    <div class="feature-highlight">
+                        <strong>🚀 General Shortcuts:</strong>
+                        <ul>
+                            <li><code>Ctrl+Enter</code> - Add a new player row and focus the name input</li>
+                            <li><code>Ctrl+P</code> - Show performance metrics in console (for debugging)</li>
+                            <li><code>Escape</code> - Close any open dropdown menu</li>
+                        </ul>
+                    </div>
 
-                <div class="feature-highlight">
-                    <strong>🎯 Pod Size Preference:</strong>
+                    <div class="feature-highlight">
+                        <strong>🔢 Power Level Shortcuts:</strong>
+                        <p><em>Focus a "Select Power Levels" button first, then:</em></p>
+                        <ul>
+                            <li><code>7</code> - Select power level 7</li>
+                            <li><code>6.5</code> - Select power level 6.5 (includes decimals)</li>
+                            <li><code>7-9</code> - Select range from 7 to 9 (includes 7.5, 8, 8.5, 9)</li>
+                            <li><code>6.5-8</code> - Select range with decimals (6.5, 7, 7.5, 8)</li>
+                            <li><code>Enter</code> - Apply current typed selection immediately</li>
+                            <li><code>Backspace</code> - Edit current input (e.g., type "75", backspace to "7")</li>
+                            <li><em>Auto-apply:</em> Selections apply automatically after 1 second of no typing</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-highlight">
+                        <strong>🏆 Bracket Shortcuts:</strong>
+                        <p><em>Focus a "Select Brackets" button first, then:</em></p>
+                        <ul>
+                            <li><code>1</code>, <code>2</code>, <code>3</code>, <code>4</code> - Select specific bracket
+                            </li>
+                            <li><code>5</code> or <code>c</code> - Select cEDH bracket</li>
+                            <li><code>1-2</code> - Select brackets 1 and 2</li>
+                            <li><code>2-3</code> - Select brackets 2 and 3</li>
+                            <li><code>Enter</code> - Apply current typed selection immediately</li>
+                            <li><code>Backspace</code> - Edit current input</li>
+                            <li><em>Auto-apply:</em> Selections apply automatically after 1 second of no typing</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-highlight">
+                        <strong>🎯 Pro Tips:</strong>
+                        <ul>
+                            <li><strong>Tab Navigation:</strong> Use <code>Tab</code> to navigate between elements
+                                efficiently</li>
+                            <li><strong>Quick Entry:</strong> Type ranges like "7-8" instead of clicking multiple
+                                checkboxes
+                            </li>
+                            <li><strong>Rapid Adding:</strong> Use <code>Ctrl+Enter</code> repeatedly to add multiple
+                                players quickly</li>
+                            <li><strong>Escape Everything:</strong> <code>Escape</code> closes any dropdown if you get
+                                stuck
+                            </li>
+                            <li><strong>Editing Mistakes:</strong> Use <code>Backspace</code> while typing to correct
+                                power/bracket inputs</li>
+                        </ul>
+                    </div>
+
+                    <div class="help-section-title">💡 Tips for Best Results</div>
                     <ul>
-                        <li><strong>Balanced:</strong> Uses the most mathematically balanced distribution possible, may
-                            create pods of 3, 4, or 5 players</li>
-                        <li><strong>Avoid Large Pods:</strong> Prioritizes pods of 3 players and avoids creating pods of
-                            5 when possible</li>
-                        <li><strong>Mathematical Constraint:</strong> "Avoid Large Pods" only applies with 9+ players
-                            (otherwise balanced mode is used automatically)</li>
-                        <li><strong>Examples:</strong> With 10 players, creates [4,3,3] instead of [5,5]; with 13
-                            players, creates [4,3,3,3] instead of [5,4,4]</li>
-                    </ul>
-                </div>
-
-                <div class="help-section-title">🎲 Generating Pods</div>
-                <p>Click "Generate Pods" to create balanced groups. The tool will:</p>
-                <ul>
-                    <li>Validate all player information</li>
-                    <li>Check for duplicate names (highlighted in different colors)</li>
-                    <li>Create pods of 3-4 players with similar power levels</li>
-                    <li>Keep grouped players together</li>
-                    <li>Show unassigned players if perfect matches aren't possible</li>
-                </ul>
-
-                <div class="help-section-title">⚠️ Common Errors & Troubleshooting</div>
-                <p>If pod generation fails, check for these common issues:</p>
-                <ul>
-                    <li><strong>Duplicate Player Names:</strong> Each player must have a unique name. Duplicates are
-                        highlighted in matching colors - simply change one of the names to fix this error.</li>
-                    <li><strong>Missing Player Names:</strong> All players must have a name entered before generating
-                        pods.</li>
-                    <li><strong>No Power Levels/Brackets Selected:</strong> Each player must have at least one power
-                        level or bracket
-                        checked. Use the dropdown or keyboard shortcuts to make selections.</li>
-                    <li><strong>Incompatible Power Levels:</strong> (Power Level mode) If players have very different
-                        power levels and no
-                        leniency is set, they may be left unassigned. Try increasing the leniency setting or adjusting
-                        power levels.</li>
-                    <li><strong>Incompatible Brackets:</strong> (Bracket mode) If players have different brackets with
-                        no overlap,
-                        they may be left unassigned. Consider adjusting bracket selections or grouping players manually.
-                    </li>
-                    <li><strong>Too Few Players:</strong> You need at least 3 players to generate pods. Add more players
-                        using the "Add Player" button.</li>
-                    <li><strong>Group Conflicts:</strong> If a group has incompatible power levels or brackets, the
-                        entire group may
-                        be unassigned. Consider splitting the group or adjusting selections within the group.</li>
-                </ul>
-                <p><strong>Real-time Validation:</strong> Duplicate names are highlighted automatically as you type. The
-                    Generate Pods button will show an error dialog if any validation issues are found.</p>
-
-                <div class="help-section-title">🔄 Managing Results</div>
-                <ul>
-                    <li><strong>Drag & Drop:</strong> Move players between pods after generation</li>
-                    <li><strong>Create New Pod:</strong> Drag players to the "Create New Pod" area</li>
-                    <li><strong>Display Mode:</strong> Clean view for showing results to players</li>
-                    <li><strong>Reset All:</strong> Clear everything and start over with confirmation dialog and undo
-                        option - you can safely reset and undo within 30 seconds if needed</li>
-                </ul>
-
-                <div class="help-section-title">🔄 Reset & Undo System</div>
-                <ul>
-                    <li><strong>Smart Reset:</strong> The Reset All button only shows a confirmation if you have data to
-                        lose</li>
-                    <li><strong>Safe Reset:</strong> After confirming a reset, an "Undo Reset" button appears for 30
-                        seconds</li>
-                    <li><strong>Complete Restoration:</strong> Undo restores all player data, power levels, groups,
-                        generated pods, and settings</li>
-                    <li><strong>Bracket Mode Support:</strong> Both power level and bracket mode data are fully restored
-                    </li>
-                    <li><strong>Auto-Hide:</strong> The undo button automatically disappears after 30 seconds or after
-                        being used</li>
-                </ul>
-
-                <div class="help-section-title">⌨️ Keyboard Shortcuts</div>
-                <p>Speed up your workflow with these keyboard shortcuts:</p>
-
-                <div class="feature-highlight">
-                    <strong>🚀 General Shortcuts:</strong>
-                    <ul>
-                        <li><code>Ctrl+Enter</code> - Add a new player row and focus the name input</li>
-                        <li><code>Ctrl+P</code> - Show performance metrics in console (for debugging)</li>
-                        <li><code>Escape</code> - Close any open dropdown menu</li>
-                    </ul>
-                </div>
-
-                <div class="feature-highlight">
-                    <strong>🔢 Power Level Shortcuts:</strong>
-                    <p><em>Focus a "Select Power Levels" button first, then:</em></p>
-                    <ul>
-                        <li><code>7</code> - Select power level 7</li>
-                        <li><code>6.5</code> - Select power level 6.5 (includes decimals)</li>
-                        <li><code>7-9</code> - Select range from 7 to 9 (includes 7.5, 8, 8.5, 9)</li>
-                        <li><code>6.5-8</code> - Select range with decimals (6.5, 7, 7.5, 8)</li>
-                        <li><code>Enter</code> - Apply current typed selection immediately</li>
-                        <li><code>Backspace</code> - Edit current input (e.g., type "75", backspace to "7")</li>
-                        <li><em>Auto-apply:</em> Selections apply automatically after 1 second of no typing</li>
-                    </ul>
-                </div>
-
-                <div class="feature-highlight">
-                    <strong>🏆 Bracket Shortcuts:</strong>
-                    <p><em>Focus a "Select Brackets" button first, then:</em></p>
-                    <ul>
-                        <li><code>1</code>, <code>2</code>, <code>3</code>, <code>4</code> - Select specific bracket
+                        <li><strong>Power Level Mode:</strong> Be honest about power levels - use the full 1-10 scale
                         </li>
-                        <li><code>5</code> or <code>c</code> - Select cEDH bracket</li>
-                        <li><code>1-2</code> - Select brackets 1 and 2</li>
-                        <li><code>2-3</code> - Select brackets 2 and 3</li>
-                        <li><code>Enter</code> - Apply current typed selection immediately</li>
-                        <li><code>Backspace</code> - Edit current input</li>
-                        <li><em>Auto-apply:</em> Selections apply automatically after 1 second of no typing</li>
+                        <li><strong>Bracket Mode:</strong> Choose brackets based on deck optimization level and
+                            competitiveness</li>
+                        <li>Select ranges when you have multiple decks of different strengths</li>
+                        <li>Use groups for friends who want to play together</li>
+                        <li>Try different leniency settings (Power Level mode) if pods aren't forming well</li>
+                        <li><strong>Bracket Guidelines:</strong> 1 (casual/precon), 2-3 (optimized), 4 (high-power),
+                            cEDH
+                            (competitive)</li>
                     </ul>
-                </div>
 
-                <div class="feature-highlight">
-                    <strong>🎯 Pro Tips:</strong>
-                    <ul>
-                        <li><strong>Tab Navigation:</strong> Use <code>Tab</code> to navigate between elements
-                            efficiently</li>
-                        <li><strong>Quick Entry:</strong> Type ranges like "7-8" instead of clicking multiple checkboxes
-                        </li>
-                        <li><strong>Rapid Adding:</strong> Use <code>Ctrl+Enter</code> repeatedly to add multiple
-                            players quickly</li>
-                        <li><strong>Escape Everything:</strong> <code>Escape</code> closes any dropdown if you get stuck
-                        </li>
-                        <li><strong>Editing Mistakes:</strong> Use <code>Backspace</code> while typing to correct
-                            power/bracket inputs</li>
-                    </ul>
+                    <div class="help-section-title">🐛 Feedback & Bug Reports</div>
+                    <p>Found a bug or have a feature request? We'd love to hear from you!</p>
+                    <div class="github-links">
+                        <a href="https://github.com/MrTyton/Commander-Pods/issues/new?template=bug_report.yml"
+                            target="_blank" rel="noopener noreferrer" class="github-link">
+                            <svg class="github-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+                                <path
+                                    d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                            </svg>
+                            Report Bug
+                        </a>
+                        <a href="https://github.com/MrTyton/Commander-Pods/issues/new?template=feature_request.yml"
+                            target="_blank" rel="noopener noreferrer" class="github-link">
+                            <svg class="github-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+                                <path
+                                    d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                            </svg>
+                            Request Feature
+                        </a>
+                        <a href="https://github.com/MrTyton/Commander-Pods" target="_blank" rel="noopener noreferrer"
+                            class="github-link">
+                            <svg class="github-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+                                <path
+                                    d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                            </svg>
+                            View Source
+                        </a>
+                    </div>
+                    <p><strong>When reporting bugs, please include:</strong> steps to reproduce, your browser/OS, and
+                        any
+                        error messages.</p>
                 </div>
-
-                <div class="help-section-title">💡 Tips for Best Results</div>
-                <ul>
-                    <li><strong>Power Level Mode:</strong> Be honest about power levels - use the full 1-10 scale</li>
-                    <li><strong>Bracket Mode:</strong> Choose brackets based on deck optimization level and
-                        competitiveness</li>
-                    <li>Select ranges when you have multiple decks of different strengths</li>
-                    <li>Use groups for friends who want to play together</li>
-                    <li>Try different leniency settings (Power Level mode) if pods aren't forming well</li>
-                    <li><strong>Bracket Guidelines:</strong> 1 (casual/precon), 2-3 (optimized), 4 (high-power), cEDH
-                        (competitive)</li>
-                </ul>
-
-                <div class="help-section-title">🐛 Feedback & Bug Reports</div>
-                <p>Found a bug or have a feature request? We'd love to hear from you!</p>
-                <div class="github-links">
-                    <a href="https://github.com/MrTyton/Commander-Pods/issues/new?template=bug_report.yml"
-                        target="_blank" rel="noopener noreferrer" class="github-link">
-                        <svg class="github-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
-                            <path
-                                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-                        </svg>
-                        Report Bug
-                    </a>
-                    <a href="https://github.com/MrTyton/Commander-Pods/issues/new?template=feature_request.yml"
-                        target="_blank" rel="noopener noreferrer" class="github-link">
-                        <svg class="github-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
-                            <path
-                                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-                        </svg>
-                        Request Feature
-                    </a>
-                    <a href="https://github.com/MrTyton/Commander-Pods" target="_blank" rel="noopener noreferrer"
-                        class="github-link">
-                        <svg class="github-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
-                            <path
-                                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-                        </svg>
-                        View Source
-                    </a>
-                </div>
-                <p><strong>When reporting bugs, please include:</strong> steps to reproduce, your browser/OS, and any
-                    error messages.</p>
             </div>
+            </main>
         </div>
     </div>
 

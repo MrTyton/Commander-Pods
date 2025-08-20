@@ -236,6 +236,31 @@ export class UIManager {
         this.displayModeBtn.addEventListener('click', () => this.enterDisplayModeWithWarning());
         helpBtn.addEventListener('click', () => this.showHelpModal());
 
+        // Sidebar toggle functionality
+        const sidebarToggle = assertExists(
+            getElementByIdTyped('settings-toggle', isHTMLButtonElement),
+            'settings-toggle is required'
+        );
+        const sidebarClose = assertExists(
+            getElementByIdTyped('sidebar-close', isHTMLButtonElement),
+            'sidebar-close is required'
+        );
+        const settingsSidebar = assertExists(
+            getElementByIdTyped('settings-sidebar', isHTMLElement),
+            'settings-sidebar is required'
+        );
+
+        sidebarToggle.addEventListener('click', () => this.toggleSidebar(true));
+        sidebarClose.addEventListener('click', () => this.toggleSidebar(false));
+
+        // Close sidebar when clicking outside
+        document.addEventListener('click', (e) => {
+            const target = getEventTarget(e, isHTMLElement);
+            if (target && !settingsSidebar.contains(target) && !sidebarToggle.contains(target) && settingsSidebar.classList.contains('open')) {
+                this.toggleSidebar(false);
+            }
+        });
+
         this.setupEventDelegation();
         this.initializeHelpModal();
         this.initializeKeyboardShortcuts();
@@ -1792,6 +1817,9 @@ export class UIManager {
     }
 
     resetAll(): void {
+        // Close all dropdowns first to ensure proper z-index reset
+        this.closeAllDropdowns();
+
         // Clear everything first
         this.playerRowsContainer.innerHTML = '';
         this.cleanupBottomDisplayButton();
@@ -1934,6 +1962,22 @@ export class UIManager {
         const helpModal = document.getElementById('help-modal')!;
         helpModal.style.display = 'block';
         document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
+
+    /**
+     * Toggle the settings sidebar
+     */
+    private toggleSidebar(open: boolean): void {
+        const settingsSidebar = assertExists(
+            getElementByIdTyped('settings-sidebar', isHTMLElement),
+            'settings-sidebar is required'
+        );
+
+        if (open) {
+            settingsSidebar.classList.add('open');
+        } else {
+            settingsSidebar.classList.remove('open');
+        }
     }
 
     /**
