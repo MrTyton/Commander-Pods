@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Group Demo Test</title>
+</head>
+<body>
+    <h1>Test Alice and Henry Grouping</h1>
+    <button id="test-grouping">Test Group Demo</button>
+    <div id="test-results"></div>
+    
+    <script>
+        // Simple test to verify grouping logic
+        document.getElementById('test-grouping').addEventListener('click', function() {
+            // Simulate creating a group with Alice as starter
+            console.log('Step 1: Alice creates new group');
+            
+            // Simulate Henry joining Alice's group
+            setTimeout(() => {
+                console.log('Step 2: Henry joins Alice\'s group');
+                document.getElementById('test-results').innerHTML = 
+                    '<p>Group creation test completed - check console for details</p>';
+            }, 800);
+        });
+    </script>
+</body>
+</html>

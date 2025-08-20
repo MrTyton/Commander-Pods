@@ -929,6 +929,32 @@ button:focus-visible {
     border-left: 4px solid #4CAF50;
 }
 
+/* Tour start button styling */
+.tour-start-button {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+    margin-top: 10px;
+    width: 100%;
+}
+
+.tour-start-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
+    background: linear-gradient(135deg, #5cbf60, #4CAF50);
+}
+
+.tour-start-button:active {
+    transform: translateY(0);
+}
+
 /* Hide Ko-fi widget in display mode */
 body.display-mode .kofi-widget,
 body.display-mode [id*="kofi"],

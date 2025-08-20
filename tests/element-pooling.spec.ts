@@ -1,65 +1,88 @@
 import { test, expect } from '@playwright/test';
-import { setupValidationTest } from './test-setup';
+import { setupBasicTest, teardownBasicTest } from './test-setup';
 import TestHelper from './test-helpers';
 
 test.describe('Element Pooling System', () => {
     let helper: TestHelper;
 
     test.beforeEach(async ({ page }) => {
-        helper = await setupValidationTest(page);
+        helper = await setupBasicTest(page);
+    });
+
+    test.afterEach(async () => {
+        if (helper) {
+            await teardownBasicTest(helper);
+        }
     });
 
     test('should use element pooling for DOM creation', async ({ page }) => {
-        // Add some players to trigger DOM creation
-        await helper.players.setPlayerName(1, 'Alice');
-        await helper.players.setPlayerName(2, 'Bob');
-        await helper.players.setPlayerName(3, 'Charlie');
+        // Set to power mode for pod generation
+        await helper.setup.setMode('power');
+
+        // Create players using the proper framework method
+        await helper.players.createPlayers([
+            { name: 'Alice', power: [7] },
+            { name: 'Bob', power: [7] },
+            { name: 'Charlie', power: [7] },
+            { name: 'Diana', power: [7] }
+        ]);
 
         // Generate pods to trigger extensive DOM creation
         await helper.pods.generatePods();
 
-        // Verify pods were created successfully
-        await expect(page.locator('.pod')).toHaveCount(1);
-
-        // Verify the pod contains players
-        await expect(page.locator('.pod .pod-player')).toHaveCount(3);
+        // Verify pods were created successfully using framework helpers
+        await helper.pods.expectPodCount(1);
+        await helper.pods.expectPodHasPlayers(1, ['Alice', 'Bob', 'Charlie', 'Diana']);
 
         // Reset and regenerate to test element reuse
-        await helper.setup.reset();
+        await helper.setup.resetWithConfirmation(true);
+
+        // Set to power mode again after reset
+        await helper.setup.setMode('power');
+
+        // Create different players using the proper framework method
+        await helper.players.createPlayers([
+            { name: 'David', power: [8] },
+            { name: 'Eve', power: [8] },
+            { name: 'Frank', power: [8] },
+            { name: 'Grace', power: [8] }
+        ]);
+
         await helper.pods.generatePods();
 
-        // Verify pods are still created correctly after reset
-        await expect(page.locator('.pod')).toHaveCount(1);
-        await expect(page.locator('.pod .pod-player')).toHaveCount(3);
+        // Verify pods are still created correctly after reset using framework helpers
+        await helper.pods.expectPodCount(1);
+        await helper.pods.expectPodHasPlayers(1, ['David', 'Eve', 'Frank', 'Grace']);
 
         console.log('Element pooling test completed successfully');
     });
 
     test('should handle display mode with pooled elements', async ({ page }) => {
-        // Set up players
-        await helper.players.setPlayerName(1, 'Alice');
-        await helper.players.setPowerLevels(1, [7]);
-        await helper.players.setPlayerName(2, 'Bob');
-        await helper.players.setPowerLevels(2, [8]);
-        await helper.players.setPlayerName(3, 'Charlie');
-        await helper.players.setPowerLevels(3, [7]);
-        await helper.players.setPlayerName(4, 'Dave');
-        await helper.players.setPowerLevels(4, [8]);
+        // Set to power mode for pod generation
+        await helper.setup.setMode('power');
+
+        // Create players using the proper framework method
+        await helper.players.createPlayers([
+            { name: 'Alice', power: [7] },
+            { name: 'Bob', power: [8] },
+            { name: 'Charlie', power: [7] },
+            { name: 'Dave', power: [8] }
+        ]);
 
         // Generate pods
         await helper.pods.generatePods();
-        await expect(page.locator('.pod')).toHaveCount(1);
+        await helper.pods.expectPodCount(1);
 
         // Enter display mode (uses pooled elements in display-mode.ts)
         await helper.displayMode.enterDisplayMode();
 
-        // Verify display mode loads correctly
-        await expect(page.locator('.display-mode-container')).toBeVisible();
-        await expect(page.locator('.display-mode-container .pod')).toHaveCount(1);
+        // Verify display mode loads correctly using framework helpers
+        await helper.displayMode.expectDisplayModeActive();
+        await expect(helper.displayMode.getDisplayPods()).toHaveCount(1);
 
         // Exit display mode
         await helper.displayMode.exitDisplayMode();
-        await expect(page.locator('.display-mode-container')).not.toBeVisible();
+        await helper.displayMode.expectDisplayModeInactive();
 
         console.log('Display mode pooling test completed successfully');
     });

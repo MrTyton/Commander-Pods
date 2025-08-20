@@ -32,6 +32,7 @@ import { PlayerManager } from './player-manager.js';
 import { PodGenerator } from './pod-generator.js';
 import { DragDropManager } from './drag-drop.js';
 import { DisplayModeManager } from './display-mode.js';
+import { TourManager } from './tour-manager.js';
 import { eventManager } from './event-manager.js';
 import { ValidationUtils, ButtonTextUtils, DOMUtils } from './shared-utils.js';
 import { ButtonTextManager } from './button-text-manager.js';
@@ -98,6 +99,7 @@ export class UIManager {
     private podGenerator!: PodGenerator;
     private dragDropManager!: DragDropManager;
     private displayModeManager: DisplayModeManager | null = null; // Lazy initialization
+    private tourManager: TourManager | null = null; // Lazy initialization
     private currentPods: Pod[] = [];
     private currentUnassigned: (Player | Group)[] = [];
     private lastResetData: ResetData | null = null; // Store data before reset for undo functionality
@@ -1884,6 +1886,7 @@ export class UIManager {
     private initializeHelpModal(): void {
         const helpModal = document.getElementById('help-modal')!;
         const helpCloseBtn = helpModal.querySelector('.help-close')!;
+        const startTourBtn = document.getElementById('start-tour-btn');
 
         // Close modal when clicking the X button
         helpCloseBtn.addEventListener('click', () => this.hideHelpModal());
@@ -1901,6 +1904,14 @@ export class UIManager {
                 this.hideHelpModal();
             }
         });
+
+        // Initialize tour button
+        if (startTourBtn) {
+            startTourBtn.addEventListener('click', () => {
+                this.hideHelpModal();
+                this.startInteractiveTour().catch(console.error);
+            });
+        }
     }
 
     private showHelpModal(): void {
@@ -1918,6 +1929,21 @@ export class UIManager {
             this.displayModeManager = new DisplayModeManager();
         }
         return this.displayModeManager;
+    }
+
+    /**
+     * Lazy initialization of TourManager
+     * Only creates the instance when tour is actually needed
+     */
+    private getTourManager(): TourManager {
+        if (!this.tourManager) {
+            this.tourManager = new TourManager();
+        }
+        return this.tourManager;
+    }
+
+    private async startInteractiveTour(): Promise<void> {
+        await this.getTourManager().startTour();
     }
 
     private hideHelpModal(): void {

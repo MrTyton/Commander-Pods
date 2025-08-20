@@ -29,6 +29,9 @@ test.describe('Element Pooling Integration', () => {
     test('should create and manage DOM elements efficiently through pooled system', async ({ page }) => {
         // Following framework patterns: semantic helper methods instead of raw DOM manipulation
 
+        // Set to power mode for pod generation
+        await helper.setup.setMode('power');
+
         // Use PlayerManager to create players (triggers element pooling in ui-manager.ts)
         await helper.players.createPlayers([
             { name: 'Alice', power: [7] },
@@ -45,35 +48,44 @@ test.describe('Element Pooling Integration', () => {
         await helper.pods.expectPodHasPlayers(1, ['Alice', 'Bob', 'Charlie', 'Dave']);
 
         // Test element reuse by resetting and regenerating
-        await helper.setup.reset();
+        await helper.setup.resetWithConfirmation(true);
+
+        // Set to power mode for pod generation
+        await helper.setup.setMode('power');
 
         // Recreate the same scenario to test element pool reuse
         await helper.players.createPlayers([
             { name: 'Player1', power: [6] },
             { name: 'Player2', power: [7] },
-            { name: 'Player3', power: [8] }
+            { name: 'Player3', power: [8] },
+            { name: 'Player4', power: [6] }
         ]);
 
         await helper.pods.generatePods();
         await helper.pods.expectPodCount(1);
-        await helper.pods.expectPodHasPlayers(1, ['Player1', 'Player2', 'Player3']);
+        await helper.pods.expectPodHasPlayers(1, ['Player1', 'Player2', 'Player3', 'Player4']);
 
         // Test display mode with pooled elements (uses display-mode.ts pooling)
         await helper.displayMode.enterDisplayMode();
-        await expect(page.locator('.display-mode-container')).toBeVisible();
-        await expect(page.locator('.display-mode-container .pod')).toHaveCount(1);
+        await helper.displayMode.expectDisplayModeActive();
+        await expect(helper.displayMode.getDisplayPods()).toHaveCount(1);
 
         await helper.displayMode.exitDisplayMode();
-        await expect(page.locator('.display-mode-container')).not.toBeVisible();
+        await helper.displayMode.expectDisplayModeInactive();
     });
 
     test('should handle UI state changes efficiently with pooled elements', async ({ page }) => {
         // Test multiple cycles of creation/destruction to verify pooling efficiency
         for (let cycle = 1; cycle <= 3; cycle++) {
+            // Set to power mode for pod generation
+            await helper.setup.setMode('power');
+
             // Create players (uses pooled elements)
             await helper.players.createPlayers([
                 { name: `Cycle${cycle}Player1`, power: [7] },
-                { name: `Cycle${cycle}Player2`, power: [8] }
+                { name: `Cycle${cycle}Player2`, power: [8] },
+                { name: `Cycle${cycle}Player3`, power: [7] },
+                { name: `Cycle${cycle}Player4`, power: [8] }
             ]);
 
             // Generate pods (extensive DOM manipulation with pooled elements)
@@ -81,22 +93,24 @@ test.describe('Element Pooling Integration', () => {
             await helper.pods.expectPodCount(1);
 
             // Reset for next cycle (clears DOM, returns elements to pool)
-            await helper.setup.reset();
+            await helper.setup.resetWithConfirmation(true);
         }
+
+        // Set to power mode for final verification
+        await helper.setup.setMode('power');
 
         // Final verification that pooling still works after multiple cycles
         await helper.players.createPlayers([
             { name: 'FinalPlayer1', power: [7] },
-            { name: 'FinalPlayer2', power: [8] }
+            { name: 'FinalPlayer2', power: [8] },
+            { name: 'FinalPlayer3', power: [7] },
+            { name: 'FinalPlayer4', power: [8] }
         ]);
 
         await helper.pods.generatePods();
         await helper.pods.expectPodCount(1);
 
-        // Verify the content is correct (proving elements are functioning properly)
-        const pods = page.locator('.pod:not(.unassigned-pod)');
-        const podText = await pods.first().textContent();
-        expect(podText).toContain('FinalPlayer1');
-        expect(podText).toContain('FinalPlayer2');
+        // Verify the content is correct using framework helpers
+        await helper.pods.expectPodHasPlayers(1, ['FinalPlayer1', 'FinalPlayer2', 'FinalPlayer3', 'FinalPlayer4']);
     });
 });

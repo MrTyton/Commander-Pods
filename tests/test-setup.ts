@@ -142,8 +142,64 @@ export async function teardownBasicTest(helper: TestHelper) {
         // Remove any existing dialog handlers to avoid conflicts
         helper.page.removeAllListeners('dialog');
 
+        // Force close any open modals or tours that might block interactions
+        try {
+            // Close help modal if open
+            const helpModal = helper.page.locator('#help-modal');
+            if (await helpModal.isVisible()) {
+                await helper.page.keyboard.press('Escape');
+                await helpModal.waitFor({ state: 'hidden', timeout: 2000 });
+            }
+        } catch (modalError) {
+            console.warn('Could not close help modal:', modalError);
+        }
+
+        try {
+            // Check if tour manager exists and is active
+            const isTourActive = await helper.page.evaluate(() => {
+                return (window as any).tourManager && (window as any).tourManager.isActive;
+            });
+
+            if (isTourActive) {
+                // Force end the tour immediately without animations
+                await helper.page.evaluate(() => {
+                    (window as any).tourManager.forceEndTour();
+                });
+                // Wait a moment for cleanup
+                await helper.page.waitForTimeout(100);
+            }
+
+            // Also check for any remaining tour overlay elements
+            const tourOverlay = helper.page.locator('.tour-overlay');
+            if (await tourOverlay.isVisible()) {
+                await helper.page.keyboard.press('Escape');
+                await tourOverlay.waitFor({ state: 'hidden', timeout: 2000 });
+            }
+        } catch (tourError) {
+            console.warn('Could not end active tour:', tourError);
+        }
+
+        // Wait a moment for any cleanup to complete
+        await helper.page.waitForTimeout(100);
+
         // Reset with confirmation acceptance
-        await helper.setup.resetWithConfirmation(true);
+        try {
+            await helper.setup.resetWithConfirmation(true);
+        } catch (resetError) {
+            console.warn('Reset with confirmation failed:', resetError);
+            // Try direct button click as fallback
+            try {
+                await helper.page.evaluate(() => {
+                    const resetBtn = document.getElementById('reset-all-btn') as HTMLButtonElement;
+                    if (resetBtn) {
+                        resetBtn.click();
+                    }
+                });
+                await helper.page.waitForTimeout(100);
+            } catch (fallbackError) {
+                console.warn('Fallback reset failed:', fallbackError);
+            }
+        }
     } catch (error) {
         // If reset fails, at least clear what we can
         console.warn('Reset failed during teardown:', error);
