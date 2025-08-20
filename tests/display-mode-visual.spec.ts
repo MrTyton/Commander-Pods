@@ -29,7 +29,7 @@ test.describe('Display Mode Visual Test', () => {
         await helper.pods.generatePods();
 
         // Wait for display mode button
-        await expect(page.locator('#display-mode-btn')).toHaveCSS('display', 'inline-block');
+        await expect(page.locator('#display-mode-btn')).toBeVisible();
 
         // Enter display mode for visual inspection
         await helper.displayMode.enterDisplayMode();

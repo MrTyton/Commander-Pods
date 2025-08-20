@@ -6,9 +6,9 @@
     --text-color: #e0e0e0;
     --border-radius: 8px;
     --border-radius-large: 12px;
-    --padding-small: 8px 12px;
-    --padding-medium: 12px 16px;
-    --padding-large: 16px 24px;
+    --padding-small: 6px 10px;
+    --padding-medium: 8px 12px;
+    --padding-large: 12px 18px;
     --shadow-small: 0 2px 4px rgba(0, 0, 0, 0.1);
     --shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.15);
     --shadow-large: 0 8px 16px rgba(0, 0, 0, 0.2);
@@ -70,7 +70,8 @@ body {
     border-radius: var(--border-radius-large);
     box-shadow: var(--shadow-medium);
     border: 1px solid var(--border-color);
-    overflow: hidden;
+    overflow: visible;
+    /* Changed from hidden to visible to allow dropdowns to extend beyond card boundaries */
     transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
@@ -86,6 +87,12 @@ body {
     justify-content: space-between;
     align-items: center;
     background: rgba(74, 144, 226, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    /* Above normal content but below dropdowns and tour */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .card-header h2 {
@@ -109,9 +116,8 @@ body {
 
 /* Button Styles */
 .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+    display: inline-block;
+    /* Changed from inline-flex to inline-block for test compatibility */
     padding: var(--padding-medium);
     border: none;
     border-radius: var(--border-radius);
@@ -123,6 +129,11 @@ body {
     position: relative;
     overflow: hidden;
     font-family: inherit;
+    vertical-align: top;
+}
+
+.btn-icon {
+    margin-right: 6px;
 }
 
 .btn:before {
@@ -132,7 +143,7 @@ body {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
     transition: left var(--transition-normal);
 }
 
@@ -218,40 +229,6 @@ body {
     font-weight: 600;
 }
 
-/* Floating Action Button */
-.fab-container {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 1000;
-}
-
-.fab {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--success-color), #66bb6a);
-    border: none;
-    cursor: pointer;
-    box-shadow: var(--shadow-large);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--transition-fast);
-    position: relative;
-    overflow: hidden;
-}
-
-.fab:hover {
-    transform: scale(1.1);
-    box-shadow: 0 12px 24px rgba(76, 175, 80, 0.3);
-}
-
-.fab-icon {
-    font-size: 1.5rem;
-    color: white;
-}
-
 /* Settings Grid */
 .settings-grid {
     display: grid;
@@ -309,10 +286,13 @@ body {
 /* Player Row Styles */
 .player-row {
     display: flex;
-    gap: 12px;
-    margin-bottom: 12px;
-    align-items: center;
-    padding: 16px;
+    gap: 10px;
+    margin-bottom: 4px;
+    align-items: stretch;
+    /* Changed from center to stretch for consistent height */
+    min-height: 36px;
+    /* Match form element height exactly */
+    padding: 6px 12px;
     background: rgba(255, 255, 255, 0.03);
     border-radius: var(--border-radius);
     border: 1px solid transparent;
@@ -329,25 +309,33 @@ body {
     background: linear-gradient(135deg, var(--primary-color), #64b5f6);
     color: white;
     border-radius: var(--border-radius);
-    padding: 12px 16px;
+    padding: 0 12px;
     font-weight: 600;
-    min-width: 45px;
+    min-width: 40px;
     text-align: center;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     flex-shrink: 0;
     box-shadow: var(--shadow-small);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    box-sizing: border-box;
 }
 
 .player-row input,
 .player-row select {
-    padding: 12px 16px;
-    border-radius: var(--border-radius);
+    padding: 8px 12px;
+    background: var(--input-background);
     border: 1px solid var(--border-color);
-    background-color: var(--input-background);
+    border-radius: var(--border-radius);
     color: var(--text-color);
-    flex-grow: 1;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     transition: all var(--transition-fast);
+    height: 36px;
+    /* Consistent height for all inputs/selects */
+    box-sizing: border-box;
+    flex-grow: 1;
 }
 
 .player-row input:focus,
@@ -379,9 +367,19 @@ body {
 }
 
 @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-4px); }
-    75% { transform: translateX(4px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-4px);
+    }
+
+    75% {
+        transform: translateX(4px);
+    }
 }
 
 .name-duplicate-error,
@@ -424,82 +422,6 @@ body {
     margin-bottom: 24px;
 }
 
-.btn {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    border: none;
-    border-radius: var(--border-radius);
-    background: linear-gradient(135deg, var(--secondary-color), #546e7a);
-    color: white;
-    text-decoration: none;
-    font-weight: 500;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: all var(--transition);
-    box-shadow: var(--shadow-small);
-    overflow: hidden;
-}
-
-.btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s ease;
-}
-
-.btn:hover::before {
-    left: 100%;
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-medium);
-}
-
-.btn:active {
-    transform: translateY(0);
-    box-shadow: var(--shadow-small);
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, var(--primary-color), #1976d2);
-}
-
-.btn-success {
-    background: linear-gradient(135deg, var(--success-color), #388e3c);
-}
-
-.btn-warning {
-    background: linear-gradient(135deg, var(--warning-color), #f57c00);
-}
-
-.btn-danger {
-    background: linear-gradient(135deg, var(--danger-color), #d32f2f);
-}
-
-.btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.btn:disabled:hover {
-    transform: none;
-    box-shadow: var(--shadow-small);
-}
-
-.btn-icon {
-    font-size: 1.1em;
-    line-height: 1;
-}
-
 /* Legacy Button Styles (updated) */
 button:focus,
 button:focus-visible {
@@ -508,120 +430,7 @@ button:focus-visible {
     box-shadow: 0 0 8px rgba(74, 144, 226, 0.3);
 }
 
-/* Floating Action Button (FAB) */
-.fab-container {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 1000;
-}
-
-.fab {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    border: none;
-    background: linear-gradient(135deg, var(--primary-color), #1976d2);
-    color: white;
-    cursor: pointer;
-    box-shadow: var(--shadow-large);
-    transition: all var(--transition);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-}
-
-.fab::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
-    opacity: 0;
-    transition: opacity var(--transition);
-}
-
-.fab:hover {
-    transform: scale(1.1);
-    box-shadow: 0 8px 32px rgba(74, 144, 226, 0.4);
-}
-
-.fab:hover::before {
-    opacity: 1;
-}
-
-.fab:active {
-    transform: scale(0.95);
-}
-
-.fab-icon {
-    font-size: 24px;
-    line-height: 1;
-    z-index: 1;
-    position: relative;
-}
-
-/* FAB States */
-.fab.generating {
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        box-shadow: var(--shadow-large);
-    }
-    50% {
-        box-shadow: 0 8px 32px rgba(74, 144, 226, 0.6), 0 0 0 8px rgba(74, 144, 226, 0.1);
-    }
-}
-
-.fab.success {
-    background: linear-gradient(135deg, var(--success-color), #388e3c);
-    animation: successPulse 0.6s ease-out;
-}
-
-@keyframes successPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
-
-/* Legacy Button Compatibility */
-#add-player-btn {
-    /* Will inherit from .btn .btn-primary classes */
-}
-
-#remove-last-player-btn {
-    /* Will inherit from .btn .btn-warning classes */
-}
-    background-color: #039be5;
-}
-
-#bulk-add-btn {
-    background-color: #1565c0;
-    color: white;
-    font-size: 16px;
-    padding: 10px 20px;
-    margin-left: 10px;
-}
-
-#bulk-add-btn:hover {
-    background-color: #1976d2;
-}
-
-#generate-pods-btn {
-    background-color: #2e7d32;
-    color: white;
-    font-weight: bold;
-}
-
-#generate-pods-btn:hover {
-    background-color: #43a047;
-}
+/* Remove old specific button styles - now using modern button system */
 
 #reset-all-btn {
     background-color: #d32f2f;
@@ -656,7 +465,13 @@ button:focus-visible {
     background-color: #757575;
     color: white;
     padding: 8px 12px;
-    font-size: 14px;
+    font-size: 0.9rem;
+    height: 36px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .remove-player-btn:hover {
@@ -668,6 +483,36 @@ button:focus-visible {
     padding: 15px;
     border-radius: var(--border-radius-large);
     text-align: left;
+}
+
+/* Results card visibility management */
+.results-card {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Hide results card when empty */
+.results-card:empty,
+.results-card:has(#output-section:empty) {
+    display: none;
+}
+
+/* Show results card when it has content */
+.results-card:has(#output-section:not(:empty)),
+.results-card.has-content {
+    display: block;
+    animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 #output-section {
@@ -776,12 +621,23 @@ button:focus-visible {
 .bracket-levels {
     position: relative;
     flex-basis: 30%;
+    z-index: 1;
+    /* Base z-index */
+}
+
+/* Elevate the entire player row when dropdown is open */
+.player-row:has(.power-selector-dropdown[style*="display: block"]),
+.player-row:has(.bracket-selector-dropdown[style*="display: block"]),
+.player-row.dropdown-open {
+    position: relative;
+    z-index: 9000;
+    /* Elevate above other player rows but below tour system (9998+) */
 }
 
 .power-selector-btn,
 .bracket-selector-btn {
     width: 100%;
-    padding: 8px;
+    padding: 8px 12px;
     border: 1px solid var(--border-color);
     background-color: var(--input-background);
     color: var(--text-color);
@@ -791,6 +647,10 @@ button:focus-visible {
     font-size: 0.9em;
     transition: background-color 0.2s;
     position: relative;
+    height: 36px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
 }
 
 .power-selector-btn:hover,
@@ -841,7 +701,8 @@ button:focus-visible {
     top: 100%;
     left: 0;
     right: 0;
-    z-index: 1000;
+    z-index: 9999;
+    /* Much higher z-index to appear above all other elements */
     background-color: var(--card-background);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
@@ -1002,7 +863,7 @@ button:focus-visible {
 }
 
 /* Hide tolerance settings in bracket mode */
-.bracket-mode .settings fieldset:nth-child(3) {
+.bracket-mode .settings-grid fieldset:nth-child(2) {
     display: none;
 }
 

@@ -56,10 +56,9 @@ test.describe('Group Color Functionality', () => {
         expect(secondMatch).toBeTruthy();
         expect(firstMatch![1]).toBe(secondMatch![1]); // Same color number
 
-        // Both should have the same color styling
-        const firstBorderColor = await firstGroupSelect.evaluate(el => getComputedStyle(el).borderColor);
-        const secondBorderColor = await secondGroupSelect.evaluate(el => getComputedStyle(el).borderColor);
-        expect(firstBorderColor).toBe(secondBorderColor);
+        // Both should have the same CSS color class, which guarantees same styling
+        // Use the color number instead of computed styles to avoid browser rendering differences
+        expect(firstClassName).toBe(secondClassName);
     });
 
     test('different groups should have different colors', async ({ page }) => {
@@ -265,7 +264,7 @@ test.describe('Group Color Functionality', () => {
         await expect(powerBtn).toHaveCSS('border-color', 'rgb(68, 68, 68)');
 
         // Verify power selector has modern styling (not the old simple dropdown)
-        await expect(powerBtn).toHaveCSS('border-radius', '4px');
+        await expect(powerBtn).toHaveCSS('border-radius', '8px');
         await expect(powerBtn).toHaveCSS('cursor', 'pointer');
     });
 

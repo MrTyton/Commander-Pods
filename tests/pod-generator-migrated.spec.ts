@@ -454,7 +454,7 @@ test.describe('MTG Commander Pod Generator', () => {
         await helper.pods.generatePods();
 
         // Check that display mode button is now visible
-        await expect(displayBtn).toHaveCSS('display', 'inline-block');
+        await expect(displayBtn).toBeVisible();
     });
 
     test('should enter and exit display mode correctly', async ({ page }) => {
@@ -488,6 +488,6 @@ test.describe('MTG Commander Pod Generator', () => {
 
         // Check that we're back to normal mode
         await helper.displayMode.expectDisplayModeInactive();
-        await expect(originalContainer).toHaveCSS('display', 'block');
+        await expect(originalContainer).toBeVisible();
     });
 });

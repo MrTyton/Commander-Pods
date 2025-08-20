@@ -10,9 +10,9 @@
 </head>
 
 <body>
-    <div class="app-container">
+    <div class="app-container container">
         <header class="app-header">
-            <h1>🎲 MTG Commander Pod Generator</h1>
+            <h1>MTG Commander Pod Generator</h1>
             <p class="app-subtitle">Create balanced pods for your Commander games</p>
         </header>
 
@@ -56,7 +56,7 @@
                             <span class="radio-label">Bracket System (1, 2, 3, 4, cEDH)</span>
                         </label>
                     </fieldset>
-                    
+
                     <fieldset class="setting-group">
                         <legend>🎚️ Power Level Tolerance</legend>
                         <label class="radio-option">
@@ -72,11 +72,12 @@
                             <span class="radio-label">Super Leniency (±1.0)</span>
                         </label>
                     </fieldset>
-                    
+
                     <fieldset class="setting-group">
                         <legend>🎲 Pod Size Preference</legend>
                         <label class="radio-option">
-                            <input type="radio" name="pod-optimization" value="balanced" id="balanced-pods-radio" checked>
+                            <input type="radio" name="pod-optimization" value="balanced" id="balanced-pods-radio"
+                                checked>
                             <span class="radio-label">Balanced (3-5 players per pod)</span>
                         </label>
                         <label class="radio-option">
@@ -116,7 +117,7 @@
         </section>
 
         <!-- Help Section Card -->
-        <section class="card help-card">
+        <section class="card help-card help-section">
             <div class="card-content">
                 <button id="help-btn" class="btn btn-help">
                     <span class="btn-icon">❓</span>
@@ -125,12 +126,6 @@
             </div>
         </section>
 
-        <!-- Floating Action Button -->
-        <div class="fab-container">
-            <button id="fab-generate" class="fab" title="Generate Pods">
-                <span class="fab-icon">🎯</span>
-            </button>
-        </div>
     </div>
 
     <template id="player-row-template">
@@ -486,16 +481,19 @@
     </div>
 
     <script src="script.js"></script>
-    <!-- Temporarily disabled for testing -->
-    <!-- <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
+
+    <!-- Ko-fi widget overlay -->
+    <!--
+    <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
     <script>
         kofiWidgetOverlay.draw('mrtyton', {
             'type': 'floating-chat',
-            'floating-chat.donateButton.text': 'Ko-fi me!',
-            'floating-chat.donateButton.background-color': '#f45d22',
+            'floating-chat.donateButton.text': 'Support',
+            'floating-chat.donateButton.background-color': '#00b9fe',
             'floating-chat.donateButton.text-color': '#fff'
         });
-    </script> -->
+    </script>
+    -->
 </body>
 
 </html>

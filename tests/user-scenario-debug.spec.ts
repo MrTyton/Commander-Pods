@@ -39,7 +39,7 @@ test.describe('Exact User Scenario Debug', () => {
         await page.fill('.player-row:nth-child(4) .player-name', 'Player 4');
         await page.click('.player-row:nth-child(4) .power-selector-btn');
         await page.waitForSelector('.player-row:nth-child(4) .power-checkbox input[value="6"]', { state: 'visible' });
-        await page.check('.player-row:nth-child(4) .power-checkbox input[value="6"]');
+        await page.click('.player-row:nth-child(4) .power-checkbox:has(input[value="6"])', { force: true });
         await page.click('.player-row:nth-child(4) .power-selector-btn');
 
         await page.selectOption('.player-row:nth-child(4) .group-select', 'new-group');

@@ -5,7 +5,7 @@ test.describe('Bracket Mode Fixes', () => {
         await page.goto('file://' + __dirname.replace('tests', 'index.html'));
 
         // Start in power level mode - verify tolerance settings are visible
-        const toleranceFieldset = page.locator('.settings fieldset:nth-child(3)');
+        const toleranceFieldset = page.locator('.settings-grid fieldset:nth-child(2)'); // Power Level Tolerance is now 2nd fieldset
         await expect(toleranceFieldset).toBeVisible();
 
         // Switch to bracket mode

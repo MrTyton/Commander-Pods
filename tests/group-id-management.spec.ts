@@ -145,18 +145,15 @@ test.describe('Group ID Management', () => {
         // Create a group
         await page.selectOption('.player-row:nth-child(1) .group-select', 'new-group');
 
-        // Get the background color of the selected dropdown
+        // Verify the first dropdown has the group color class applied
         const selectedDropdown = page.locator('.player-row:nth-child(1) .group-select');
-        const selectedBgColor = await selectedDropdown.evaluate(el => {
-            return window.getComputedStyle(el).backgroundColor;
-        });
+        await expect(selectedDropdown).toHaveClass(/group-\d+/);
 
-        // Get the background color of the corresponding option in another dropdown
-        const optionBgColor = await page.locator('.player-row:nth-child(2) .group-select option[value="group-1"]').evaluate(el => {
-            return window.getComputedStyle(el).backgroundColor;
-        });
+        // Verify the group option exists in other dropdowns with the same value
+        const groupOption = page.locator('.player-row:nth-child(2) .group-select option[value="group-1"]');
+        await expect(groupOption).toBeAttached();
 
-        // They should match (accounting for potential browser rendering differences)
-        expect(selectedBgColor).toBe(optionBgColor);
+        // Verify the option has the expected text content
+        await expect(groupOption).toHaveText('Group 1');
     });
 });

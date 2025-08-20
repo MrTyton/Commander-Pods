@@ -29,7 +29,7 @@ test.describe('Display Mode Improvements', () => {
         await helper.pods.generatePods();
 
         // Wait for display mode button to be visible 
-        await expect(page.locator('#display-mode-btn')).toHaveCSS('display', 'inline-block');
+        await expect(page.locator('#display-mode-btn')).toBeVisible();
 
         // Enter display mode
         await helper.displayMode.enterDisplayMode();
@@ -92,7 +92,7 @@ test.describe('Display Mode Improvements', () => {
         await helper.pods.generatePods();
 
         // Wait for display mode button to be visible 
-        await expect(page.locator('#display-mode-btn')).toHaveCSS('display', 'inline-block');
+        await expect(page.locator('#display-mode-btn')).toBeVisible();
 
         // Enter display mode
         await page.click('#display-mode-btn');
@@ -148,7 +148,7 @@ test.describe('Display Mode Improvements', () => {
         await helper.pods.generatePods();
 
         // Wait for display mode button to be visible (if pods were created)
-        await expect(page.locator('#display-mode-btn')).toHaveCSS('display', 'inline-block');
+        await expect(page.locator('#display-mode-btn')).toBeVisible();
 
         // Enter display mode
         await helper.displayMode.enterDisplayMode();

@@ -93,6 +93,7 @@ import {
 export class UIManager {
     private playerRowsContainer!: HTMLElement;
     private outputSection!: HTMLElement;
+    private resultsCard!: HTMLElement;
     private displayModeBtn!: HTMLElement;
     private playerRowTemplate!: HTMLTemplateElement;
     private playerManager!: PlayerManager;
@@ -130,6 +131,10 @@ export class UIManager {
             this.outputSection = assertExists(
                 getElementByIdTyped('output-section', isHTMLElement),
                 'output-section is required'
+            );
+            this.resultsCard = assertExists(
+                document.querySelector('.results-card') as HTMLElement,
+                'results-card is required'
             );
             this.displayModeBtn = assertExists(
                 getElementByIdTyped('display-mode-btn', isHTMLButtonElement),
@@ -503,6 +508,11 @@ export class UIManager {
         buttons.forEach(btn => {
             btn.classList.remove('open');
         });
+        // Remove dropdown-open class from all player rows
+        const playerRows = document.querySelectorAll('.player-row');
+        playerRows.forEach(row => {
+            row.classList.remove('dropdown-open');
+        });
     }
 
     private handlePowerSelectorClick(e: Event, target: HTMLElement): void {
@@ -555,6 +565,7 @@ export class UIManager {
         if (!isOpen) {
             dropdown.style.display = 'block';
             target.classList.add('open');
+            playerRow.classList.add('dropdown-open'); // Add class to elevate player row
             setTimeout(() => dropdown.classList.add('show'), 10);
         }
     }
@@ -1047,6 +1058,7 @@ export class UIManager {
 
         this.cleanupBottomDisplayButton();
         this.outputSection.innerHTML = '';
+        this.updateResultsCardVisibility();
         this.playerManager.handleGroupChange(this.playerRowsContainer);
 
         // Clear reusable arrays and use optimized player row fetching
@@ -1185,6 +1197,7 @@ export class UIManager {
                 throw new Error('Output section not found - cannot render pods');
             }
             this.outputSection.innerHTML = '';
+            this.updateResultsCardVisibility();
 
             if (pods.length === 0) {
                 this.outputSection.textContent = 'Could not form pods with the given players.';
@@ -1460,6 +1473,7 @@ export class UIManager {
         // DOM Performance: Use document fragment for batch DOM update
         fragment.appendChild(podsContainer);
         this.outputSection.appendChild(fragment);
+        this.updateResultsCardVisibility();
 
         // Add a second Display Mode button right before the help section for better accessibility
         const helpSection = document.querySelector('.help-section');
@@ -1635,6 +1649,7 @@ export class UIManager {
         this.playerRowsContainer.innerHTML = '';
         this.cleanupBottomDisplayButton();
         this.outputSection.innerHTML = '';
+        this.updateResultsCardVisibility();
         this.playerManager.clearGroups();
         this.playerManager.resetPlayerIds();
         this.playerManager.resetGroupIds();
@@ -1781,6 +1796,7 @@ export class UIManager {
         this.playerRowsContainer.innerHTML = '';
         this.cleanupBottomDisplayButton();
         this.outputSection.innerHTML = '';
+        this.updateResultsCardVisibility();
         this.displayModeBtn.style.display = 'none'; // Hide the top display mode button
         this.playerManager.clearGroups();
         this.playerManager.resetPlayerIds();
@@ -2052,6 +2068,23 @@ export class UIManager {
                 numberElement.textContent = (index + 1).toString();
             }
         });
+    }
+
+    /**
+     * Manages results card visibility based on output content
+     * Provides JavaScript fallback for browsers that don't support :has() selector
+     */
+    private updateResultsCardVisibility(): void {
+        const hasContent = this.outputSection.children.length > 0 &&
+            this.outputSection.innerHTML.trim() !== '';
+
+        if (hasContent) {
+            this.resultsCard.style.display = 'block';
+            this.resultsCard.classList.add('has-content');
+        } else {
+            this.resultsCard.style.display = 'none';
+            this.resultsCard.classList.remove('has-content');
+        }
     }
 }
 

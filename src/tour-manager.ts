@@ -270,10 +270,10 @@ export class TourManager {
             // Temporarily override the confirmation to auto-proceed
             const originalConfirm = window.confirm;
             window.confirm = () => true;
-            
+
             // Click reset immediately
             resetButton.click();
-            
+
             // Restore original confirm after a short delay
             setTimeout(() => {
                 window.confirm = originalConfirm;
@@ -307,10 +307,10 @@ export class TourManager {
             // Temporarily override the confirmation to auto-proceed
             const originalConfirm = window.confirm;
             window.confirm = () => true;
-            
+
             // Click reset immediately
             resetButton.click();
-            
+
             // Restore original confirm after a short delay
             setTimeout(() => {
                 window.confirm = originalConfirm;
@@ -654,36 +654,36 @@ export class TourManager {
             case 'display-mode':
                 // Wait for display mode to be active
                 return this.waitForCondition(() => document.body.classList.contains('display-mode'), 3000);
-            
+
             case 'exit-display':
                 // Wait for display mode to be inactive
                 return this.waitForCondition(() => !document.body.classList.contains('display-mode'), 3000);
-            
+
             case 'generate':
                 // Wait for pods to be generated (check for pod containers)
                 return this.waitForCondition(() => {
                     const pods = document.querySelectorAll('.pod');
                     return pods.length > 0;
                 }, 5000);
-            
+
             case 'reset':
                 // Wait for reset to complete (check that player list is cleared)
                 return this.waitForCondition(() => {
                     const playerRows = document.querySelectorAll('.player-row');
                     return playerRows.length <= 1; // Only the add button row should remain
                 }, 3000);
-            
+
             case 'add-player':
                 // Wait for new player row to appear
                 return this.waitForCondition(() => {
                     const playerRows = document.querySelectorAll('.player-row');
                     return playerRows.length > 1;
                 }, 2000);
-            
+
             case 'type-text':
                 // Wait a moment for typing animation to complete
                 return new Promise(resolve => setTimeout(resolve, 100));
-            
+
             default:
                 // For other actions, wait a minimal amount for DOM to stabilize
                 return new Promise(resolve => setTimeout(resolve, 50));
@@ -693,22 +693,22 @@ export class TourManager {
     private waitForCondition(condition: () => boolean, timeout: number = 3000): Promise<void> {
         return new Promise((resolve, reject) => {
             const startTime = Date.now();
-            
+
             const check = () => {
                 if (condition()) {
                     resolve();
                     return;
                 }
-                
+
                 if (Date.now() - startTime >= timeout) {
                     reject(new Error(`Timeout waiting for condition after ${timeout}ms`));
                     return;
                 }
-                
+
                 // Check again in a short interval
                 setTimeout(check, 50);
             };
-            
+
             check();
         });
     }
@@ -905,14 +905,14 @@ export class TourManager {
                     setTimeout(() => {
                         // Get the group ID that was created for Alice
                         const aliceGroupId = aliceGroupSelect.dataset.createdGroupId;
-                        
+
                         if (aliceGroupId) {
                             const henryGroupSelect = secondRow.querySelector('.group-select') as HTMLSelectElement;
                             if (henryGroupSelect) {
                                 // Make sure Henry's dropdown has the latest options by checking for Alice's group
                                 const aliceGroupOption = Array.from(henryGroupSelect.options).find(option =>
                                     option.value === aliceGroupId);
-                                
+
                                 if (aliceGroupOption) {
                                     // Set Henry to join Alice's group using the group ID
                                     henryGroupSelect.value = aliceGroupId;

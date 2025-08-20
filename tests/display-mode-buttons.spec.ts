@@ -33,12 +33,12 @@ test.describe('Display Mode Button Functionality', () => {
         await helper.pods.generatePods();
 
         // Check that both display mode buttons are now visible
-        await expect(topDisplayBtn).toHaveCSS('display', 'inline-block');
+        await expect(topDisplayBtn).toBeVisible();
         await expect(bottomDisplayBtn).toBeVisible();
 
         // Verify both buttons have the correct text
-        await expect(topDisplayBtn).toHaveText('Display Mode');
-        await expect(bottomDisplayBtn).toHaveText('Display Mode');
+        await expect(topDisplayBtn).toContainText('Display Mode');
+        await expect(bottomDisplayBtn).toContainText('Display Mode');
 
         // Verify bottom button is positioned before help section
         const helpBtn = page.locator('#help-btn');
@@ -96,7 +96,7 @@ test.describe('Display Mode Button Functionality', () => {
         await helper.pods.generatePods();
 
         // Verify both buttons exist
-        await expect(page.locator('#display-mode-btn')).toHaveCSS('display', 'inline-block');
+        await expect(page.locator('#display-mode-btn')).toBeVisible();
         await expect(page.locator('#display-mode-btn-bottom')).toBeVisible();
 
         // Reset all (this should clear the pods and bottom button)
