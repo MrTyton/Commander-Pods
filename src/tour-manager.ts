@@ -527,7 +527,7 @@ export class TourManager {
 
         // Check if the target element is inside the settings sidebar
         const isInSidebar = targetElement.closest('#settings-sidebar') !== null;
-        
+
         // Only scroll into view if not in sidebar (to prevent weird horizontal scrolling)
         if (!isInSidebar) {
             targetElement.scrollIntoView({
@@ -540,7 +540,7 @@ export class TourManager {
             const centerY = rect.top + rect.height / 2;
             const windowCenterY = window.innerHeight / 2;
             const shouldScroll = centerY < 100 || centerY > window.innerHeight - 100;
-            
+
             if (shouldScroll) {
                 window.scrollTo({
                     left: 0, // Keep horizontal position at 0
@@ -977,11 +977,11 @@ export class TourManager {
             const settingsSidebar = document.getElementById('settings-sidebar');
             if (settingsSidebar) {
                 settingsSidebar.classList.add('open');
-                
+
                 // Scroll to make sure the sidebar area is in view
                 // This prevents the weird off-screen highlighting issue
                 window.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
-                
+
                 // Wait for the CSS transition and scroll to complete, then refresh the highlight positioning
                 setTimeout(() => {
                     // Force a re-positioning of the current tour step highlight

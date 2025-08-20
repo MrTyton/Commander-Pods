@@ -72,10 +72,10 @@ test.describe('Interactive Tour', () => {
         // Should advance to ranking system step and settings should be open
         await expect(page.locator('.tour-tooltip h3')).toContainText('Choose Your Ranking System');
         await expect(page.locator('.tour-progress')).toContainText('Step 3 of');
-        
+
         // Wait for the beforeStep function to execute and DOM to update
         await page.waitForTimeout(300);
-        
+
         // Settings sidebar should be open during this step
         await expect(page.locator('#settings-sidebar')).toHaveClass(/open/);
 
@@ -86,7 +86,7 @@ test.describe('Interactive Tour', () => {
         // Should go back to settings button step
         await expect(page.locator('.tour-tooltip h3')).toContainText('Settings Button');
         await expect(page.locator('.tour-progress')).toContainText('Step 2 of');
-        
+
         // Go back one more time to welcome step  
         await page.click('.tour-btn-secondary:has-text("Previous")');
         await page.waitForTimeout(100);
