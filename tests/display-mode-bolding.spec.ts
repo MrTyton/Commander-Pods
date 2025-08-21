@@ -47,8 +47,6 @@ test.describe('Display Mode Power Level Bolding', () => {
         const aliceInDisplayMode = page.locator('.display-mode-container .player-power').filter({ hasText: 'P: 6' }).first();
         const aliceHTML = await aliceInDisplayMode.innerHTML();
 
-        console.log('Alice power display in display mode:', aliceHTML);
-
         // Verify Alice has highlighted valid powers (7 and 8)
         expect(aliceHTML).toContain('<span class="power-highlight">7</span>');
         expect(aliceHTML).toContain('<span class="power-highlight">8</span>');
@@ -58,8 +56,6 @@ test.describe('Display Mode Power Level Bolding', () => {
         const bobInDisplayMode = page.locator('.display-mode-container .player-power').filter({ hasText: 'P: ' }).filter({ hasText: '9' }).first();
         const bobHTML = await bobInDisplayMode.innerHTML();
 
-        console.log('Bob power display in display mode:', bobHTML);
-
         // Verify Bob has highlighted valid powers (7 and 8)
         expect(bobHTML).toContain('<span class="power-highlight">7</span>');
         expect(bobHTML).toContain('<span class="power-highlight">8</span>');
@@ -68,8 +64,6 @@ test.describe('Display Mode Power Level Bolding', () => {
         // Dave should have 5, <b>7</b>, <b>8</b> (7 and 8 are valid for pod)
         const daveInDisplayMode = page.locator('.display-mode-container .player-power').filter({ hasText: 'P: 5' }).first();
         const daveHTML = await daveInDisplayMode.innerHTML();
-
-        console.log('Dave power display in display mode:', daveHTML);
 
         // Verify Dave has highlighted valid powers (7 and 8)
         expect(daveHTML).toContain('<span class="power-highlight">7</span>');
@@ -105,8 +99,6 @@ test.describe('Display Mode Power Level Bolding', () => {
         // In bracket mode, verify bracket highlighting works
         const aliceInDisplayMode = page.locator('.display-mode-container .player-power').filter({ hasText: 'B: ' }).first();
         const aliceHTML = await aliceInDisplayMode.innerHTML();
-
-        console.log('Alice bracket display in display mode:', aliceHTML);
 
         // Verify bracket highlighting is applied (both 2 and 3 should be valid for all players)
         expect(aliceHTML).toContain('<span class="bracket-highlight">2</span>');

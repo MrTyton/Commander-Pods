@@ -53,8 +53,6 @@ test.describe('Element Pooling System', () => {
         // Verify pods are still created correctly after reset using framework helpers
         await helper.pods.expectPodCount(1);
         await helper.pods.expectPodHasPlayers(1, ['David', 'Eve', 'Frank', 'Grace']);
-
-        console.log('Element pooling test completed successfully');
     });
 
     test('should handle display mode with pooled elements', async ({ page }) => {
@@ -83,7 +81,5 @@ test.describe('Element Pooling System', () => {
         // Exit display mode
         await helper.displayMode.exitDisplayMode();
         await helper.displayMode.expectDisplayModeInactive();
-
-        console.log('Display mode pooling test completed successfully');
     });
 });

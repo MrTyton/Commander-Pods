@@ -24,8 +24,6 @@ test.describe('Pod Title Power Range Display', () => {
         const podTitle = page.locator('.display-mode-container .pod h3').first();
         const titleText = await podTitle.textContent();
 
-        console.log('Pod title text:', titleText);
-
         // The title should show "Pod 1 (Power: 7, 8)" or "Pod 1 (Power: 7-8)" 
         // instead of just "Pod 1 (Power: 7)"
         expect(titleText).toMatch(/Pod 1 \(Power: (7, 8|7-8)\)/);
@@ -43,8 +41,6 @@ test.describe('Pod Title Power Range Display', () => {
         // Get the pod title text
         const podTitle = page.locator('.display-mode-container .pod h3').first();
         const titleText = await podTitle.textContent();
-
-        console.log('Pod title text:', titleText);
 
         // Only power level 7 should work for all players
         expect(titleText).toBe('Pod 1 (Power: 7)');
@@ -72,8 +68,6 @@ test.describe('Pod Title Power Range Display', () => {
         const podTitle = page.locator('.display-mode-container .pod h3').first();
         const titleText = await podTitle.textContent();
 
-        console.log('Bracket pod title text:', titleText);
-
         // The title should show both brackets that work for everyone
         expect(titleText).toMatch(/Pod 1 \(Bracket: (2, 3|2-3)\)/);
     });
@@ -90,8 +84,6 @@ test.describe('Pod Title Power Range Display', () => {
         // Get the pod title text
         const podTitle = page.locator('.display-mode-container .pod h3').first();
         const titleText = await podTitle.textContent();
-
-        console.log('Mixed pod title text:', titleText);
 
         // Only power level 8 should work for all players
         expect(titleText).toBe('Pod 1 (Power: 8)');
@@ -124,12 +116,8 @@ test.describe('Pod Title Power Range Display', () => {
             return (window as any).currentPods || 'No currentPods found';
         });
 
-        console.log('Pod data structure:', JSON.stringify(podData, null, 2));
-
         // Get the pod title text
         const podTitle = page.locator('.display-mode-container .pod h3').first();
         const titleText = await podTitle.textContent();
-
-        console.log('Actual pod title:', titleText);
     });
 });

@@ -134,7 +134,6 @@ export async function setupShuffleTest(
 export async function teardownBasicTest(helper: TestHelper) {
     // Check if helper is valid before attempting teardown
     if (!helper || !helper.setup || !helper.players) {
-        console.warn('Helper object is invalid during teardown, skipping cleanup');
         return;
     }
 
@@ -151,7 +150,7 @@ export async function teardownBasicTest(helper: TestHelper) {
                 await helpModal.waitFor({ state: 'hidden', timeout: 2000 });
             }
         } catch (modalError) {
-            console.warn('Could not close help modal:', modalError);
+            // Silently handle modal close errors
         }
 
         try {
@@ -176,7 +175,7 @@ export async function teardownBasicTest(helper: TestHelper) {
                 await tourOverlay.waitFor({ state: 'hidden', timeout: 2000 });
             }
         } catch (tourError) {
-            console.warn('Could not end active tour:', tourError);
+            // Silently handle tour end errors
         }
 
         // Wait a moment for any cleanup to complete
@@ -186,7 +185,6 @@ export async function teardownBasicTest(helper: TestHelper) {
         try {
             await helper.setup.resetWithConfirmation(true);
         } catch (resetError) {
-            console.warn('Reset with confirmation failed:', resetError);
             // Try direct button click as fallback
             try {
                 await helper.page.evaluate(() => {
@@ -197,16 +195,15 @@ export async function teardownBasicTest(helper: TestHelper) {
                 });
                 await helper.page.waitForTimeout(100);
             } catch (fallbackError) {
-                console.warn('Fallback reset failed:', fallbackError);
+                // Silently handle fallback reset errors
             }
         }
     } catch (error) {
         // If reset fails, at least clear what we can
-        console.warn('Reset failed during teardown:', error);
         try {
             await helper.players.clearAllPlayers();
         } catch (clearError) {
-            console.warn('Clear players failed during teardown:', clearError);
+            // Silently handle clear players errors
         }
     }
 }
@@ -221,7 +218,7 @@ export async function teardownDisplayModeTest(helper: TestHelper) {
             await helper.displayMode.exitDisplayMode();
         }
     } catch (error) {
-        console.warn('Display mode exit failed during teardown:', error);
+        // Silently handle display mode exit errors
     }
 
     await teardownBasicTest(helper);
@@ -241,7 +238,7 @@ export async function teardownWithDebug(helper: TestHelper, testName: string) {
     try {
         await helper.utils.screenshot(`teardown-${testName}`);
     } catch (error) {
-        console.warn('Screenshot failed during debug teardown:', error);
+        // Silently handle screenshot errors
     }
 
     await teardownBasicTest(helper);

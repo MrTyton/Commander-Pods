@@ -239,7 +239,6 @@ test.describe('Interactive Tour', () => {
 
                 attempts++;
             } catch (error) {
-                console.warn(`Tour step attempt ${attempts} failed:`, error);
                 attempts++;
                 await page.waitForTimeout(500);
             }
@@ -279,7 +278,6 @@ test.describe('Interactive Tour', () => {
 
                 attempts++;
             } catch (error) {
-                console.warn(`Tour completion attempt ${attempts} failed:`, error);
                 attempts++;
                 await page.waitForTimeout(300);
             }
