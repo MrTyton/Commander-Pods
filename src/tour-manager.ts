@@ -227,6 +227,14 @@ export class TourManager {
                 action: 'none'
             },
             {
+                id: 'support-donation',
+                title: '💝 Support This Project',
+                content: 'If you find this tool helpful for organizing your Commander games, please consider supporting its development! Your donations help keep this tool free, ad-free, and continuously improved for the entire Magic: The Gathering community. Every contribution, no matter how small, is greatly appreciated!',
+                target: 'div[id*="kofi-widget-overlay"], [class*="floatingchat-donate"], img[class*="kofiImg"]',
+                position: 'top',
+                action: 'none'
+            },
+            {
                 id: 'complete',
                 title: '🎉 Tour Complete!',
                 content: 'Congratulations! You now know all the main features. The Help button contains detailed information about keyboard shortcuts and advanced features. Happy pod organizing!',
@@ -501,7 +509,31 @@ export class TourManager {
 
     private positionHighlight(step: TourStep): void {
         const targetElement = document.querySelector(step.target) as HTMLElement;
-        if (!targetElement || !this.tourHighlight) return;
+
+        // Special handling for Ko-fi widget from external domain
+        if (step.target.includes('kofi') || step.id === 'support-donation') {
+            if (!targetElement) {
+                // Ko-fi button not accessible (cross-origin iframe/shadow DOM)
+                // Position highlight at bottom-left where Ko-fi typically appears
+                if (this.tourHighlight) {
+                    this.tourHighlight.style.left = '25px';
+                    this.tourHighlight.style.top = `${window.innerHeight - 80}px`;
+                    this.tourHighlight.style.width = '120px';
+                    this.tourHighlight.style.height = '40px';
+                    this.tourHighlight.style.position = 'fixed';
+                }
+                return;
+            }
+        }
+
+        if (!targetElement || !this.tourHighlight) {
+            // General async loading retry for other elements
+            if (step.target.includes('kofi')) {
+                setTimeout(() => this.positionHighlight(step), 200);
+                return;
+            }
+            return;
+        }
 
         // For dropdown targets, ensure they're visible first
         if (step.target.includes('dropdown')) {
@@ -518,6 +550,7 @@ export class TourManager {
         const scrollX = window.scrollX;
         const scrollY = window.scrollY;
 
+        this.tourHighlight.style.position = 'absolute';
         this.tourHighlight.style.left = `${rect.left + scrollX - 5}px`;
         this.tourHighlight.style.top = `${rect.top + scrollY - 5}px`;
         this.tourHighlight.style.width = `${rect.width + 10}px`;

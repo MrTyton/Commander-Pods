@@ -166,10 +166,10 @@ test.describe('Interactive Tour', () => {
         await page.click('#help-btn');
         await page.click('#start-tour-btn');
 
-        // Track progress through all steps (22 total: 0-21)
+        // Track progress through all steps (23 total: 0-22, now includes donation step)
         let currentStep = 1;
 
-        while (currentStep < 22) { // Go through steps 1-21
+        while (currentStep < 23) { // Go through steps 1-22
             await expect(page.locator('.tour-progress')).toContainText(`Step ${currentStep} of`);
 
             // Click next button
@@ -180,8 +180,8 @@ test.describe('Interactive Tour', () => {
             currentStep++;
         }
 
-        // Now we should be at step 22 (index 21, the final step)
-        await expect(page.locator('.tour-progress')).toContainText('Step 22 of');
+        // Now we should be at step 23 (index 22, the final step)
+        await expect(page.locator('.tour-progress')).toContainText('Step 23 of');
 
         // Final step should have "Finish Tour" button
         await expect(page.locator('.tour-btn-primary')).toContainText('Finish Tour');
@@ -294,5 +294,68 @@ test.describe('Interactive Tour', () => {
         await page.click('#add-player-btn');
         const playerRows = await page.locator('.player-row').count();
         expect(playerRows).toBeGreaterThan(1);
+    });
+
+    test('should show donation step before completion', async ({ page }) => {
+        // Start tour
+        await page.click('#help-btn');
+        await page.click('#start-tour-btn');
+
+        // Navigate through all steps to reach the donation step
+        let attempts = 0;
+        const maxAttempts = 25;
+        let foundDonationStep = false;
+
+        while (attempts < maxAttempts && !foundDonationStep) {
+            try {
+                // Check if we're at the donation step
+                const donationTitle = page.locator('.tour-tooltip h3:has-text("Support This Project")');
+                if (await donationTitle.isVisible({ timeout: 1000 })) {
+                    foundDonationStep = true;
+
+                    // Verify donation step content
+                    await expect(donationTitle).toBeVisible();
+                    await expect(page.locator('.tour-tooltip')).toContainText('Magic: The Gathering community');
+                    await expect(page.locator('.tour-tooltip')).toContainText('donations help keep this free tool');
+
+                    // Verify it's targeting the Ko-fi button (second to last step)
+                    await expect(page.locator('.tour-progress')).toContainText('Step');
+
+                    // The Ko-fi widget should be highlighted (element with kofi in ID/class should be targeted)
+                    const highlight = page.locator('.tour-highlight');
+                    await expect(highlight).toBeVisible();
+
+                    // Click next to go to completion step
+                    await page.click('.tour-btn-primary');
+                    await page.waitForTimeout(200);
+
+                    // Should now be at completion step
+                    await expect(page.locator('.tour-tooltip h3:has-text("Tour Complete")')).toBeVisible();
+
+                    break;
+                }
+
+                // Not at donation step yet, click next
+                const nextButton = page.locator('.tour-btn-primary');
+                if (await nextButton.isVisible({ timeout: 1000 })) {
+                    await nextButton.click();
+                    await page.waitForTimeout(200);
+                }
+
+                attempts++;
+            } catch (error) {
+                attempts++;
+                await page.waitForTimeout(300);
+            }
+        }
+
+        // Verify we found the donation step
+        expect(foundDonationStep).toBe(true);
+
+        // Complete the tour
+        const finishButton = page.locator('.tour-btn-primary:has-text("Finish Tour")');
+        if (await finishButton.isVisible({ timeout: 1000 })) {
+            await finishButton.click();
+        }
     });
 });
