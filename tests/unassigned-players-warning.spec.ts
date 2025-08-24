@@ -52,21 +52,12 @@ test.describe('Unassigned Players Warning Dialog', () => {
         // Verify we have unassigned players using the correct selector
         await expect(page.locator('.unassigned-pod')).toBeVisible();
 
-        // Set up dialog handler to cancel
-        let dialogShown = false;
-        page.on('dialog', dialog => {
-            dialogShown = true;
-            expect(dialog.message()).toContain('Warning:');
-            expect(dialog.message()).toContain('unassigned player');
-            expect(dialog.message()).toContain('Do you want to continue without assigning them?');
-            dialog.dismiss(); // Cancel
-        });
-
         // Click display mode button
         await page.click('#display-mode-btn');
 
-        // Should have shown the dialog
-        expect(dialogShown).toBe(true);
+        // Should show warning modal and cancel it
+        await helper.validation.expectConfirmationModal('Unassigned Players Warning', 'Warning: There are 2 unassigned players');
+        await helper.validation.handleConfirmationModal(false); // Cancel
 
         // Should NOT enter display mode (body should not have display-mode class)
         await expect(page.locator('body')).not.toHaveClass(/display-mode/);
@@ -92,21 +83,12 @@ test.describe('Unassigned Players Warning Dialog', () => {
         // Verify we have unassigned players
         await expect(page.locator('.unassigned-pod')).toBeVisible();
 
-        // Set up dialog handler to accept
-        let dialogShown = false;
-        page.on('dialog', dialog => {
-            dialogShown = true;
-            expect(dialog.message()).toContain('Warning:');
-            expect(dialog.message()).toContain('unassigned player');
-            expect(dialog.message()).toContain('Do you want to continue without assigning them?');
-            dialog.accept(); // Confirm
-        });
-
         // Click display mode button
         await page.click('#display-mode-btn');
 
-        // Should have shown the dialog
-        expect(dialogShown).toBe(true);
+        // Should show warning modal and accept it
+        await helper.validation.expectConfirmationModal('Unassigned Players Warning', 'Warning: There are 2 unassigned players');
+        await helper.validation.handleConfirmationModal(true); // Confirm
 
         // Should enter display mode (check for display mode UI)
         await expect(page.locator('body')).toHaveClass(/display-mode/);
@@ -132,21 +114,12 @@ test.describe('Unassigned Players Warning Dialog', () => {
         // Verify we have unassigned players
         await expect(page.locator('.unassigned-pod')).toBeVisible();
 
-        // Set up dialog handler to check grammar (singular or plural)
-        let dialogShown = false;
-        page.on('dialog', dialog => {
-            dialogShown = true;
-            expect(dialog.message()).toContain('Warning:');
-            expect(dialog.message()).toContain('unassigned player');
-            expect(dialog.message()).toContain('Do you want to continue without assigning them?');
-            dialog.dismiss(); // Cancel
-        });
-
         // Click display mode button
         await page.click('#display-mode-btn');
 
-        // Should have shown the dialog with proper grammar
-        expect(dialogShown).toBe(true);
+        // Should show warning modal with proper grammar (checking for plural)
+        await helper.validation.expectConfirmationModal('Unassigned Players Warning', 'Warning: There are 2 unassigned players');
+        await helper.validation.handleConfirmationModal(false); // Cancel
     });
 
     test('Display mode bottom button with unassigned players should also show warning', async ({ page }) => {
@@ -169,21 +142,12 @@ test.describe('Unassigned Players Warning Dialog', () => {
         // Verify we have unassigned players
         await expect(page.locator('.unassigned-pod')).toBeVisible();
 
-        // Set up dialog handler to cancel
-        let dialogShown = false;
-        page.on('dialog', dialog => {
-            dialogShown = true;
-            expect(dialog.message()).toContain('Warning:');
-            expect(dialog.message()).toContain('unassigned player');
-            expect(dialog.message()).toContain('Do you want to continue without assigning them?');
-            dialog.dismiss(); // Cancel
-        });
-
         // Click the bottom display mode button
         await page.click('#display-mode-btn-bottom');
 
-        // Should have shown the dialog
-        expect(dialogShown).toBe(true);
+        // Should show warning modal and cancel it
+        await helper.validation.expectConfirmationModal('Unassigned Players Warning', 'Warning: There are 2 unassigned players');
+        await helper.validation.handleConfirmationModal(false); // Cancel
 
         // Should NOT enter display mode
         await expect(page.locator('body')).not.toHaveClass(/display-mode/);

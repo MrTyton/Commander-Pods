@@ -22,19 +22,19 @@ test.describe('Reset All with Confirmation and Undo', () => {
         await expect(page.locator('.player-row')).toHaveCount(4); // Should have 4 default rows
     });
 
-    test('Reset All with data should show confirmation dialog', async ({ page }) => {
+    test('Reset All with data should show confirmation modal', async ({ page }) => {
         // Add some data to a player
         const nameInput = page.locator('.player-row:nth-child(1) .player-name');
         await nameInput.fill('Test Player');
 
-        // Set up dialog handler to cancel
-        page.on('dialog', dialog => {
-            expect(dialog.message()).toContain('Are you sure you want to reset all player data?');
-            dialog.dismiss();
-        });
-
         // Click reset all
         await page.click('#reset-all-btn');
+
+        // Should show confirmation modal
+        const modal = await helper.validation.expectConfirmationModal('Reset All Player Data', 'Are you sure you want to reset all player data?');
+        
+        // Cancel the modal
+        await helper.validation.handleConfirmationModal(false);
 
         // Data should still be there since we cancelled
         await expect(nameInput).toHaveValue('Test Player');
@@ -47,14 +47,13 @@ test.describe('Reset All with Confirmation and Undo', () => {
         // Verify power button shows selection
         await expect(page.locator('.player-row:nth-child(1) .power-selector-btn')).toContainText('Power: 5, 6');
 
-        // Set up dialog handler to accept
-        page.on('dialog', dialog => {
-            expect(dialog.message()).toContain('Are you sure you want to reset all player data?');
-            dialog.accept();
-        });
-
         // Click reset all
         await page.click('#reset-all-btn');
+
+        // Should show confirmation modal, accept it
+        await helper.validation.expectConfirmationModal('Reset All Player Data');
+        await helper.validation.handleConfirmationModal(true);
+        
         await page.waitForTimeout(200);
 
         // Data should be cleared
@@ -80,17 +79,12 @@ test.describe('Reset All with Confirmation and Undo', () => {
         // Change leniency setting
         await helper.setup.setTolerance('regular');
 
-        // Accept reset dialog
-        page.on('dialog', dialog => {
-            if (dialog.message().includes('reset all player data')) {
-                dialog.accept();
-            } else if (dialog.message().includes('undone successfully')) {
-                dialog.accept();
-            }
-        });
-
         // Reset
         await page.click('#reset-all-btn');
+        
+        // Handle reset confirmation modal
+        await helper.validation.expectConfirmationModal('Reset All Player Data');
+        await helper.validation.handleConfirmationModal(true);
         await page.waitForTimeout(200);
 
         // Verify data is cleared

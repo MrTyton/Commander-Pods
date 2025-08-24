@@ -115,21 +115,10 @@ class TestSetup {
     }
 
     /**
-     * Enhanced reset with dialog handling
+     * Enhanced reset with modern modal handling
      */
     async resetWithConfirmation(accept: boolean = true) {
         const resetBtn = this.page.locator('#reset-all-btn');
-
-        // Set up dialog handler
-        const dialogHandler = (dialog: Dialog) => {
-            if (accept) {
-                dialog.accept();
-            } else {
-                dialog.dismiss();
-            }
-        };
-
-        this.page.on('dialog', dialogHandler);
 
         // Close any open dropdowns before clicking reset to prevent z-index interference
         await this.page.evaluate(() => {
@@ -151,10 +140,19 @@ class TestSetup {
         });
 
         await resetBtn.click();
-        await this.page.waitForTimeout(100); // Simple timeout for teardown reliability
+        
+        // Wait for modal to appear
+        const modal = this.page.locator('.modal-container .modal-overlay');
+        await modal.waitFor({ state: 'visible', timeout: 2000 });
 
-        // Remove the dialog handler
-        this.page.off('dialog', dialogHandler);
+        // Handle the confirmation modal
+        if (accept) {
+            await modal.locator('.modal-confirm').click();
+        } else {
+            await modal.locator('.modal-cancel').click();
+        }
+
+        await this.page.waitForTimeout(100); // Simple timeout for teardown reliability
     }
 
     /**
@@ -640,12 +638,12 @@ class ValidationHelper {
     }
 
     /**
-     * Check if generate button shows error dialog
+     * Check if generate button shows error toast notification
      */
     async expectGenerationError() {
-        // Look for error dialog or validation messages
-        const errorDialog = this.page.locator('.error-dialog, .validation-error');
-        await expect(errorDialog).toBeVisible({ timeout: 2000 });
+        // Look for error toast notification
+        const errorToast = this.page.locator('.toast-container .toast-error');
+        await expect(errorToast).toBeVisible({ timeout: 2000 });
     }
 
     /**
@@ -840,17 +838,31 @@ class ValidationHelper {
     }
 
     /**
+     * Common validation: Expect modern modal to appear with specific message
+     */
+    async expectModalWithMessage(expectedMessage: string, accept: boolean = true) {
+        const modal = this.page.locator('.modal-container .modal-overlay');
+        await modal.waitFor({ state: 'visible', timeout: 2000 });
+        
+        // Check modal message contains expected text
+        const modalMessage = modal.locator('.modal-message');
+        await expect(modalMessage).toContainText(expectedMessage);
+        
+        // Handle the modal
+        if (accept) {
+            await modal.locator('.modal-confirm').click();
+        } else {
+            await modal.locator('.modal-cancel').click();
+        }
+    }
+
+    /**
+     * @deprecated Use expectModalWithMessage instead
      * Common validation: Expect dialog to appear with specific message
      */
     async expectDialogWithMessage(expectedMessage: string, accept: boolean = true) {
-        this.page.on('dialog', async dialog => {
-            expect(dialog.message()).toContain(expectedMessage);
-            if (accept) {
-                await dialog.accept();
-            } else {
-                await dialog.dismiss();
-            }
-        });
+        // For backward compatibility, redirect to modal method
+        return this.expectModalWithMessage(expectedMessage, accept);
     }
 
     /**
@@ -953,6 +965,110 @@ class ValidationHelper {
      */
     async waitForElementGone(selector: string, timeout: number = 5000) {
         await this.page.waitForSelector(selector, { state: 'hidden', timeout });
+    }
+
+    // ==================== MODERN ERROR HANDLING ====================
+
+    /**
+     * Wait for and validate toast notification
+     */
+    async expectToast(type: 'error' | 'warning' | 'success' | 'info', titleText?: string, timeout: number = 5000) {
+        const toast = this.page.locator(`.toast-container .toast-${type}`);
+        await expect(toast).toBeVisible({ timeout });
+        
+        if (titleText) {
+            const title = toast.locator('.toast-title');
+            await expect(title).toContainText(titleText);
+        }
+        
+        return toast;
+    }
+
+    /**
+     * Wait for and validate error toast with suggestions
+     */
+    async expectErrorToast(titleText?: string, suggestionText?: string, timeout: number = 5000) {
+        const toast = await this.expectToast('error', titleText, timeout);
+        
+        if (suggestionText) {
+            const suggestions = toast.locator('.toast-suggestions');
+            await expect(suggestions).toContainText(suggestionText);
+        }
+        
+        return toast;
+    }
+
+    /**
+     * Close toast notification
+     */
+    async closeToast(toastIndex: number = 0) {
+        const toasts = this.page.locator('.toast-container .toast');
+        const toast = toasts.nth(toastIndex);
+        const closeBtn = toast.locator('.toast-close');
+        await closeBtn.click();
+        await expect(toast).not.toBeVisible();
+    }
+
+    /**
+     * Wait for confirmation modal and validate content
+     */
+    async expectConfirmationModal(titleText?: string, messageText?: string, timeout: number = 5000) {
+        const modal = this.page.locator('.modal-container .modal-overlay');
+        await expect(modal).toBeVisible({ timeout });
+        
+        if (titleText) {
+            const title = modal.locator('.modal-title');
+            await expect(title).toContainText(titleText);
+        }
+        
+        if (messageText) {
+            const message = modal.locator('.modal-message');
+            await expect(message).toContainText(messageText);
+        }
+        
+        return modal;
+    }
+
+    /**
+     * Handle confirmation modal (accept or cancel)
+     */
+    async handleConfirmationModal(accept: boolean = true) {
+        const modal = this.page.locator('.modal-container .modal-overlay');
+        await expect(modal).toBeVisible({ timeout: 2000 });
+        
+        if (accept) {
+            await modal.locator('.modal-confirm').click();
+        } else {
+            await modal.locator('.modal-cancel').click();
+        }
+        
+        await expect(modal).not.toBeVisible();
+    }
+
+    /**
+     * Expect no error notifications to be visible
+     */
+    async expectNoErrors() {
+        const toasts = this.page.locator('.toast-container .toast');
+        await expect(toasts).toHaveCount(0);
+        
+        const modals = this.page.locator('.modal-container .modal-overlay');
+        await expect(modals).toHaveCount(0);
+    }
+
+    /**
+     * Clear all toast notifications
+     */
+    async clearAllToasts() {
+        const toasts = this.page.locator('.toast-container .toast');
+        const count = await toasts.count();
+        
+        for (let i = 0; i < count; i++) {
+            const closeBtn = toasts.nth(i).locator('.toast-close');
+            if (await closeBtn.isVisible()) {
+                await closeBtn.click();
+            }
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 import { UIManager } from './ui-manager.js';
 import { elementPool } from './element-pool.js';
+import { modernErrorManager } from './modern-error-manager.js';
 
 /**
  * Dynamically generates CSS rules for group colors
@@ -55,6 +56,10 @@ function generateGroupColorCSS(): void {
 document.addEventListener('DOMContentLoaded', () => {
     // Generate group color CSS first
     generateGroupColorCSS();
+
+    // Initialize modern error manager (ensures containers are created)
+    // Access the modernErrorManager to ensure it's instantiated
+    modernErrorManager.clearAllToasts();
 
     const uiManager = new UIManager();
     // Initialize the application with default player rows

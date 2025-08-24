@@ -3,6 +3,8 @@
  * Provides specific guidance to help users resolve issues
  */
 
+import { modernErrorManager } from './modern-error-manager.js';
+
 // Error codes for compression
 enum ErrorCode {
     PLAYER_NAME_REQUIRED = 'E001',
@@ -130,29 +132,24 @@ export class ErrorMessages {
         const errorInfo = this.get(code);
         console.error(`[${code}] ${errorInfo.title}: ${errorInfo.message}`);
 
-        // Create enhanced error message with suggestions
-        let message = `${errorInfo.title}\n\n${errorInfo.message}`;
-        
-        if (details) {
-            message += `\n\nDetails: ${details}`;
-        }
-
-        message += '\n\nSuggestions:';
-        errorInfo.suggestions.forEach((suggestion, index) => {
-            message += `\n${index + 1}. ${suggestion}`;
-        });
-
-        // Show enhanced alert dialog
-        alert(message);
+        // Show enhanced error using modern error manager
+        modernErrorManager.showError(
+            errorInfo.title,
+            details ? `${errorInfo.message}\n\nDetails: ${details}` : errorInfo.message,
+            errorInfo.suggestions
+        );
     }
 
     /**
      * Show error message with improved UX (backward compatibility)
      */
     static show(code: ErrorCode, details?: string): void {
-        const message = this.getSimple(code, details);
+        const errorInfo = this.get(code);
+        const message = details ? `${errorInfo.message}: ${details}` : errorInfo.message;
         console.error(`[${code}] ${message}`);
-        alert(message);
+        
+        // Show simple error using modern error manager
+        modernErrorManager.showError(errorInfo.title, message, errorInfo.suggestions);
     }
 
     /**
@@ -160,6 +157,6 @@ export class ErrorMessages {
      */
     static showSuccess(message: string): void {
         console.log(`✅ ${message}`);
-        alert(message);
+        modernErrorManager.showSuccess(message);
     }
 }

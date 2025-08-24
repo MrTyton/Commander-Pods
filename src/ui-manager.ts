@@ -40,6 +40,8 @@ import { domCache } from './dom-cache.js';
 import { realTimeValidator } from './real-time-validator.js';
 import { performanceMonitor } from './performance-monitor.js';
 import { elementPool } from './element-pool.js';
+import { modernErrorManager } from './modern-error-manager.js';
+import { ErrorMessages } from './error-messages.js';
 import {
     isHTMLElement,
     isHTMLInputElement,
@@ -163,10 +165,7 @@ export class UIManager {
 
         } catch (error) {
             console.error('Critical error during UIManager initialization:', error);
-            this.showErrorMessage(
-                'Failed to initialize the application. Please refresh the page. ' +
-                `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-            );
+            ErrorMessages.show(ErrorMessages.INITIALIZATION_FAILED);
         }
     }
 
@@ -231,9 +230,9 @@ export class UIManager {
 
         addPlayerBtn.addEventListener('click', () => this.addPlayerRow());
         bulkAddBtn.addEventListener('click', () => this.bulkAddPlayers(4));
-        generatePodsBtn.addEventListener('click', () => this.generatePods());
-        resetAllBtn.addEventListener('click', () => this.resetAllWithConfirmation());
-        this.displayModeBtn.addEventListener('click', () => this.enterDisplayModeWithWarning());
+        generatePodsBtn.addEventListener('click', async () => await this.generatePods());
+        resetAllBtn.addEventListener('click', async () => await this.resetAllWithConfirmation());
+        this.displayModeBtn.addEventListener('click', async () => await this.enterDisplayModeWithWarning());
         helpBtn.addEventListener('click', () => this.showHelpModal());
 
         // Sidebar toggle functionality
@@ -260,7 +259,12 @@ export class UIManager {
         // Close sidebar when clicking outside
         document.addEventListener('click', (e) => {
             const target = getEventTarget(e, isHTMLElement);
-            if (target && !settingsSidebar.contains(target) && !sidebarToggle.contains(target) && settingsSidebar.classList.contains('open')) {
+            if (target && 
+                !settingsSidebar.contains(target) && 
+                !sidebarToggle.contains(target) && 
+                !target.closest('.toast-container') && // Don't close sidebar when clicking toast elements
+                !target.closest('.modal-container') && // Don't close sidebar when clicking modal elements
+                settingsSidebar.classList.contains('open')) {
                 this.toggleSidebar(false);
             }
         });
@@ -292,35 +296,30 @@ export class UIManager {
      * Display error message with improved UX (replaces alert() calls)
      * 
      * **Enhanced Error Handling:**
-     * - More user-friendly error display than basic alert()
+     * - Modern toast notifications instead of browser alerts
      * - Logs errors to console for debugging
-     * - Could be extended to show toast notifications
+     * - User-friendly error display with contextual feedback
      */
-    private showErrorMessage(message: string): void {
+    private async showErrorMessage(message: string): Promise<void> {
         console.error('UIManager Error:', message);
 
-        // For now, use alert but this could be enhanced with custom modals
-        alert(message);
-
-        // Future enhancement: Show toast notification instead
-        // this.showToast(message, 'error');
+        // Use modern error manager for enhanced UX
+        await modernErrorManager.showError('Error', message);
     }
 
     /**
      * Display success message with improved UX
      * 
      * **Enhanced Success Feedback:**
+     * - Modern toast notifications with auto-hide
      * - Logs success actions for debugging
-     * - Could be enhanced with green toast notifications
+     * - Green success styling for positive feedback
      */
     private showSuccessMessage(message: string): void {
         console.log('UIManager Success:', message);
 
-        // For now, use alert but this could be enhanced with custom modals
-        alert(message);
-
-        // Future enhancement: Show green toast notification instead
-        // this.showToast(message, 'success');
+        // Use modern error manager for success notifications
+        modernErrorManager.showSuccess(message);
     }
 
     /**
@@ -1081,7 +1080,7 @@ export class UIManager {
      * - Optimized DOM queries through helper caching
      * - Centralized error handling patterns
      */
-    generatePods(): void {
+    async generatePods(): Promise<void> {
         // Trigger validation for all fields before attempting pod generation
         this.triggerValidationForAllFields();
 
@@ -1099,23 +1098,129 @@ export class UIManager {
         const duplicateNames = ValidationUtils.highlightDuplicateNames(playerRows);
 
         let validationFailed = duplicateNames.length > 0;
+        const validationErrors: string[] = [];
+
+        // Add detailed duplicate name errors
+        if (duplicateNames.length > 0) {
+            duplicateNames.forEach(duplicateName => {
+                const duplicatePlayerNumbers: number[] = [];
+                playerRows.forEach((row, index) => {
+                    const nameInput = row.querySelector('.player-name') as HTMLInputElement;
+                    if (nameInput && nameInput.value.trim().toLowerCase() === duplicateName) {
+                        duplicatePlayerNumbers.push(index + 1);
+                    }
+                });
+                
+                if (duplicatePlayerNumbers.length > 1) {
+                    const playerLabels = duplicatePlayerNumbers.map(num => `Player ${num}`).join(' and ');
+                    validationErrors.push(`${playerLabels} both have the same name: "${duplicateName}"`);
+                }
+            });
+        }
 
         // Use reusable array to reduce memory allocation
         for (let i = 0; i < playerRows.length; i++) {
             const player = this.playerManager.getPlayerFromRow(playerRows[i]);
-            if (player) {
-                this.reusablePlayerArray.push(player);
+            if (!player) {
+                // Check if this is an empty row (should be ignored) or a row with partial data (validation error)
+                const rowNumber = i + 1;
+                const nameInput = playerRows[i].querySelector('.player-name') as HTMLInputElement;
+                const powerBtn = playerRows[i].querySelector('.power-selector-btn') as HTMLButtonElement;
+                const bracketBtn = playerRows[i].querySelector('.bracket-selector-btn') as HTMLButtonElement;
+                const playerName = nameInput.value.trim();
+                
+                // Check if this row has any content at all
+                const hasName = playerName.length > 0;
+                const hasPowerSelection = powerBtn && !powerBtn.textContent?.includes('Select Power');
+                const hasBracketSelection = bracketBtn && !bracketBtn.textContent?.includes('Select Bracket');
+                const hasAnyContent = hasName || hasPowerSelection || hasBracketSelection;
+                
+                // Determine if we need all rows to be filled based on whether any rows have content
+                const anyRowHasContent = Array.from(playerRows).some((row, index) => {
+                    const nameInput = row.querySelector('.player-name') as HTMLInputElement;
+                    const powerBtn = row.querySelector('.power-selector-btn') as HTMLButtonElement;
+                    const bracketBtn = row.querySelector('.bracket-selector-btn') as HTMLButtonElement;
+                    const name = nameInput.value.trim();
+                    const hasPower = powerBtn && !powerBtn.textContent?.includes('Select Power');
+                    const hasBracket = bracketBtn && !bracketBtn.textContent?.includes('Select Bracket');
+                    return name.length > 0 || hasPower || hasBracket;
+                });
+                
+                // If any row has content, then all visible rows should be considered required
+                const shouldBeRequired = anyRowHasContent || hasAnyContent;
+                
+                // Only treat as validation error if row should be required but is incomplete
+                if (shouldBeRequired && !player) {
+                    validationFailed = true;
+                    
+                    const rowErrors: string[] = [];
+                    
+                    // Check for missing name
+                    if (!hasName) {
+                        rowErrors.push('Missing name');
+                    }
+                    
+                    // Check for missing power levels (in power mode) or brackets (in bracket mode)
+                    if (!hasPowerSelection && !hasBracketSelection) {
+                        const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
+                        if (bracketRadio && bracketRadio.checked) {
+                            rowErrors.push('No bracket selected');
+                        } else {
+                            rowErrors.push('No power levels selected');
+                        }
+                    }
+                    
+                    // Add all errors for this row
+                    if (rowErrors.length > 0) {
+                        const playerLabel = playerName ? `Player ${rowNumber} (${playerName})` : `Player ${rowNumber}`;
+                        validationErrors.push(`${playerLabel}: ${rowErrors.join(', ')}`);
+                    } else {
+                        // Fallback if no specific error found
+                        validationErrors.push(`Player ${rowNumber}: Incomplete`);
+                    }
+                }
+                // If row is completely empty, just ignore it (don't add to reusablePlayerArray, don't count as error)
             } else {
-                validationFailed = true;
+                this.reusablePlayerArray.push(player);
             }
         }
 
         if (validationFailed) {
-            let errorMessage = 'Please fix the errors before generating pods.';
-            if (duplicateNames.length > 0) {
-                errorMessage += `\n\nDuplicate player names found: ${duplicateNames.join(', ')}`;
+            // Always use modern error manager for validation errors
+            if (validationErrors.length > 0) {
+                // Determine appropriate title based on error types
+                let title: string;
+                const hasDuplicateNames = duplicateNames.length > 0;
+                const hasOtherErrors = validationErrors.some(error => !error.includes('both have the same name'));
+                
+                if (hasDuplicateNames && !hasOtherErrors) {
+                    // Only duplicate name errors
+                    title = 'Duplicate Player Names';
+                } else if (!hasDuplicateNames && hasOtherErrors && validationErrors.length === 1) {
+                    // Single non-duplicate error - could be more specific
+                    if (validationErrors[0].includes('Missing name')) {
+                        title = 'Player Name Required';
+                    } else if (validationErrors[0].includes('No power levels selected')) {
+                        title = 'Power Level Required';
+                    } else if (validationErrors[0].includes('No bracket selected')) {
+                        title = 'Bracket Required';
+                    } else {
+                        title = 'Validation Error';
+                    }
+                } else {
+                    // Multiple errors or mixed types - use generic title
+                    title = 'Validation Errors Found';
+                }
+                
+                // Show specific validation errors with proper formatting
+                await modernErrorManager.showError(
+                    title,
+                    'Please fix the following issues before generating pods:',
+                    validationErrors
+                );
+            } else {
+                ErrorMessages.show(ErrorMessages.VALIDATION_FAILED);
             }
-            this.showErrorMessage(errorMessage);
             return;
         }
 
@@ -1154,7 +1259,7 @@ export class UIManager {
 
         const totalPlayerCount = this.reusablePlayerArray.length;
         if (totalPlayerCount < 3) {
-            this.showErrorMessage("You need at least 3 players to form a pod.");
+            ErrorMessages.show(ErrorMessages.INSUFFICIENT_PLAYERS);
             return;
         }
 
@@ -1194,6 +1299,10 @@ export class UIManager {
 
         this.currentPods = [...pods]; // Store current pods for drag-and-drop
         this.currentUnassigned = [...unassignedPlayers]; // Store current unassigned for drag-and-drop
+        
+        // Clear any existing error messages since pod generation was successful
+        await modernErrorManager.clearErrorToasts();
+        
         this.renderPods(pods, unassignedPlayers);
     }
 
@@ -1245,9 +1354,8 @@ export class UIManager {
 
         } catch (error) {
             console.error('Error in renderPods:', error);
-            this.showErrorMessage(
-                `Failed to display pods: ${error instanceof Error ? error.message : 'Unknown error'}. ` +
-                'Please try generating pods again.'
+            ErrorMessages.show(ErrorMessages.DISPLAY_MODE_FAILED,
+                `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
             );
 
             // Fallback: Clear output and hide display button
@@ -1516,7 +1624,7 @@ export class UIManager {
             this.displayModeBtnBottom = this.displayModeBtn.cloneNode(true) as HTMLButtonElement;
             this.displayModeBtnBottom.id = 'display-mode-btn-bottom';
             this.displayModeBtnBottom.style.display = 'inline-block';
-            this.displayModeBtnBottom.addEventListener('click', () => this.enterDisplayModeWithWarning());
+            this.displayModeBtnBottom.addEventListener('click', async () => await this.enterDisplayModeWithWarning());
 
             buttonWrapper.appendChild(this.displayModeBtnBottom);
             helpSection.parentNode.insertBefore(buttonWrapper, helpSection);
@@ -1576,7 +1684,7 @@ export class UIManager {
     }
 
     // Show confirmation dialog before reset
-    private resetAllWithConfirmation(): void {
+    private async resetAllWithConfirmation(): Promise<void> {
         const playerRows = Array.from(this.playerRowsContainer.querySelectorAll('.player-row'));
 
         // Check if there's any data to lose
@@ -1594,12 +1702,15 @@ export class UIManager {
             return;
         }
 
-        // Show confirmation dialog
-        const confirmed = confirm(
-            "Are you sure you want to reset all player data?\n\n" +
-            "This will clear all players, groups, and generated pods. " +
-            "You will be able to undo this action immediately after."
-        );
+        // Show confirmation dialog using modern error manager
+        const confirmed = await modernErrorManager.showConfirm({
+            title: 'Reset All Player Data',
+            message: 'Are you sure you want to reset all player data?\n\nThis will clear all players, groups, and generated pods. You will be able to undo this action immediately after.',
+            confirmText: 'Reset All',
+            cancelText: 'Cancel',
+            confirmStyle: 'danger',
+            icon: '⚠️'
+        });
 
         if (confirmed) {
             // Capture data before reset for undo
@@ -1610,17 +1721,20 @@ export class UIManager {
     }
 
     // Show warning dialog if there are unassigned players before entering display mode
-    private enterDisplayModeWithWarning(): void {
+    private async enterDisplayModeWithWarning(): Promise<void> {
         // Check if there are any unassigned players
         if (this.currentUnassigned.length > 0) {
             const playerCount = this.currentUnassigned.length;
             const playerWord = playerCount === 1 ? 'player' : 'players';
 
-            const confirmed = confirm(
-                `Warning: There ${playerCount === 1 ? 'is' : 'are'} ${playerCount} unassigned ${playerWord}.\n\n` +
-                "These players will not be displayed in display mode. " +
-                "Do you want to continue without assigning them?"
-            );
+            const confirmed = await modernErrorManager.showConfirm({
+                title: 'Unassigned Players Warning',
+                message: `Warning: There ${playerCount === 1 ? 'is' : 'are'} ${playerCount} unassigned ${playerWord}.\n\nThese players will not be displayed in display mode. Do you want to continue without assigning them?`,
+                confirmText: 'Continue',
+                cancelText: 'Cancel',
+                confirmStyle: 'warning',
+                icon: '⚠️'
+            });
 
             if (!confirmed) {
                 return; // User cancelled, don't enter display mode
@@ -1652,7 +1766,7 @@ export class UIManager {
         undoBtn.style.cursor = 'pointer';
         undoBtn.style.fontSize = '14px';
 
-        undoBtn.addEventListener('click', () => this.undoReset());
+        undoBtn.addEventListener('click', async () => await this.undoReset());
 
         // Add the button next to the reset button
         const resetBtn = document.getElementById('reset-all-btn')!;
@@ -1668,9 +1782,9 @@ export class UIManager {
     }
 
     // Restore data from before reset
-    private undoReset(): void {
+    private async undoReset(): Promise<void> {
         if (!this.lastResetData) {
-            this.showErrorMessage('No reset data available to restore.');
+            await modernErrorManager.showError('No Reset Data', 'No reset data available to restore.');
             return;
         }
 
