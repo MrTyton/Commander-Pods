@@ -90,7 +90,7 @@ test.describe('Pod Title Power Range Display', () => {
     });
 
     test.skip('should debug what data is available to the display mode', async ({ page }) => {
-        // This test is skipped as it's primarily for debugging
+        // This test is skipped - used for data inspection
         // Use simple setup instead of setupDisplayModeTest
         helper = new TestHelper(page);
         await helper.setup.gotoWithWait();

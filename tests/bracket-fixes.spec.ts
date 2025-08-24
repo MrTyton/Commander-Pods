@@ -46,7 +46,7 @@ test.describe('Bracket Mode Fixes', () => {
         await page.click('#generate-pods-btn');
         await page.waitForTimeout(500);
 
-        // Check if pods were generated at all (debug step)
+        // Check if pods were generated at all
         const outputSection = page.locator('#output-section');
         const outputText = await outputSection.textContent();
 

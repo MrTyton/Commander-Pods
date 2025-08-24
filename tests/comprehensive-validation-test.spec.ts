@@ -33,7 +33,5 @@ test.describe('Comprehensive Error Validation Test', () => {
         // Should show Player 1 with missing power levels
         const problemsList = toast.locator('.toast-suggestions li');
         await expect(problemsList.nth(0)).toContainText('Player 1 (Bob): No power levels selected');
-
-        console.log('Comprehensive validation test is working with power level errors');
     });
 });

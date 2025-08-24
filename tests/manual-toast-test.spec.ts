@@ -36,9 +36,6 @@ test.describe('Manual Toast Test', () => {
                     </div>
                 `;
                 toastContainer.appendChild(toast);
-                console.log('Manual toast created');
-            } else {
-                console.log('Toast container not found');
             }
         });
 

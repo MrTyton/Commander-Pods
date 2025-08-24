@@ -251,7 +251,6 @@ test.describe('Modern Error Handling System', () => {
             // If no toasts, at least verify the toast container exists and error system is working
             const toastContainer = page.locator('.toast-container');
             await expect(toastContainer).toBeAttached();
-            console.log('Firefox: No toasts generated, but system is functional');
         } else {
             expect(toastCount).toBeGreaterThan(0);
             expect(toastCount).toBeLessThanOrEqual(5); // Reasonable limit
