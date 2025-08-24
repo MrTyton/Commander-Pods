@@ -181,15 +181,20 @@ test.describe('Modern Error Handling System', () => {
     });
 
     test('should not show error notifications in display mode', async ({ page }) => {
-        // Add players and generate pods using helper
+        // Add enough players for successful pod generation using helper
         await helper.players.createPlayers([
             { name: 'Player 1', power: [7] },
             { name: 'Player 2', power: [7] },
-            { name: 'Player 3', power: [7] }
+            { name: 'Player 3', power: [7] },
+            { name: 'Player 4', power: [7] }
         ]);
         
         await helper.pods.generatePods();
         await helper.utils.wait(1000); // Wait for generation
+        
+        // Verify pods were actually generated
+        const podsOutput = page.locator('#output-section');
+        await expect(podsOutput).toContainText('Pod');
 
         // Enter display mode using helper
         await helper.displayMode.enterDisplayMode();

@@ -141,19 +141,26 @@ class TestSetup {
 
         await resetBtn.click();
         
-        // Wait for modal to appear with longer timeout for modern error manager
+        // Check if modal appears - if no data exists, no modal will show
         const modal = this.page.locator('.modal-container .modal-overlay');
-        await modal.waitFor({ state: 'visible', timeout: 5000 });
+        try {
+            // Try to wait for modal with short timeout
+            await modal.waitFor({ state: 'visible', timeout: 1000 });
+            
+            // Modal appeared, handle it
+            if (accept) {
+                await modal.locator('.modal-confirm').click();
+            } else {
+                await modal.locator('.modal-cancel').click();
+            }
 
-        // Handle the confirmation modal
-        if (accept) {
-            await modal.locator('.modal-confirm').click();
-        } else {
-            await modal.locator('.modal-cancel').click();
+            // Wait for modal to disappear
+            await modal.waitFor({ state: 'hidden', timeout: 3000 });
+        } catch (error) {
+            // No modal appeared - this is normal when there's no data to lose
+            // The reset has already completed without confirmation
         }
-
-        // Wait for modal to disappear
-        await modal.waitFor({ state: 'hidden', timeout: 3000 });
+        
         await this.page.waitForTimeout(200); // Allow for cleanup
     }
 

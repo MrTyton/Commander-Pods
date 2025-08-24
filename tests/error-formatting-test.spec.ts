@@ -18,11 +18,23 @@ test.describe('Improved Error Formatting Test', () => {
     });
 
     test('should show improved duplicate names formatting', async ({ page }) => {
-        // Create duplicate names scenario - Player 1 and Player 2 both named "Alice"
+        // Clear any existing data first
+        await helper.setup.reset();
+        
+        // Create a scenario with complete data for all required players, but with duplicate names
+        // Player 1: Complete data (unique name)
+        await helper.players.setPlayerName(0, 'Bob');
+        await helper.players.setPowerLevels(0, [6]);
+        
+        // Player 2 and 3: Both named "Alice" (duplicate)
         await helper.players.setPlayerName(1, 'Alice');
         await helper.players.setPlayerName(2, 'Alice');
         await helper.players.setPowerLevels(1, [7]);
         await helper.players.setPowerLevels(2, [7]);
+        
+        // Player 4: Complete data (unique name)
+        await helper.players.setPlayerName(3, 'Charlie');
+        await helper.players.setPowerLevels(3, [8]);
         
         // Try to generate pods
         await helper.pods.generatePods();

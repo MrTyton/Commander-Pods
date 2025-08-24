@@ -18,13 +18,13 @@ test.describe('Debug Modern Error Manager', () => {
     });
 
     test('should create toast container on page load', async ({ page }) => {
-        // Check if toast container exists
+        // Check if toast container exists in DOM (but may not be visible when empty)
         const toastContainer = page.locator('#toast-container');
-        await expect(toastContainer).toBeVisible();
+        await expect(toastContainer).toBeAttached();
         
-        // Check if modal container exists
+        // Check if modal container exists in DOM (but may not be visible when empty)
         const modalContainer = page.locator('#modal-container');
-        await expect(modalContainer).toBeVisible();
+        await expect(modalContainer).toBeAttached();
     });
 
     test('should manually trigger error manager', async ({ page }) => {
