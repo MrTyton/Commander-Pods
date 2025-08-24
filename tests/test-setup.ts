@@ -137,11 +137,50 @@ export async function teardownBasicTest(helper: TestHelper) {
         return;
     }
 
+    // Set a timeout for the entire teardown process to prevent hanging
+    const teardownTimeout = setTimeout(() => {
+        console.warn('Teardown timeout - forcing exit');
+    }, 10000); // 10 second timeout
+
     try {
         // Remove any existing dialog handlers to avoid conflicts
         helper.page.removeAllListeners('dialog');
 
-        // Force close any open modals or tours that might block interactions
+        // Step 1: Clear any error toasts that might be blocking other elements
+        try {
+            const toasts = helper.page.locator('.toast-container .toast');
+            const toastCount = await toasts.count();
+            if (toastCount > 0) {
+                // Close all toasts by clicking their close buttons
+                for (let i = 0; i < toastCount; i++) {
+                    const closeBtn = toasts.nth(i).locator('.toast-close');
+                    if (await closeBtn.isVisible()) {
+                        await closeBtn.click();
+                        await helper.page.waitForTimeout(50);
+                    }
+                }
+                // Wait for animations to complete
+                await helper.page.waitForTimeout(200);
+            }
+        } catch (toastError) {
+            // Silently handle toast cleanup errors
+        }
+
+        // Step 2: Exit display mode if active
+        try {
+            const displayModeActive = await helper.page.evaluate(() => {
+                return document.body.classList.contains('display-mode');
+            });
+            
+            if (displayModeActive) {
+                await helper.page.keyboard.press('Escape');
+                await helper.page.waitForTimeout(100);
+            }
+        } catch (displayModeError) {
+            // Silently handle display mode exit errors
+        }
+
+        // Step 3: Force close any open modals or tours that might block interactions
         try {
             // Close help modal if open
             const helpModal = helper.page.locator('#help-modal');
@@ -193,7 +232,18 @@ export async function teardownBasicTest(helper: TestHelper) {
                         resetBtn.click();
                     }
                 });
-                await helper.page.waitForTimeout(100);
+                await helper.page.waitForTimeout(200);
+                
+                // Try to handle any modal that might appear
+                try {
+                    const modal = helper.page.locator('.modal-container .modal-overlay');
+                    if (await modal.isVisible()) {
+                        await modal.locator('.modal-confirm').click();
+                        await helper.page.waitForTimeout(100);
+                    }
+                } catch (modalFallbackError) {
+                    // Silent fallback
+                }
             } catch (fallbackError) {
                 // Silently handle fallback reset errors
             }
@@ -205,6 +255,9 @@ export async function teardownBasicTest(helper: TestHelper) {
         } catch (clearError) {
             // Silently handle clear players errors
         }
+    } finally {
+        // Clear the timeout
+        clearTimeout(teardownTimeout);
     }
 }
 
@@ -212,13 +265,31 @@ export async function teardownBasicTest(helper: TestHelper) {
  * Display mode cleanup - exit display mode and reset
  */
 export async function teardownDisplayModeTest(helper: TestHelper) {
+    if (!helper) {
+        return;
+    }
+
     try {
-        // Exit display mode if active
-        if (await helper.displayMode.isInDisplayMode()) {
-            await helper.displayMode.exitDisplayMode();
+        // Force exit display mode first using multiple methods
+        try {
+            // Method 1: Use keyboard escape
+            await helper.page.keyboard.press('Escape');
+            await helper.page.waitForTimeout(200);
+            
+            // Method 2: Check if still in display mode and use helper
+            if (await helper.displayMode.isInDisplayMode()) {
+                await helper.displayMode.exitDisplayMode();
+            }
+            
+            // Method 3: Force body class removal if still stuck
+            await helper.page.evaluate(() => {
+                document.body.classList.remove('display-mode');
+            });
+        } catch (displayError) {
+            // Silently handle display mode exit errors
         }
     } catch (error) {
-        // Silently handle display mode exit errors
+        // Silently handle any errors
     }
 
     await teardownBasicTest(helper);

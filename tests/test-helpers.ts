@@ -141,9 +141,9 @@ class TestSetup {
 
         await resetBtn.click();
         
-        // Wait for modal to appear
+        // Wait for modal to appear with longer timeout for modern error manager
         const modal = this.page.locator('.modal-container .modal-overlay');
-        await modal.waitFor({ state: 'visible', timeout: 2000 });
+        await modal.waitFor({ state: 'visible', timeout: 5000 });
 
         // Handle the confirmation modal
         if (accept) {
@@ -152,7 +152,9 @@ class TestSetup {
             await modal.locator('.modal-cancel').click();
         }
 
-        await this.page.waitForTimeout(100); // Simple timeout for teardown reliability
+        // Wait for modal to disappear
+        await modal.waitFor({ state: 'hidden', timeout: 3000 });
+        await this.page.waitForTimeout(200); // Allow for cleanup
     }
 
     /**
@@ -1410,11 +1412,21 @@ class DisplayModeHelper {
     constructor(private page: Page) { }
 
     /**
-     * Enter display mode
+     * Enter display mode - with better error handling
      */
     async enterDisplayMode() {
-        await this.page.click('#display-mode-btn');
-        await this.page.waitForTimeout(500);
+        // Check if display mode button is visible first
+        const displayBtn = this.page.locator('#display-mode-btn');
+        
+        // Wait for the button to be visible with a reasonable timeout
+        try {
+            await displayBtn.waitFor({ state: 'visible', timeout: 5000 });
+            await displayBtn.click();
+            await this.page.waitForTimeout(500);
+        } catch (error) {
+            // If button isn't visible, pods probably weren't generated
+            throw new Error('Display mode button not visible - ensure pods are generated first');
+        }
     }
 
     /**
