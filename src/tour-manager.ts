@@ -283,17 +283,16 @@ export class TourManager {
         // Reset the page to clean state immediately after tour completion
         const resetButton = document.getElementById('reset-all-btn') as HTMLButtonElement;
         if (resetButton) {
-            // Temporarily override the confirmation to auto-proceed
-            const originalConfirm = window.confirm;
-            window.confirm = () => true;
-
-            // Click reset immediately
+            // Click reset button and handle the confirmation modal automatically
             resetButton.click();
 
-            // Restore original confirm after a short delay
-            setTimeout(() => {
-                window.confirm = originalConfirm;
-            }, 100);
+            // Wait a moment for the modal to appear, then confirm it
+            setTimeout(async () => {
+                const confirmButton = document.querySelector('.modal-confirm') as HTMLButtonElement;
+                if (confirmButton) {
+                    confirmButton.click();
+                }
+            }, 50);
         }
 
         // Restore original scroll position
@@ -320,17 +319,16 @@ export class TourManager {
         // Reset the page to clean state immediately
         const resetButton = document.getElementById('reset-all-btn') as HTMLButtonElement;
         if (resetButton) {
-            // Temporarily override the confirmation to auto-proceed
-            const originalConfirm = window.confirm;
-            window.confirm = () => true;
-
-            // Click reset immediately
+            // Click reset button and handle the confirmation modal automatically
             resetButton.click();
 
-            // Restore original confirm after a short delay
-            setTimeout(() => {
-                window.confirm = originalConfirm;
-            }, 100);
+            // Wait a moment for the modal to appear, then confirm it
+            setTimeout(async () => {
+                const confirmButton = document.querySelector('.modal-confirm') as HTMLButtonElement;
+                if (confirmButton) {
+                    confirmButton.click();
+                }
+            }, 50);
         }
 
         // Restore original scroll position

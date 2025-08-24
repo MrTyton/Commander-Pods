@@ -77,7 +77,7 @@ export class ModernErrorManager {
         const toast = document.createElement('div');
         toast.id = toastId;
         toast.className = `toast toast-${options.type}`;
-        
+
         // Create toast content
         const icon = this.getIconForType(options.type);
         const actionsHtml = options.actions ? this.createActionsHtml(options.actions, toastId) : '';
@@ -172,7 +172,7 @@ export class ModernErrorManager {
 
             confirmBtn.addEventListener('click', handleConfirm);
             cancelBtn.addEventListener('click', handleCancel);
-            
+
             // Close on overlay click (outside dialog)
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) {
@@ -308,7 +308,7 @@ export class ModernErrorManager {
      * Create HTML for suggestions list
      */
     private createSuggestionsHtml(suggestions: string[]): string {
-        const listItems = suggestions.map(suggestion => 
+        const listItems = suggestions.map(suggestion =>
             `<li>${suggestion}</li>`
         ).join('');
 
@@ -335,10 +335,10 @@ export class ModernErrorManager {
      * Clear only error toasts (leave success/info toasts)
      */
     async clearErrorToasts(): Promise<void> {
-        const errorToasts = Array.from(this.activeToasts).filter(toast => 
+        const errorToasts = Array.from(this.activeToasts).filter(toast =>
             toast.classList.contains('toast-error')
         );
-        
+
         if (errorToasts.length === 0) {
             return Promise.resolve();
         }
@@ -363,7 +363,7 @@ export class ModernErrorManager {
         });
 
         await Promise.all(hidePromises);
-        
+
         // Small delay to ensure DOM is fully cleared before new toast
         await new Promise(resolve => setTimeout(resolve, 50));
     }
@@ -400,7 +400,7 @@ export class ModernErrorManager {
     async showError(title: string, message: string, suggestions?: string[]): Promise<void> {
         // Clear existing error toasts first and wait for animation to complete
         await this.clearErrorToasts();
-        
+
         this.showToast({
             type: 'error',
             title,

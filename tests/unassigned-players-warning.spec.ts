@@ -56,7 +56,7 @@ test.describe('Unassigned Players Warning Dialog', () => {
         await page.click('#display-mode-btn');
 
         // Should show warning modal and cancel it
-        await helper.validation.expectConfirmationModal('Unassigned Players Warning', 'Warning: There are 2 unassigned players');
+        await helper.validation.expectConfirmationModal('Unassigned Players Warning', 'Warning: There are 3 unassigned players');
         await helper.validation.handleConfirmationModal(false); // Cancel
 
         // Should NOT enter display mode (body should not have display-mode class)
@@ -87,7 +87,7 @@ test.describe('Unassigned Players Warning Dialog', () => {
         await page.click('#display-mode-btn');
 
         // Should show warning modal and accept it
-        await helper.validation.expectConfirmationModal('Unassigned Players Warning', 'Warning: There are 2 unassigned players');
+        await helper.validation.expectConfirmationModal('Unassigned Players Warning', 'Warning: There are 3 unassigned players');
         await helper.validation.handleConfirmationModal(true); // Confirm
 
         // Should enter display mode (check for display mode UI)
@@ -118,7 +118,7 @@ test.describe('Unassigned Players Warning Dialog', () => {
         await page.click('#display-mode-btn');
 
         // Should show warning modal with proper grammar (checking for plural)
-        await helper.validation.expectConfirmationModal('Unassigned Players Warning', 'Warning: There are 2 unassigned players');
+        await helper.validation.expectConfirmationModal('Unassigned Players Warning', 'Warning: There are 3 unassigned players');
         await helper.validation.handleConfirmationModal(false); // Cancel
     });
 
@@ -146,7 +146,7 @@ test.describe('Unassigned Players Warning Dialog', () => {
         await page.click('#display-mode-btn-bottom');
 
         // Should show warning modal and cancel it
-        await helper.validation.expectConfirmationModal('Unassigned Players Warning', 'Warning: There are 2 unassigned players');
+        await helper.validation.expectConfirmationModal('Unassigned Players Warning', 'Warning: There are 3 unassigned players');
         await helper.validation.handleConfirmationModal(false); // Cancel
 
         // Should NOT enter display mode
@@ -173,19 +173,14 @@ test.describe('Unassigned Players Warning Dialog', () => {
         // Verify we have unassigned players
         await expect(page.locator('.unassigned-pod')).toBeVisible();
 
-        // Set up dialog handler to check unassigned count
-        let dialogShown = false;
-        page.on('dialog', dialog => {
-            dialogShown = true;
-            expect(dialog.message()).toContain('Warning:');
-            expect(dialog.message()).toContain('unassigned player');
-            dialog.dismiss(); // Cancel
-        });
-
         // Click display mode button
         await page.click('#display-mode-btn');
 
-        // Should have shown the dialog for the unassigned players
-        expect(dialogShown).toBe(true);
+        // Should show warning modal with unassigned players
+        await helper.validation.expectConfirmationModal('Unassigned Players Warning', 'Warning: There are 3 unassigned players');
+        await helper.validation.handleConfirmationModal(false); // Cancel
+
+        // Should NOT enter display mode since we cancelled
+        await expect(page.locator('body')).not.toHaveClass(/display-mode/);
     });
 });

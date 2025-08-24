@@ -21,7 +21,7 @@ test.describe('Debug Modern Error Manager', () => {
         // Check if toast container exists in DOM (but may not be visible when empty)
         const toastContainer = page.locator('#toast-container');
         await expect(toastContainer).toBeAttached();
-        
+
         // Check if modal container exists in DOM (but may not be visible when empty)
         const modalContainer = page.locator('#modal-container');
         await expect(modalContainer).toBeAttached();
@@ -32,13 +32,13 @@ test.describe('Debug Modern Error Manager', () => {
         await page.evaluate(() => {
             // Try to access the global error manager
             console.log('Testing modern error manager...');
-            
+
             // Check if the containers exist
             const toastContainer = document.getElementById('toast-container');
             const modalContainer = document.getElementById('modal-container');
             console.log('Toast container:', toastContainer);
             console.log('Modal container:', modalContainer);
-            
+
             // Try to access modernErrorManager from the global scope
             if ((window as any).modernErrorManager) {
                 console.log('Found modern error manager on window');
@@ -50,7 +50,7 @@ test.describe('Debug Modern Error Manager', () => {
 
         // Wait a bit for any toasts to appear
         await page.waitForTimeout(2000);
-        
+
         // Check console logs
         const logs = await page.evaluate(() => {
             return (window as any).logs || [];
@@ -62,7 +62,7 @@ test.describe('Debug Modern Error Manager', () => {
         // Check if ErrorMessages is available and working
         await page.evaluate(() => {
             console.log('Testing ErrorMessages...');
-            
+
             // Try to trigger an error using ErrorMessages
             try {
                 // This should call the modernErrorManager

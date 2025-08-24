@@ -140,13 +140,13 @@ class TestSetup {
         });
 
         await resetBtn.click();
-        
+
         // Check if modal appears - if no data exists, no modal will show
         const modal = this.page.locator('.modal-container .modal-overlay');
         try {
             // Try to wait for modal with short timeout
             await modal.waitFor({ state: 'visible', timeout: 1000 });
-            
+
             // Modal appeared, handle it
             if (accept) {
                 await modal.locator('.modal-confirm').click();
@@ -160,7 +160,7 @@ class TestSetup {
             // No modal appeared - this is normal when there's no data to lose
             // The reset has already completed without confirmation
         }
-        
+
         await this.page.waitForTimeout(200); // Allow for cleanup
     }
 
@@ -852,11 +852,11 @@ class ValidationHelper {
     async expectModalWithMessage(expectedMessage: string, accept: boolean = true) {
         const modal = this.page.locator('.modal-container .modal-overlay');
         await modal.waitFor({ state: 'visible', timeout: 2000 });
-        
+
         // Check modal message contains expected text
         const modalMessage = modal.locator('.modal-message');
         await expect(modalMessage).toContainText(expectedMessage);
-        
+
         // Handle the modal
         if (accept) {
             await modal.locator('.modal-confirm').click();
@@ -984,12 +984,12 @@ class ValidationHelper {
     async expectToast(type: 'error' | 'warning' | 'success' | 'info', titleText?: string, timeout: number = 5000) {
         const toast = this.page.locator(`.toast-container .toast-${type}`);
         await expect(toast).toBeVisible({ timeout });
-        
+
         if (titleText) {
             const title = toast.locator('.toast-title');
             await expect(title).toContainText(titleText);
         }
-        
+
         return toast;
     }
 
@@ -998,12 +998,12 @@ class ValidationHelper {
      */
     async expectErrorToast(titleText?: string, suggestionText?: string, timeout: number = 5000) {
         const toast = await this.expectToast('error', titleText, timeout);
-        
+
         if (suggestionText) {
             const suggestions = toast.locator('.toast-suggestions');
             await expect(suggestions).toContainText(suggestionText);
         }
-        
+
         return toast;
     }
 
@@ -1024,17 +1024,17 @@ class ValidationHelper {
     async expectConfirmationModal(titleText?: string, messageText?: string, timeout: number = 5000) {
         const modal = this.page.locator('.modal-container .modal-overlay');
         await expect(modal).toBeVisible({ timeout });
-        
+
         if (titleText) {
             const title = modal.locator('.modal-title');
             await expect(title).toContainText(titleText);
         }
-        
+
         if (messageText) {
             const message = modal.locator('.modal-message');
             await expect(message).toContainText(messageText);
         }
-        
+
         return modal;
     }
 
@@ -1044,13 +1044,13 @@ class ValidationHelper {
     async handleConfirmationModal(accept: boolean = true) {
         const modal = this.page.locator('.modal-container .modal-overlay');
         await expect(modal).toBeVisible({ timeout: 2000 });
-        
+
         if (accept) {
             await modal.locator('.modal-confirm').click();
         } else {
             await modal.locator('.modal-cancel').click();
         }
-        
+
         await expect(modal).not.toBeVisible();
     }
 
@@ -1060,7 +1060,7 @@ class ValidationHelper {
     async expectNoErrors() {
         const toasts = this.page.locator('.toast-container .toast');
         await expect(toasts).toHaveCount(0);
-        
+
         const modals = this.page.locator('.modal-container .modal-overlay');
         await expect(modals).toHaveCount(0);
     }
@@ -1071,7 +1071,7 @@ class ValidationHelper {
     async clearAllToasts() {
         const toasts = this.page.locator('.toast-container .toast');
         const count = await toasts.count();
-        
+
         for (let i = 0; i < count; i++) {
             const closeBtn = toasts.nth(i).locator('.toast-close');
             if (await closeBtn.isVisible()) {
@@ -1424,7 +1424,7 @@ class DisplayModeHelper {
     async enterDisplayMode() {
         // Check if display mode button is visible first
         const displayBtn = this.page.locator('#display-mode-btn');
-        
+
         // Wait for the button to be visible with a reasonable timeout
         try {
             await displayBtn.waitFor({ state: 'visible', timeout: 5000 });

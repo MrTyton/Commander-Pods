@@ -32,7 +32,7 @@ test.describe('Reset All with Confirmation and Undo', () => {
 
         // Should show confirmation modal
         const modal = await helper.validation.expectConfirmationModal('Reset All Player Data', 'Are you sure you want to reset all player data?');
-        
+
         // Cancel the modal
         await helper.validation.handleConfirmationModal(false);
 
@@ -53,7 +53,7 @@ test.describe('Reset All with Confirmation and Undo', () => {
         // Should show confirmation modal, accept it
         await helper.validation.expectConfirmationModal('Reset All Player Data');
         await helper.validation.handleConfirmationModal(true);
-        
+
         await page.waitForTimeout(200);
 
         // Data should be cleared
@@ -81,7 +81,7 @@ test.describe('Reset All with Confirmation and Undo', () => {
 
         // Reset
         await page.click('#reset-all-btn');
-        
+
         // Handle reset confirmation modal
         await helper.validation.expectConfirmationModal('Reset All Player Data');
         await helper.validation.handleConfirmationModal(true);
@@ -121,15 +121,8 @@ test.describe('Reset All with Confirmation and Undo', () => {
         await expect(page.locator('.player-row:nth-child(1) .bracket-selector-btn')).toContainText('Brackets: 3, 4');
 
         // Reset with confirmation
-        page.on('dialog', dialog => {
-            if (dialog.message().includes('reset all player data')) {
-                dialog.accept();
-            } else if (dialog.message().includes('undone successfully')) {
-                dialog.accept();
-            }
-        });
-
         await page.click('#reset-all-btn');
+        await helper.validation.handleConfirmationModal(true);
         await page.waitForTimeout(200);
 
         // Verify bracket mode is reset to default (no leniency)
@@ -167,15 +160,8 @@ test.describe('Reset All with Confirmation and Undo', () => {
         await page.waitForTimeout(300);
 
         // Reset with confirmation
-        page.on('dialog', dialog => {
-            if (dialog.message().includes('reset all player data')) {
-                dialog.accept();
-            } else if (dialog.message().includes('undone successfully')) {
-                dialog.accept();
-            }
-        });
-
         await page.click('#reset-all-btn');
+        await helper.validation.handleConfirmationModal(true);
         await page.waitForTimeout(300);
 
         // Undo
@@ -203,20 +189,12 @@ test.describe('Reset All with Confirmation and Undo', () => {
         await page.click('#generate-pods-btn');
         await page.waitForTimeout(500);
 
-
         // For now, just check that pods were generated
         await expect(page.locator('#output-section')).toContainText('Pod');
 
-        // Reset with confirmation
-        page.on('dialog', dialog => {
-            if (dialog.message().includes('reset all player data')) {
-                dialog.accept();
-            } else if (dialog.message().includes('undone successfully')) {
-                dialog.accept();
-            }
-        });
-
+        // Reset with confirmation using modern modal system
         await page.click('#reset-all-btn');
+        await helper.validation.handleConfirmationModal(true);
         await page.waitForTimeout(200);
 
         // Verify output is cleared
@@ -235,12 +213,9 @@ test.describe('Reset All with Confirmation and Undo', () => {
         // Add some data
         await page.fill('.player-row:nth-child(1) .player-name', 'Test Player');
 
-        // Reset with confirmation
-        page.on('dialog', dialog => {
-            dialog.accept();
-        });
-
+        // Reset with confirmation using modern modal system
         await page.click('#reset-all-btn');
+        await helper.validation.handleConfirmationModal(true);
         await page.waitForTimeout(200);
 
         // Undo button should be visible
@@ -272,11 +247,8 @@ test.describe('Reset All with Confirmation and Undo', () => {
         await helper.setup.setTolerance('super');
 
         // Reset and undo
-        page.on('dialog', dialog => {
-            dialog.accept();
-        });
-
         await page.click('#reset-all-btn');
+        await helper.validation.handleConfirmationModal(true);
         await page.waitForTimeout(200);
         await page.click('#undo-reset-btn');
         await page.waitForTimeout(300);
@@ -299,11 +271,8 @@ test.describe('Reset All with Confirmation and Undo', () => {
         await page.fill('.player-row:nth-child(1) .player-name', 'No Power Player');
 
         // Reset (should show confirmation since name is filled)
-        page.on('dialog', dialog => {
-            dialog.accept();
-        });
-
         await page.click('#reset-all-btn');
+        await helper.validation.handleConfirmationModal(true);
         await page.waitForTimeout(200);
         await page.click('#undo-reset-btn');
         await page.waitForTimeout(200);

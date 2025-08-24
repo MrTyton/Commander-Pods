@@ -46,7 +46,7 @@ test.describe('Manual Toast Test', () => {
         await page.waitForTimeout(1000);
         const toast = page.locator('.toast-container .toast');
         await expect(toast).toBeVisible();
-        
+
         // Check toast content
         await expect(toast.locator('.toast-title')).toContainText('Manual Test');
     });

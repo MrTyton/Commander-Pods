@@ -147,7 +147,7 @@ export class ErrorMessages {
         const errorInfo = this.get(code);
         const message = details ? `${errorInfo.message}: ${details}` : errorInfo.message;
         console.error(`[${code}] ${message}`);
-        
+
         // Show simple error using modern error manager
         modernErrorManager.showError(errorInfo.title, message, errorInfo.suggestions);
     }

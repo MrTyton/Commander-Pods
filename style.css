@@ -1603,7 +1603,8 @@ body.display-mode iframe[src*="ko-fi"] {
     border-radius: 4px;
     transition: all var(--transition-fast);
     flex-shrink: 0;
-    pointer-events: auto; /* Ensure toast close button receives clicks */
+    pointer-events: auto;
+    /* Ensure toast close button receives clicks */
 }
 
 .toast-close:hover {

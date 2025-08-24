@@ -259,9 +259,9 @@ export class UIManager {
         // Close sidebar when clicking outside
         document.addEventListener('click', (e) => {
             const target = getEventTarget(e, isHTMLElement);
-            if (target && 
-                !settingsSidebar.contains(target) && 
-                !sidebarToggle.contains(target) && 
+            if (target &&
+                !settingsSidebar.contains(target) &&
+                !sidebarToggle.contains(target) &&
                 !target.closest('.toast-container') && // Don't close sidebar when clicking toast elements
                 !target.closest('.modal-container') && // Don't close sidebar when clicking modal elements
                 settingsSidebar.classList.contains('open')) {
@@ -1110,7 +1110,7 @@ export class UIManager {
                         duplicatePlayerNumbers.push(index + 1);
                     }
                 });
-                
+
                 if (duplicatePlayerNumbers.length > 1) {
                     const playerLabels = duplicatePlayerNumbers.map(num => `Player ${num}`).join(' and ');
                     validationErrors.push(`${playerLabels} both have the same name: "${duplicateName}"`);
@@ -1128,13 +1128,13 @@ export class UIManager {
                 const powerBtn = playerRows[i].querySelector('.power-selector-btn') as HTMLButtonElement;
                 const bracketBtn = playerRows[i].querySelector('.bracket-selector-btn') as HTMLButtonElement;
                 const playerName = nameInput.value.trim();
-                
+
                 // Check if this row has any content at all
                 const hasName = playerName.length > 0;
                 const hasPowerSelection = powerBtn && !powerBtn.textContent?.includes('Select Power');
                 const hasBracketSelection = bracketBtn && !bracketBtn.textContent?.includes('Select Bracket');
                 const hasAnyContent = hasName || hasPowerSelection || hasBracketSelection;
-                
+
                 // Determine if we need all rows to be filled based on whether any rows have content
                 const anyRowHasContent = Array.from(playerRows).some((row, index) => {
                     const nameInput = row.querySelector('.player-name') as HTMLInputElement;
@@ -1145,21 +1145,21 @@ export class UIManager {
                     const hasBracket = bracketBtn && !bracketBtn.textContent?.includes('Select Bracket');
                     return name.length > 0 || hasPower || hasBracket;
                 });
-                
+
                 // If any row has content, then all visible rows should be considered required
                 const shouldBeRequired = anyRowHasContent || hasAnyContent;
-                
+
                 // Only treat as validation error if row should be required but is incomplete
                 if (shouldBeRequired && !player) {
                     validationFailed = true;
-                    
+
                     const rowErrors: string[] = [];
-                    
+
                     // Check for missing name
                     if (!hasName) {
                         rowErrors.push('Missing name');
                     }
-                    
+
                     // Check for missing power levels (in power mode) or brackets (in bracket mode)
                     if (!hasPowerSelection && !hasBracketSelection) {
                         const bracketRadio = document.getElementById('bracket-radio') as HTMLInputElement;
@@ -1169,7 +1169,7 @@ export class UIManager {
                             rowErrors.push('No power levels selected');
                         }
                     }
-                    
+
                     // Add all errors for this row
                     if (rowErrors.length > 0) {
                         const playerLabel = playerName ? `Player ${rowNumber} (${playerName})` : `Player ${rowNumber}`;
@@ -1192,7 +1192,7 @@ export class UIManager {
                 let title: string;
                 const hasDuplicateNames = duplicateNames.length > 0;
                 const hasOtherErrors = validationErrors.some(error => !error.includes('both have the same name'));
-                
+
                 if (hasDuplicateNames && !hasOtherErrors) {
                     // Only duplicate name errors
                     title = 'Duplicate Player Names';
@@ -1211,7 +1211,7 @@ export class UIManager {
                     // Multiple errors or mixed types - use generic title
                     title = 'Validation Errors Found';
                 }
-                
+
                 // Show specific validation errors with proper formatting
                 await modernErrorManager.showError(
                     title,
@@ -1299,10 +1299,10 @@ export class UIManager {
 
         this.currentPods = [...pods]; // Store current pods for drag-and-drop
         this.currentUnassigned = [...unassignedPlayers]; // Store current unassigned for drag-and-drop
-        
+
         // Clear any existing error messages since pod generation was successful
         await modernErrorManager.clearErrorToasts();
-        
+
         this.renderPods(pods, unassignedPlayers);
     }
 

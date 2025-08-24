@@ -20,13 +20,13 @@ test.describe('Bracket Mode Error Fix', () => {
     test('should show "No bracket selected" in bracket mode', async ({ page }) => {
         // Set player name but no bracket using helper
         await helper.players.setPlayerName(0, 'TestPlayer');
-        
+
         // Try to generate pods using helper
         await helper.pods.generatePods();
-        
+
         // Wait for toast to appear
         await page.waitForSelector('.toast-container .toast', { timeout: 5000 });
-        
+
         // Verify bracket-specific error message
         const toast = page.locator('.toast-container .toast').first();
         const suggestions = toast.locator('.toast-suggestions li').first();

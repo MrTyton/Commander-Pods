@@ -171,7 +171,7 @@ export async function teardownBasicTest(helper: TestHelper) {
             const displayModeActive = await helper.page.evaluate(() => {
                 return document.body.classList.contains('display-mode');
             });
-            
+
             if (displayModeActive) {
                 await helper.page.keyboard.press('Escape');
                 await helper.page.waitForTimeout(100);
@@ -233,7 +233,7 @@ export async function teardownBasicTest(helper: TestHelper) {
                     }
                 });
                 await helper.page.waitForTimeout(200);
-                
+
                 // Try to handle any modal that might appear
                 try {
                     const modal = helper.page.locator('.modal-container .modal-overlay');
@@ -275,12 +275,12 @@ export async function teardownDisplayModeTest(helper: TestHelper) {
             // Method 1: Use keyboard escape
             await helper.page.keyboard.press('Escape');
             await helper.page.waitForTimeout(200);
-            
+
             // Method 2: Check if still in display mode and use helper
             if (await helper.displayMode.isInDisplayMode()) {
                 await helper.displayMode.exitDisplayMode();
             }
-            
+
             // Method 3: Force body class removal if still stuck
             await helper.page.evaluate(() => {
                 document.body.classList.remove('display-mode');
